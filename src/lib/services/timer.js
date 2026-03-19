@@ -1,9 +1,5 @@
-/**
- * Abstração de timers usando Web Worker quando disponível.
- * Fallback para setInterval quando Worker não estiver disponível (ex: Vite dev).
- */
 const workerCode = [
-  'const timers = {};',
+  'let timers = {};',
   "self.onmessage = (e) => {",
   "  const d = e.data;",
   "  if (d.cmd === 'start') {",
@@ -13,7 +9,8 @@ const workerCode = [
   "  } else if (d.cmd === 'stop') {",
   "    if (timers[d.id]) { clearInterval(timers[d.id]); delete timers[d.id]; }",
   "  } else if (d.cmd === 'stopAll') {",
-  "    Object.keys(timers).forEach((k) => clearInterval(timers[k])); timers = {};",
+  "    Object.keys(timers).forEach((k) => clearInterval(timers[k]));",
+  "    timers = {};",
   "  }",
   "};"
 ].join('\n');

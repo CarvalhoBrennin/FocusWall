@@ -76,7 +76,6 @@ struct RatesBaseline {
 struct UiState {
     last_viewed_base_date: String,
     view_offset_days: i32,
-    new_task_priority: String,
 }
 
 impl Default for DashboardState {
@@ -96,7 +95,6 @@ impl Default for UiState {
         Self {
             last_viewed_base_date: String::new(),
             view_offset_days: 0,
-            new_task_priority: "medium".to_string(),
         }
     }
 }

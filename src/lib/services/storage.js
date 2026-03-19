@@ -26,9 +26,7 @@ export const storage = isTauri && tauriInvoke
       saveState: (s) => {
         try {
           localStorage.setItem(CONFIG.STORAGE_KEY, JSON.stringify(normalizeState(s)));
-        } catch {
-          /* preview only */
-        }
+        } catch {}
         return Promise.resolve();
       },
       getAppDataPath: () => Promise.resolve(''),

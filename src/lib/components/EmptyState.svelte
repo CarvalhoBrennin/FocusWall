@@ -25,7 +25,7 @@
   <div>
     <p class="empty-title">Quadro aberto.</p>
     <p class="empty-copy">
-      Clique aqui ou registre a primeira ação para transformar esta superfície em um plano real.
+      Clique aqui ou registre a primeira tarefa.
     </p>
   </div>
 </div>

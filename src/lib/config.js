@@ -3,12 +3,9 @@ export const CONFIG = {
   STORAGE_KEY: 'focus-dashboard-browser-preview',
   STATE_VERSION: 4,
   MAX_TASK_LENGTH: 180,
-  /** Tarefas por página na lista (paginação) */
   TASKS_PER_PAGE: 3,
   EXCHANGE_API_URL: 'https://economia.awesomeapi.com.br/json/last/USD-BRL,EUR-BRL',
-  /** Intervalo entre atualizações automáticas (tela visível / app ativo) */
   RATE_REFRESH_MS: 60000,
-  /** Destaque dourado no card: USD ≤ limiar; EUR abaixo do limiar (BRL) */
   RATE_GOLD_USD_AT_OR_BELOW: 5.0,
   RATE_GOLD_EUR_BELOW: 6.0,
   RATE_REQUEST_TIMEOUT_MS: 8000,

@@ -33,7 +33,6 @@
     commitTaskEdit(task.id, editValue);
   }
 
-  /** Evita conflito entre blur do input e clique em acoes do card. */
   function handleEditFocusOut() {
     const id = task.id;
     const value = editValue;

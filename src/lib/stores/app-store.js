@@ -1,12 +1,11 @@
 import { writable, derived, get } from 'svelte/store';
 import { CONFIG, VIEW, RATE_STATUS, PRIORITY_ORDER } from '../config.js';
 import { storage } from '../services/storage.js';
-import { startTimer, stopTimer, stopAllTimers } from '../services/timer.js';
+import { startTimer, stopAllTimers } from '../services/timer.js';
 import { fetchExchangeRates } from '../services/exchange.js';
 import {
   createDefaultState,
   normalizeState,
-  normalizeTask,
   normalizeTaskText,
   normalizePriority,
   getLocalDateKey,
@@ -42,7 +41,6 @@ function getTasksByDate(data, dk) {
   return Array.isArray(data.tasksByDate?.[dk]) ? data.tasksByDate[dk] : [];
 }
 
-// Core state
 export const currentDateKey = writable(getLocalDateKey(new Date()));
 export const viewOffsetDays = writable(VIEW.TODAY);
 export const editingTaskId = writable(null);
@@ -55,12 +53,10 @@ export const data = writable(createDefaultState());
 export const prevRates = writable({ usd: null, eur: null });
 export const ratesStatus = writable(RATE_STATUS.UPDATING);
 export const ratesMeta = writable('Buscando cotações...');
-export const ratesCache = writable(null); // { usd, eur, updatedAt, fetchedAt } | null - display values
+export const ratesCache = writable(null);
 export const clockTime = writable('00:00:00');
-/** Id da última tarefa adicionada (animação is-new, ~400ms) */
 export const lastAddedTaskId = writable(/** @type {string | null} */ (null));
 
-// Derived: visible tasks for current view
 export const visibleTasks = derived(
   [data, currentDateKey, viewOffsetDays],
   ([$data, $currentDateKey, $viewOffsetDays]) => {
@@ -69,15 +65,12 @@ export const visibleTasks = derived(
   }
 );
 
-// Derived: tasks for "today" (for clear today button)
 export const todayTasks = derived([data, currentDateKey], ([$data, $currentDateKey]) =>
   getTasksByDate($data, $currentDateKey)
 );
 
-// Derived: baseline de câmbio do dia (primeira leitura do dia em BR)
 export const ratesBaseline = derived(data, ($d) => $d?.ratesBaseline ?? null);
 
-// Internal
 let ratesRequestId = 0;
 let activeRatesController = null;
 let saveDebounceId = null;
@@ -196,12 +189,6 @@ export function stopAllAppTimers() {
   stopAllTimers();
 }
 
-/**
- * Atualiza câmbio na API.
- * Com cache existente: não muda o pill para "atualizando" (evita piscar); só atualiza ao concluir.
- * Sem cache: mostra "atualizando" até a primeira resposta.
- * @param {{ silent?: boolean }} [options] — silent: vindo de retomada após pausa (mesmo comportamento suave)
- */
 export async function updateExchangeRates(options = {}) {
   const $paused = get(paused);
   if ($paused) return;
@@ -227,7 +214,6 @@ export async function updateExchangeRates(options = {}) {
   try {
     const fresh = await fetchExchangeRates(activeRatesController);
     if (rid !== ratesRequestId) return;
-    /** Valores exibidos antes desta atualização (para variação / “antes”) — não usar `fresh` aqui */
     const before = get(ratesCache);
     if (before && Number.isFinite(before.usd) && Number.isFinite(before.eur)) {
       prevRates.set({ usd: before.usd, eur: before.eur });
@@ -285,12 +271,10 @@ export function onFullscreenPause(shouldPause) {
     abortRatesFetch();
   } else {
     paused.set(false);
-    /* Retomada: não força estado "atualizando" se já houver cotações na tela */
     updateExchangeRates({ silent: true });
   }
 }
 
-// Task operations
 export async function addTask(text, priority) {
   const t = normalizeTaskText(text);
   if (!t) return null;
@@ -315,8 +299,7 @@ export async function addTask(text, priority) {
   const tbd = { ...$data.tasksByDate, [dk]: tasks };
   const nextData = {
     ...$data,
-    tasksByDate: tbd,
-    ui: { ...$data.ui, newTaskPriority: newTask.priority }
+    tasksByDate: tbd
   };
 
   try {
@@ -375,14 +358,6 @@ export async function updateVisibleTaskList(mutator) {
   } catch {
     data.set({ ...$data, tasksByDate: { ...$data.tasksByDate, [dk]: prev } });
   }
-}
-
-export function setNewTaskPriority(priority) {
-  data.update((d) => ({
-    ...d,
-    ui: { ...d.ui, newTaskPriority: normalizePriority(priority) }
-  }));
-  persistStateDebounced();
 }
 
 export async function toggleTask(id) {

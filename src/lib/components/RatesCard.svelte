@@ -46,13 +46,11 @@
 
   $: todayBR = getBrazilDateKey(new Date());
 
-  /* Delta entre refreshes (desde última atualização) */
   $: usdRefreshDelta =
     $ratesCache && $prevRates.usd != null ? $ratesCache.usd - $prevRates.usd : null;
   $: eurRefreshDelta =
     $ratesCache && $prevRates.eur != null ? $ratesCache.eur - $prevRates.eur : null;
 
-  /* Variação primária: API → baseline do dia → refresh */
   $: bl = $ratesBaseline;
   $: rc = $ratesCache;
 
@@ -165,76 +163,162 @@
     if (!p) return true;
     return !isUp(p) && !isDown(p);
   }
+
+  function movementLabel(p) {
+    if (isUp(p)) return 'Subindo';
+    if (isDown(p)) return 'Caindo';
+    return 'Estável';
+  }
+
+  function movementClass(p) {
+    return isUp(p) ? 'is-up' : isDown(p) ? 'is-down' : 'is-flat';
+  }
+
+  function sparklinePoints(current, primary) {
+    const fallback = '0,16 25,16 50,16 75,16 100,16';
+    if (current == null || !Number.isFinite(current)) return fallback;
+
+    const before =
+      primary?.beforeVal != null && Number.isFinite(primary.beforeVal)
+        ? primary.beforeVal
+        : primary?.delta != null && Number.isFinite(primary.delta)
+          ? current - primary.delta
+          : current;
+
+    const delta = current - before;
+    const wave = Math.max(Math.abs(delta) * 0.22, current * 0.0014);
+    const values = [
+      before,
+      before + delta * 0.22 + wave * 0.2,
+      before + delta * 0.48 - wave * 0.12,
+      before + delta * 0.76 + wave * 0.1,
+      current
+    ];
+
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const range = Math.max(max - min, current * 0.0022, 0.001);
+
+    return values
+      .map((value, index) => {
+        const x = (index / (values.length - 1)) * 100;
+        const normalized = (value - min) / range;
+        const y = 22 - normalized * 14;
+        return `${x},${y.toFixed(2)}`;
+      })
+      .join(' ');
+  }
 </script>
 
 <section class="rates-card" aria-labelledby="rates-title">
-  <div class="section-heading">
-    <div>
-      <p id="rates-title" class="eyebrow">Câmbio BRL</p>
-      <h3 class="section-title">Mercado em observação</h3>
+  <div class="section-heading section-heading--rates">
+    <div class="rates-heading">
+      <p class="eyebrow">Câmbio</p>
+      <h3 id="rates-title" class="section-title section-title--rates">Câmbio BRL</h3>
+      <p class="rates-subtitle">USD-BRL e EUR-BRL.</p>
     </div>
-    <span class={`status-pill ${statusClass}`} aria-live="polite">{statusText}</span>
+    <div class="rates-status">
+      <span class={`status-pill ${statusClass}`} aria-live="polite">{statusText}</span>
+    </div>
   </div>
 
   <div class="rate-list" role="list" aria-label="Cotações do dia">
     <div
       class="rate-row"
       class:rate-row--gold={usdGold}
+      class:rate-row--up={isUp(usdPrimary)}
+      class:rate-row--down={isDown(usdPrimary)}
+      class:rate-row--flat={isFlat(usdPrimary)}
       role="listitem"
     >
-      <div class="rate-copy">
-        <span class="rate-code">USD</span>
-        <span
-          class="rate-delta"
-          class:rate-up={isUp(usdPrimary)}
-          class:rate-down={isDown(usdPrimary)}
-          class:rate-flat={isFlat(usdPrimary)}
-        >
-          {primaryLabel(usdPrimary)}
-        </span>
-        {#if usdPrimary?.beforeVal != null && usdPrimary?.delta != null && Math.abs(usdPrimary.delta) > 0.0001}
-          <span class="rate-before" aria-label="Cotação anterior em reais">
-            Antes: R$ {formatters.rateNumber.format(usdPrimary.beforeVal)}
+      <div class="rate-row-top">
+        <div class="rate-copy">
+          <div class="rate-chipline">
+            <span class="rate-code">USD</span>
+            <span class="rate-market">USD-BRL</span>
+          </div>
+          <span
+            class="rate-delta"
+            class:rate-up={isUp(usdPrimary)}
+            class:rate-down={isDown(usdPrimary)}
+            class:rate-flat={isFlat(usdPrimary)}
+          >
+            {primaryLabel(usdPrimary)}
           </span>
-        {/if}
+          {#if usdPrimary?.beforeVal != null && usdPrimary?.delta != null && Math.abs(usdPrimary.delta) > 0.0001}
+            <span class="rate-before" aria-label="Cotação anterior em reais">
+              Antes: R$ {formatters.rateNumber.format(usdPrimary.beforeVal)}
+            </span>
+          {/if}
+        </div>
+        <div class="rate-value-wrap">
+          <strong class="rate-value" class:rate-value--gold={usdGold}>
+            <span class="rate-symbol">R$</span>
+            <span class="rate-number">
+              {rc?.usd != null ? formatters.rateNumber.format(rc.usd) : '--'}
+            </span>
+          </strong>
+          <span class={`rate-pulse ${movementClass(usdPrimary)}`}>{movementLabel(usdPrimary)}</span>
+        </div>
       </div>
-      <strong class="rate-value" class:rate-value--gold={usdGold}>
-        <span class="rate-symbol">R$</span>
-        <span class="rate-number">
-          {rc?.usd != null ? formatters.rateNumber.format(rc.usd) : '--'}
-        </span>
-      </strong>
+      <div class="rate-sparkline" aria-hidden="true">
+        <svg viewBox="0 0 100 24" preserveAspectRatio="none">
+          <polyline
+            class={`sparkline-trace ${movementClass(usdPrimary)}`}
+            points={sparklinePoints(rc?.usd, usdPrimary)}
+          />
+        </svg>
+      </div>
     </div>
 
     <div
       class="rate-row"
       class:rate-row--gold={eurGold}
+      class:rate-row--up={isUp(eurPrimary)}
+      class:rate-row--down={isDown(eurPrimary)}
+      class:rate-row--flat={isFlat(eurPrimary)}
       role="listitem"
     >
-      <div class="rate-copy">
-        <span class="rate-code">EUR</span>
-        <span
-          class="rate-delta"
-          class:rate-up={isUp(eurPrimary)}
-          class:rate-down={isDown(eurPrimary)}
-          class:rate-flat={isFlat(eurPrimary)}
-        >
-          {primaryLabel(eurPrimary)}
-        </span>
-        {#if eurPrimary?.beforeVal != null && eurPrimary?.delta != null && Math.abs(eurPrimary.delta) > 0.0001}
-          <span class="rate-before" aria-label="Cotação anterior em reais">
-            Antes: R$ {formatters.rateNumber.format(eurPrimary.beforeVal)}
+      <div class="rate-row-top">
+        <div class="rate-copy">
+          <div class="rate-chipline">
+            <span class="rate-code">EUR</span>
+            <span class="rate-market">EUR-BRL</span>
+          </div>
+          <span
+            class="rate-delta"
+            class:rate-up={isUp(eurPrimary)}
+            class:rate-down={isDown(eurPrimary)}
+            class:rate-flat={isFlat(eurPrimary)}
+          >
+            {primaryLabel(eurPrimary)}
           </span>
-        {/if}
+          {#if eurPrimary?.beforeVal != null && eurPrimary?.delta != null && Math.abs(eurPrimary.delta) > 0.0001}
+            <span class="rate-before" aria-label="Cotação anterior em reais">
+              Antes: R$ {formatters.rateNumber.format(eurPrimary.beforeVal)}
+            </span>
+          {/if}
+        </div>
+        <div class="rate-value-wrap">
+          <strong class="rate-value" class:rate-value--gold={eurGold}>
+            <span class="rate-symbol">R$</span>
+            <span class="rate-number">
+              {rc?.eur != null ? formatters.rateNumber.format(rc.eur) : '--'}
+            </span>
+          </strong>
+          <span class={`rate-pulse ${movementClass(eurPrimary)}`}>{movementLabel(eurPrimary)}</span>
+        </div>
       </div>
-      <strong class="rate-value" class:rate-value--gold={eurGold}>
-        <span class="rate-symbol">R$</span>
-        <span class="rate-number">
-          {rc?.eur != null ? formatters.rateNumber.format(rc.eur) : '--'}
-        </span>
-      </strong>
+      <div class="rate-sparkline" aria-hidden="true">
+        <svg viewBox="0 0 100 24" preserveAspectRatio="none">
+          <polyline
+            class={`sparkline-trace ${movementClass(eurPrimary)}`}
+            points={sparklinePoints(rc?.eur, eurPrimary)}
+          />
+        </svg>
+      </div>
     </div>
   </div>
 
-  <p class="meta-text">{$ratesMeta}</p>
+  <p class="meta-text meta-text--rates">{$ratesMeta}</p>
 </section>

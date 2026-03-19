@@ -6,7 +6,7 @@ export function createDefaultState() {
     tasksByDate: {},
     ratesCache: null,
     ratesBaseline: null,
-    ui: { lastViewedBaseDate: '', viewOffsetDays: 0, newTaskPriority: PRIORITY.MEDIUM }
+    ui: { lastViewedBaseDate: '', viewOffsetDays: 0 }
   };
 }
 
@@ -28,8 +28,7 @@ export function normalizeState(candidate) {
     ratesBaseline: normalizeRatesBaseline(candidate.ratesBaseline),
     ui: {
       lastViewedBaseDate: typeof candidate.ui?.lastViewedBaseDate === 'string' ? candidate.ui.lastViewedBaseDate : '',
-      viewOffsetDays: Number.isInteger(candidate.ui?.viewOffsetDays) ? candidate.ui.viewOffsetDays : 0,
-      newTaskPriority: normalizePriority(candidate.ui?.newTaskPriority)
+      viewOffsetDays: Number.isInteger(candidate.ui?.viewOffsetDays) ? candidate.ui.viewOffsetDays : 0
     }
   };
 }
@@ -101,7 +100,6 @@ export function getLocalDateKey(d) {
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 }
 
-/** Dia civil em America/Sao_Paulo (para baseline de câmbio do dia) */
 export function getBrazilDateKey(d) {
   try {
     return d.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });

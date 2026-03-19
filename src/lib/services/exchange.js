@@ -10,7 +10,6 @@ function parseRateTimestamp(payload) {
   return Number.isFinite(ts) ? new Date(ts * 1000).toISOString() : new Date().toISOString();
 }
 
-/** AwesomeAPI: varBid, pctChange podem vir como string (ex. "0,02"). Converte para number. */
 function parseApiNumber(v) {
   if (v == null) return null;
   if (typeof v === 'number' && Number.isFinite(v)) return v;
@@ -27,9 +26,6 @@ function parsePairVariation(obj) {
   };
 }
 
-/**
- * @param {AbortController} [controller] - Optional controller for external abort (e.g. on pause)
- */
 export async function fetchExchangeRates(controller) {
   const ctrl = controller ?? new AbortController();
   const timeoutId = setTimeout(() => ctrl.abort(), CONFIG.RATE_REQUEST_TIMEOUT_MS);

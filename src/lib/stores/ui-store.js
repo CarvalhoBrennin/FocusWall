@@ -1,17 +1,7 @@
 import { writable } from 'svelte/store';
 
-export const toast = writable(/** @type {{ message: string; undoCallback?: () => void } | null} */ (null));
-export const modal = writable(
-  /** @type {{
-   *   title: string;
-   *   body: string;
-   *   confirmLabel: string;
-   *   confirmDanger: boolean;
-   *   onConfirm: () => void;
-   *   onCancel: () => void;
-   * } | null} */
-  null
-);
+export const toast = writable(null);
+export const modal = writable(null);
 
 let toastTimeoutId = null;
 
