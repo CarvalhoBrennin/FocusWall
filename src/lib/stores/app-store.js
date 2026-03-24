@@ -158,7 +158,11 @@ export function bootstrapApp() {
 
       if (storage.mode === 'tauri') {
         const path = await storage.getAppDataPath();
-        startupEnabled.set(Boolean(await storage.getLaunchOnStartup()));
+        const startupIsEnabled = Boolean(await storage.getLaunchOnStartup());
+        startupEnabled.set(startupIsEnabled);
+        if (startupIsEnabled) {
+          startupEnabled.set(Boolean(await storage.syncLaunchOnStartup()));
+        }
         appDataPath.set(path);
         setAppStatus('Dados salvos no app desktop.', 'live', path);
       } else {

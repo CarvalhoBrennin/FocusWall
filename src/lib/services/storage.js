@@ -11,7 +11,8 @@ export const storage = isTauri && tauriInvoke
       saveState: (s) => tauriInvoke('save_state', { state: normalizeState(s) }),
       getAppDataPath: () => tauriInvoke('get_app_data_path'),
       getLaunchOnStartup: () => tauriInvoke('get_launch_on_startup'),
-      setLaunchOnStartup: (enabled) => tauriInvoke('set_launch_on_startup', { enabled })
+      setLaunchOnStartup: (enabled) => tauriInvoke('set_launch_on_startup', { enabled }),
+      syncLaunchOnStartup: () => tauriInvoke('sync_launch_on_startup')
     }
   : {
       mode: 'browser',
@@ -31,5 +32,6 @@ export const storage = isTauri && tauriInvoke
       },
       getAppDataPath: () => Promise.resolve(''),
       getLaunchOnStartup: () => Promise.resolve(false),
-      setLaunchOnStartup: () => Promise.resolve(false)
+      setLaunchOnStartup: () => Promise.resolve(false),
+      syncLaunchOnStartup: () => Promise.resolve(false)
     };

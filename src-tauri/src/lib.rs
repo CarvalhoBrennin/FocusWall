@@ -162,6 +162,27 @@ fn set_launch_on_startup(app: AppHandle, enabled: bool) -> Result<bool, String> 
     }
 }
 
+#[tauri::command]
+fn sync_launch_on_startup(app: AppHandle) -> Result<bool, String> {
+    #[cfg(desktop)]
+    {
+        use tauri_plugin_autostart::ManagerExt;
+        let manager = app.autolaunch();
+        let enabled = manager.is_enabled().map_err(|error| error.to_string())?;
+        if enabled {
+            manager.disable().map_err(|error| error.to_string())?;
+            manager.enable().map_err(|error| error.to_string())?;
+        }
+        manager.is_enabled().map_err(|error| error.to_string())
+    }
+
+    #[cfg(not(desktop))]
+    {
+        let _ = app;
+        Ok(false)
+    }
+}
+
 fn app_data_directory(app: &AppHandle) -> Result<PathBuf, String> {
     let directory = app.path().app_data_dir().map_err(|error| error.to_string())?;
     fs::create_dir_all(&directory).map_err(|error| error.to_string())?;
@@ -316,7 +337,8 @@ pub fn run() {
             save_state,
             get_app_data_path,
             get_launch_on_startup,
-            set_launch_on_startup
+            set_launch_on_startup,
+            sync_launch_on_startup
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application");
