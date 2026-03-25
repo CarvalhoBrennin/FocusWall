@@ -2,6 +2,7 @@ import { writable } from 'svelte/store';
 
 export const toast = writable(null);
 export const modal = writable(null);
+export const settingsModal = writable(null);
 
 let toastTimeoutId = null;
 
@@ -41,4 +42,12 @@ export function showConfirmModal(options) {
       onCancel();
     }
   });
+}
+
+export function showSettingsModal() {
+  settingsModal.set(true);
+}
+
+export function hideSettingsModal() {
+  settingsModal.set(null);
 }
