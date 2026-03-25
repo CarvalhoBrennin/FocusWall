@@ -8,6 +8,7 @@
   import { VIEW, CONFIG } from '../config.js';
   import { formatters } from '../config.js';
   import { parseDateKey, addDays } from '../utils/state.js';
+  import SettingsButton from './SettingsButton.svelte';
 
   $: tasks = $visibleTasks || [];
   $: total = tasks.length;
@@ -33,6 +34,7 @@
         <p class="task-kicker">{historyLabel}</p>
         <h1 id="tasks-title">{headline}</h1>
       </div>
+      <SettingsButton />
     </div>
   </div>
 
@@ -58,3 +60,17 @@
     </button>
   </div>
 </header>
+
+<style>
+  .task-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .task-heading > div {
+    flex: 1;
+    min-width: 0;
+  }
+</style>

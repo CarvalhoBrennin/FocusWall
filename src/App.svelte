@@ -4,6 +4,8 @@
   import TaskPanel from './lib/components/TaskPanel.svelte';
   import Toast from './lib/components/Toast.svelte';
   import Modal from './lib/components/Modal.svelte';
+  import SettingsModal from './lib/components/SettingsModal.svelte';
+  import { settingsModal } from './lib/stores/ui-store.js';
   import {
     bootstrapApp,
     startAllTimers,
@@ -88,6 +90,10 @@
 
 <Toast />
 <Modal />
+
+{#if $settingsModal}
+  <SettingsModal />
+{/if}
 
 <main class="app-shell" aria-label="Painel pessoal de produtividade">
   <div class="app-shell-frame">
