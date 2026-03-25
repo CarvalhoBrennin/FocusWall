@@ -5,6 +5,7 @@
   "private": true,
   "description": "Desktop dashboard em Tauri com Svelte e Vite.",
   "scripts": {
+    "check:setup": "node tools/check-setup.mjs",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
