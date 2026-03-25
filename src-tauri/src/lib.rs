@@ -76,6 +76,18 @@ struct RatesBaseline {
 struct UiState {
     last_viewed_base_date: String,
     view_offset_days: i32,
+    #[serde(default)]
+    preferred_monitor: Option<usize>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct MonitorInfo {
+    index: usize,
+    name: String,
+    width: u32,
+    height: u32,
+    is_primary: bool,
 }
 
 impl Default for DashboardState {
@@ -95,6 +107,7 @@ impl Default for UiState {
         Self {
             last_viewed_base_date: String::new(),
             view_offset_days: 0,
+            preferred_monitor: None,
         }
     }
 }
@@ -183,6 +196,84 @@ fn sync_launch_on_startup(app: AppHandle) -> Result<bool, String> {
     }
 }
 
+#[tauri::command]
+fn get_available_monitors(window: tauri::WebviewWindow) -> Result<Vec<MonitorInfo>, String> {
+    let monitors = window.available_monitors().map_err(|error| error.to_string())?;
+    let primary_monitor = window.primary_monitor().map_err(|error| error.to_string())?;
+    
+    let mut monitor_list = Vec::new();
+    
+    for (index, monitor) in monitors.iter().enumerate() {
+        let work_area = monitor.work_area();
+        let is_primary = primary_monitor.as_ref()
+            .map(|pm| pm.position() == monitor.position())
+            .unwrap_or(false);
+            
+        monitor_list.push(MonitorInfo {
+            index,
+            name: format!("Monitor {}", index + 1),
+            width: work_area.size.width,
+            height: work_area.size.height,
+            is_primary,
+        });
+    }
+    
+    Ok(monitor_list)
+}
+
+#[tauri::command]
+fn get_current_monitor(window: tauri::WebviewWindow) -> Result<MonitorInfo, String> {
+    let monitors = window.available_monitors().map_err(|error| error.to_string())?;
+    let primary_monitor = window.primary_monitor().map_err(|error| error.to_string())?;
+    let current_monitor = window.current_monitor().map_err(|error| error.to_string())?;
+    
+    if let Some((index, monitor)) = monitors.iter().enumerate().find(|(_, m)| {
+        current_monitor.as_ref().map(|cm| cm.position() == m.position()).unwrap_or(false)
+    }) {
+        let work_area = monitor.work_area();
+        let is_primary = primary_monitor.as_ref()
+            .map(|pm| pm.position() == monitor.position())
+            .unwrap_or(false);
+            
+        Ok(MonitorInfo {
+            index,
+            name: format!("Monitor {}", index + 1),
+            width: work_area.size.width,
+            height: work_area.size.height,
+            is_primary,
+        })
+    } else {
+        Err("Could not determine current monitor".to_string())
+    }
+}
+
+#[tauri::command]
+fn move_to_monitor(window: tauri::WebviewWindow, monitor_index: usize) -> Result<(), String> {
+    let monitors = window.available_monitors().map_err(|error| error.to_string())?;
+    
+    if let Some(monitor) = monitors.get(monitor_index) {
+        let work_area = monitor.work_area();
+        let position = work_area.position;
+        let size = work_area.size;
+
+        let _ = window.set_fullscreen(false);
+        let _ = window.set_position(Position::Physical(PhysicalPosition::new(position.x, position.y)));
+        let _ = window.set_size(Size::Physical(PhysicalSize::new(size.width, size.height)));
+        let _ = window.set_always_on_bottom(true);
+        
+        Ok(())
+    } else {
+        Err(format!("Monitor index {} not found", monitor_index))
+    }
+}
+
+#[tauri::command]
+fn save_monitor_preference(app: AppHandle, monitor_index: usize) -> Result<(), String> {
+    let mut state = load_state(app.clone())?;
+    state.ui.preferred_monitor = Some(monitor_index);
+    save_state(app, state)
+}
+
 fn app_data_directory(app: &AppHandle) -> Result<PathBuf, String> {
     let directory = app.path().app_data_dir().map_err(|error| error.to_string())?;
     fs::create_dir_all(&directory).map_err(|error| error.to_string())?;
@@ -232,12 +323,30 @@ fn write_state_file(path: &Path, state: &DashboardState) -> Result<(), String> {
     }
 }
 
-fn move_window_to_target_monitor(window: &tauri::WebviewWindow) -> tauri::Result<()> {
+fn move_window_to_target_monitor(window: &tauri::WebviewWindow, app: &AppHandle) -> tauri::Result<()> {
     let monitors = window.available_monitors()?;
     if monitors.is_empty() {
         return Ok(());
     }
 
+    // Try to use saved preference first
+    if let Ok(state) = load_state(app.clone()) {
+        if let Some(preferred_index) = state.ui.preferred_monitor {
+            if let Some(preferred_monitor) = monitors.get(preferred_index) {
+                let work_area = preferred_monitor.work_area();
+                let position = work_area.position;
+                let size = work_area.size;
+
+                let _ = window.set_fullscreen(false);
+                let _ = window.set_position(Position::Physical(PhysicalPosition::new(position.x, position.y)));
+                let _ = window.set_size(Size::Physical(PhysicalSize::new(size.width, size.height)));
+                let _ = window.set_always_on_bottom(true);
+                return Ok(());
+            }
+        }
+    }
+
+    // Fallback to original logic
     let primary = window.primary_monitor()?;
     let target = if let Some(primary_monitor) = primary {
         monitors
@@ -262,7 +371,7 @@ fn move_window_to_target_monitor(window: &tauri::WebviewWindow) -> tauri::Result
 
 fn show_main_window(app: &AppHandle) {
     if let Some(window) = app.get_webview_window(MAIN_WINDOW_LABEL) {
-        let _ = move_window_to_target_monitor(&window);
+        let _ = move_window_to_target_monitor(&window, app);
         let _ = window.show();
         let _ = window.unminimize();
         let _ = window.set_focus();
@@ -326,7 +435,7 @@ pub fn run() {
             build_tray(app.handle())?;
 
             if let Some(window) = app.get_webview_window(MAIN_WINDOW_LABEL) {
-                let _ = move_window_to_target_monitor(&window);
+                let _ = move_window_to_target_monitor(&window, app.handle());
                 let _ = window.show();
             }
 
@@ -338,7 +447,11 @@ pub fn run() {
             get_app_data_path,
             get_launch_on_startup,
             set_launch_on_startup,
-            sync_launch_on_startup
+            sync_launch_on_startup,
+            get_available_monitors,
+            get_current_monitor,
+            move_to_monitor,
+            save_monitor_preference
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application");
