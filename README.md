@@ -2,6 +2,21 @@
 
 App desktop em Tauri + Svelte para acompanhar tarefas do dia, relógio e câmbio.
 
+## Quickstart para desenvolvimento
+
+```bash
+npm install
+npm run tauri:dev
+```
+
+Frontend no navegador:
+
+```bash
+npm run dev
+```
+
+Guia de entrega: [docs/DEPLOY.md](docs/DEPLOY.md)
+
 ## 🚀 **Setup Rápido (Recomendado)**
 
 ### **Para usuários finais - Instalação Automática**
@@ -164,3 +179,7 @@ O executável gerado fica em `src-tauri/target/release/`.
 ## Fonte externa
 
 - AwesomeAPI: `https://economia.awesomeapi.com.br/json/last/USD-BRL,EUR-BRL`
+
+## Estado do repositório
+
+Este projeto já possui remoto GitHub configurado em `canvabrennin-alt/FocusWall` e foi mantido sem troca de remoto, apenas com ajuste de documentação e higiene do versionamento.

@@ -175,7 +175,7 @@
   }
 
   function sparklinePoints(current, primary) {
-    const fallback = '0,16 25,16 50,16 75,16 100,16';
+    const fallback = '0,32 50,32 100,32 150,32 200,32';
     if (current == null || !Number.isFinite(current)) return fallback;
 
     const before =
@@ -201,9 +201,9 @@
 
     return values
       .map((value, index) => {
-        const x = (index / (values.length - 1)) * 100;
+        const x = (index / (values.length - 1)) * 200;
         const normalized = (value - min) / range;
-        const y = 22 - normalized * 14;
+        const y = 44 - normalized * 28;
         return `${x},${y.toFixed(2)}`;
       })
       .join(' ');
@@ -262,7 +262,7 @@
         </div>
       </div>
       <div class="rate-sparkline" aria-hidden="true">
-        <svg viewBox="0 0 100 24" preserveAspectRatio="none">
+        <svg viewBox="0 0 200 48" preserveAspectRatio="none">
           <polyline
             class={`sparkline-trace ${movementClass(usdPrimary)}`}
             points={sparklinePoints(rc?.usd, usdPrimary)}
@@ -310,7 +310,7 @@
         </div>
       </div>
       <div class="rate-sparkline" aria-hidden="true">
-        <svg viewBox="0 0 100 24" preserveAspectRatio="none">
+        <svg viewBox="0 0 200 48" preserveAspectRatio="none">
           <polyline
             class={`sparkline-trace ${movementClass(eurPrimary)}`}
             points={sparklinePoints(rc?.eur, eurPrimary)}

@@ -96,7 +96,10 @@ body {
   overflow: hidden;
   letter-spacing: -0.012em;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  font-variant-ligatures: common-ligatures;
+  font-feature-settings: "kern" 1, "liga" 1;
 }
 
 ::selection {
@@ -643,9 +646,10 @@ body::after {
 
 .sparkline-trace {
   fill: none;
-  stroke-width: 2.4;
+  stroke-width: 1.2;
   stroke-linecap: round;
   stroke-linejoin: round;
+  shape-rendering: crispEdges;
 }
 
 .sparkline-trace.is-up {
@@ -1348,6 +1352,7 @@ input:disabled {
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
 }
 
 .task-item.is-complete .task-text {
