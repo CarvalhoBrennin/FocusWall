@@ -15,7 +15,8 @@ import {
   createId,
   cloneTask,
   getPinnedCount,
-  findTaskIndex
+  findTaskIndex,
+  DEFAULT_PREFERENCES
 } from '../utils/state.js';
 
 function ensureDateBucket(data, dk) {
@@ -45,6 +46,7 @@ export const currentDateKey = writable(getLocalDateKey(new Date()));
 export const viewOffsetDays = writable(VIEW.TODAY);
 export const editingTaskId = writable(null);
 export const startupEnabled = writable(false);
+export const preferences = writable(structuredClone(DEFAULT_PREFERENCES));
 export const appDataPath = writable('');
 export const appStatusMessage = writable('Inicializando...');
 export const appStatusVariant = writable(''); // 'live' | 'warning' | 'error'
@@ -129,10 +131,13 @@ export function setViewOffset(offset) {
 }
 
 export function setClockTime(now) {
-  const text = new Intl.DateTimeFormat('pt-BR', {
+  const $preferences = get(preferences);
+  const locale = $preferences.locale.code || 'pt-BR';
+  const showSeconds = $preferences.panel.showSeconds !== false;
+  const text = new Intl.DateTimeFormat(locale, {
     hour: '2-digit',
     minute: '2-digit',
-    second: '2-digit',
+    second: showSeconds ? '2-digit' : undefined,
     hour12: false
   }).format(now);
   clockTime.set(text);
@@ -148,6 +153,8 @@ export function bootstrapApp() {
       let d = ensureDateBucket(loaded, $currentDateKey);
       d = pruneHistory(d, $currentDateKey);
       data.set(d);
+      preferences.set(d.ui?.preferences ? structuredClone(d.ui.preferences) : structuredClone(DEFAULT_PREFERENCES));
+      applyPreferencesToDom(get(preferences));
 
       if (d.ratesCache) {
         prevRates.set({ usd: d.ratesCache.usd, eur: d.ratesCache.eur });
@@ -173,6 +180,8 @@ export function bootstrapApp() {
       const $currentDateKey = getLocalDateKey(new Date());
       const d = ensureDateBucket(def, $currentDateKey);
       data.set(d);
+      preferences.set(structuredClone(DEFAULT_PREFERENCES));
+      applyPreferencesToDom(get(preferences));
       setAppStatus('Falha ao carregar o estado local. Um estado vazio foi restaurado.', 'error');
     }
   })();
@@ -469,18 +478,63 @@ export async function clearTodayTasks(onConfirm) {
   });
 }
 
+
+function applyPreferencesToDom(currentPreferences) {
+  if (typeof document === 'undefined') return;
+  const body = document.body;
+  if (!body) return;
+  body.dataset.theme = currentPreferences.appearance.theme;
+  body.dataset.density = currentPreferences.appearance.density;
+}
+
+export async function updatePreferences(nextPreferences) {
+  const normalized = structuredClone(nextPreferences);
+  const previous = get(preferences);
+  const $data = get(data);
+  const nextData = {
+    ...$data,
+    ui: {
+      ...$data.ui,
+      preferences: normalized
+    }
+  };
+
+  preferences.set(normalized);
+  applyPreferencesToDom(normalized);
+
+  try {
+    await storage.saveState(nextData);
+    data.set(nextData);
+
+    if (storage.mode === 'tauri') {
+      await storage.setWindowLayer(normalized.window.layer);
+      await storage.setCloseToTray(normalized.window.closeToTray);
+      await storage.setAutoHideOnBlur(normalized.panel.autoHideOnBlur);
+    }
+
+    setAppStatus('Preferências salvas com sucesso.', 'live', get(appDataPath));
+    return { ok: true };
+  } catch (error) {
+    preferences.set(previous);
+    applyPreferencesToDom(previous);
+    data.set($data);
+    setAppStatus('Falha ao salvar preferências.', 'error', get(appDataPath));
+    return { ok: false, error: String(error?.message || error) };
+  }
+}
+
 export async function toggleStartup() {
-  if (storage.mode !== 'tauri') return;
+  if (storage.mode !== 'tauri') return { ok: false, message: 'Disponível apenas no app desktop.' };
   try {
     const $enabled = get(startupEnabled);
     const enabled = Boolean(await storage.setLaunchOnStartup(!$enabled));
     startupEnabled.set(enabled);
-    setAppStatus(
-      'Inicialização com Windows ' + (enabled ? 'ativada.' : 'desativada.'),
-      'live',
-      get(appDataPath)
-    );
+    const message = 'Inicialização com Windows ' + (enabled ? 'ativada.' : 'desativada.');
+    setAppStatus(message, 'live', get(appDataPath));
+    return { ok: true, message };
   } catch {
-    setAppStatus('Não foi possível alterar a inicialização com Windows.', 'error', get(appDataPath));
+    const message = 'Não foi possível alterar a inicialização com Windows.';
+    setAppStatus(message, 'error', get(appDataPath));
+    return { ok: false, message };
   }
 }

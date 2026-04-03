@@ -1,7 +1,7 @@
 export const CONFIG = {
   LOCALE: 'pt-BR',
   STORAGE_KEY: 'focus-dashboard-browser-preview',
-  STATE_VERSION: 4,
+  STATE_VERSION: 5,
   MAX_TASK_LENGTH: 180,
   TASKS_PER_PAGE: 4,
   EXCHANGE_API_URL: 'https://economia.awesomeapi.com.br/json/last/USD-BRL,EUR-BRL',
@@ -22,13 +22,18 @@ export const VIEW = { TODAY: 0, YESTERDAY: -1 };
 export const RATE_STATUS = { LIVE: 'live', UPDATING: 'updating', CACHED: 'cached', UNAVAILABLE: 'unavailable' };
 export const PRIORITY_ORDER = [PRIORITY.MEDIUM, PRIORITY.HIGH, PRIORITY.LOW];
 
-export const formatters = {
-  time: new Intl.DateTimeFormat(CONFIG.LOCALE, { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }),
-  shortTime: new Intl.DateTimeFormat(CONFIG.LOCALE, { hour: '2-digit', minute: '2-digit', hour12: false }),
-  longDate: new Intl.DateTimeFormat(CONFIG.LOCALE, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }),
-  historyDate: new Intl.DateTimeFormat(CONFIG.LOCALE, { weekday: 'short', day: '2-digit', month: 'short' }),
-  rateNumber: new Intl.NumberFormat(CONFIG.LOCALE, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-};
+export function createFormatters(locale = CONFIG.LOCALE) {
+  return {
+    time: new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }),
+    shortTime: new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit', hour12: false }),
+    longDate: new Intl.DateTimeFormat(locale, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }),
+    historyDate: new Intl.DateTimeFormat(locale, { weekday: 'short', day: '2-digit', month: 'short' }),
+    rateNumber: new Intl.NumberFormat(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+    percent: new Intl.NumberFormat(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2, signDisplay: 'exceptZero' })
+  };
+}
+
+export const formatters = createFormatters(CONFIG.LOCALE);
 
 export const ICONS = {
   moveUp: '<svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14V4M9 4L5 8M9 4l4 4"/></svg>',

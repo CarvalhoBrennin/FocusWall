@@ -107,6 +107,26 @@ body {
   color: var(--light-strong);
 }
 
+
+body[data-theme="light"] {
+  color: var(--ink-main);
+  background:
+    radial-gradient(circle at 14% 16%, rgba(210, 134, 88, 0.12), transparent 24%),
+    radial-gradient(circle at 86% 12%, rgba(108, 123, 89, 0.1), transparent 20%),
+    linear-gradient(145deg, #ece7dd 0%, #dcd6ca 48%, #d4ccbf 100%);
+}
+
+body[data-theme="dark"] {
+  color: var(--light-main);
+}
+
+body[data-density="compact"] {
+  --space-3: 0.82rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.6rem;
+}
+
 body::after {
   content: "";
   position: fixed;
