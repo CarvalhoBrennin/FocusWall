@@ -8,6 +8,7 @@
   let selectedMonitor = null;
   let loading = true;
   let errorMsg = null;
+  let successMsg = '';
 
   onMount(async () => {
     if (!isTauriRuntime()) {
@@ -16,32 +17,39 @@
       return;
     }
 
+    await fetchMonitors();
+  });
+
+  async function fetchMonitors() {
+    loading = true;
+    errorMsg = null;
     try {
       const [availableMonitors, current] = await Promise.all([
         invokeCommand(ALLOWED_COMMANDS.GET_AVAILABLE_MONITORS),
         invokeCommand(ALLOWED_COMMANDS.GET_CURRENT_MONITOR)
       ]);
-      
+
       monitors = availableMonitors;
       currentMonitor = current;
       selectedMonitor = current.index;
     } catch (err) {
-      console.warn('Monitor API erro:', err);
       errorMsg = String(err.message || err);
     } finally {
       loading = false;
     }
-  });
+  }
 
   async function handleMonitorChange(event) {
     const monitorIndex = parseInt(event.target.value);
     selectedMonitor = monitorIndex;
-    
+    successMsg = '';
+
     try {
       await invokeCommand(ALLOWED_COMMANDS.MOVE_TO_MONITOR, { monitorIndex });
       await invokeCommand(ALLOWED_COMMANDS.SAVE_MONITOR_PREFERENCE, { monitorIndex });
     } catch (err) {
       errorMsg = String(err.message || err);
+      onStatus({ type: 'error', message: errorMsg });
     }
   }
 
@@ -52,19 +60,20 @@
   }
 </script>
 
-<div class="monitor-selector">
-  <h3 class="monitor-selector-title">Display</h3>
-  
+<div class="monitor-selector" class:compact>
   {#if loading}
-    <div class="monitor-loading">
+    <div class="monitor-loading" role="status" aria-live="polite">
       <p>Carregando monitores...</p>
     </div>
   {:else if errorMsg}
-    <div class="monitor-error">
+    <div class="monitor-error" role="alert">
       <p>{errorMsg}</p>
+      {#if tauriInvoke}
+        <button type="button" class="ghost-button" on:click={fetchMonitors}>Tentar novamente</button>
+      {/if}
     </div>
   {:else}
-    <div class="monitor-list">
+    <fieldset class="monitor-list" aria-label="Selecionar monitor">
       {#each monitors as monitor}
         <label class="monitor-option" class:selected={selectedMonitor === monitor.index}>
           <input
@@ -82,42 +91,45 @@
           </div>
         </label>
       {/each}
-    </div>
+    </fieldset>
+  {/if}
+
+  {#if successMsg}
+    <p class="monitor-success" role="status" aria-live="polite">{successMsg}</p>
   {/if}
 </div>
 
 <style>
   .monitor-selector {
-    padding: 16px 0;
+    display: grid;
+    gap: 10px;
   }
 
-  .monitor-selector-title {
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--light-main);
-    margin: 0 0 16px 0;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+  .monitor-loading,
+  .monitor-error {
+    padding: 12px;
+    border-radius: 10px;
+    background: var(--surface-dark);
+    border: 1px solid var(--surface-dark-border);
+    font-size: 13px;
   }
 
   .monitor-loading {
-    padding: 12px;
-    text-align: center;
     color: var(--light-muted);
-    font-size: 13px;
   }
 
   .monitor-error {
-    padding: 12px;
-    text-align: center;
     color: var(--danger);
-    font-size: 13px;
   }
 
   .monitor-list {
     display: flex;
     flex-direction: column;
     gap: 8px;
+    border: 0;
+    margin: 0;
+    padding: 0;
+    min-width: 0;
   }
 
   .monitor-option {
@@ -151,6 +163,7 @@
     align-items: center;
     justify-content: space-between;
     flex: 1;
+    gap: 8px;
   }
 
   .monitor-name {
@@ -158,12 +171,22 @@
     font-size: 14px;
   }
 
-  .monitor-current {
+  .monitor-current,
+  .monitor-success {
     font-size: 11px;
     padding: 2px 6px;
-    background: var(--success-soft);
-    color: var(--success);
     border-radius: 4px;
     font-weight: 500;
+  }
+
+  .monitor-current {
+    background: var(--success-soft);
+    color: var(--success);
+  }
+
+  .monitor-success {
+    justify-self: start;
+    background: var(--success-soft);
+    color: var(--success);
   }
 </style>

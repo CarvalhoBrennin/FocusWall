@@ -34,5 +34,8 @@ export const storage = isTauri
       getAppDataPath: () => Promise.resolve(''),
       getLaunchOnStartup: () => Promise.resolve(false),
       setLaunchOnStartup: () => Promise.resolve(false),
-      syncLaunchOnStartup: () => Promise.resolve(false)
+      syncLaunchOnStartup: () => Promise.resolve(false),
+      setWindowLayer: () => Promise.resolve(false),
+      setCloseToTray: () => Promise.resolve(false),
+      setAutoHideOnBlur: () => Promise.resolve(false)
     };

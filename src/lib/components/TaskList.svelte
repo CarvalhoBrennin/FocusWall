@@ -1,7 +1,7 @@
 <script>
   import TaskItem from './TaskItem.svelte';
   import EmptyState from './EmptyState.svelte';
-  import { visibleTasks, lastAddedTaskId, currentDateKey, viewOffsetDays } from '../stores/app-store.js';
+  import { visibleTasks, processedVisibleTasks, taskSort, lastAddedTaskId, currentDateKey, viewOffsetDays } from '../stores/app-store.js';
   import { CONFIG } from '../config.js';
 
   let currentPage = $state(0);
@@ -13,7 +13,8 @@
     currentPage = 0;
   });
 
-  const allTasks = $derived($visibleTasks || []);
+  const rawTasks = $derived($visibleTasks || []);
+  const allTasks = $derived($processedVisibleTasks || []);
   const totalPages = $derived(Math.max(1, Math.ceil(allTasks.length / perPage)));
   const page = $derived(Math.min(currentPage, Math.max(0, totalPages - 1)));
   const paginatedTasks = $derived(allTasks.slice(page * perPage, (page + 1) * perPage));
@@ -40,8 +41,9 @@
         {@const globalIndex = page * perPage + i}
         <TaskItem
           {task}
-          index={globalIndex}
-          tasks={allTasks}
+          index={rawTasks.findIndex((t) => t.id === task.id)}
+          tasks={rawTasks}
+          canReorder={$taskSort === 'manual'}
           isNew={$lastAddedTaskId === task.id}
         />
       {/each}
