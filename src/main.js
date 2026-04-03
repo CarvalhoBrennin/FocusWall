@@ -2,16 +2,29 @@ import { mount } from 'svelte';
 import App from './App.svelte';
 import './styles.css';
 
+function renderError(container, message) {
+  const pre = document.createElement('pre');
+  pre.style.color = 'red';
+  pre.style.padding = '2rem';
+  pre.style.whiteSpace = 'pre-wrap';
+  pre.textContent = message;
+
+  container.replaceChildren(pre);
+}
+
 function mountApp() {
   const target = document.getElementById('app');
   if (!target) {
-    document.body.innerHTML = '<pre style="color:red;padding:2rem;">Erro: #app não encontrado</pre>';
+    renderError(document.body, 'Erro: #app não encontrado');
     return;
   }
   try {
     mount(App, { target });
   } catch (err) {
-    target.innerHTML = `<pre style="color:red;padding:2rem;white-space:pre-wrap;">Erro ao montar app:\n${err?.message || err}\n\n${err?.stack || ''}</pre>`;
+    renderError(
+      target,
+      `Erro ao montar app:\n${err?.message || err}\n\n${err?.stack || ''}`
+    );
     console.error(err);
   }
 }
