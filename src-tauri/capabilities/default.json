@@ -4,10 +4,6 @@
   "description": "Capability for the main desktop dashboard window.",
   "windows": ["main"],
   "permissions": [
-    "core:path:default",
-    "core:event:default",
-    "core:window:default",
-    "core:app:default",
-    "core:webview:allow-internal-toggle-devtools"
+    "core:default"
   ]
 }

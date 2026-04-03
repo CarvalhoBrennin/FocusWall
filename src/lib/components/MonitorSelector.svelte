@@ -1,8 +1,7 @@
 <script>
   import { onMount } from 'svelte';
 
-  const isTauri = typeof window !== 'undefined' && window.__TAURI__?.core != null;
-  const tauriInvoke = isTauri ? window.__TAURI__.core.invoke.bind(window.__TAURI__.core) : null;
+  import { ALLOWED_COMMANDS, invokeCommand, isTauriRuntime } from '../services/tauri-api.js';
 
   let monitors = [];
   let currentMonitor = null;
@@ -11,7 +10,7 @@
   let errorMsg = null;
 
   onMount(async () => {
-    if (!tauriInvoke) {
+    if (!isTauriRuntime()) {
       errorMsg = 'API de monitor indisponível no modo navegador.';
       loading = false;
       return;
@@ -19,8 +18,8 @@
 
     try {
       const [availableMonitors, current] = await Promise.all([
-        tauriInvoke('get_available_monitors'),
-        tauriInvoke('get_current_monitor')
+        invokeCommand(ALLOWED_COMMANDS.GET_AVAILABLE_MONITORS),
+        invokeCommand(ALLOWED_COMMANDS.GET_CURRENT_MONITOR)
       ]);
       
       monitors = availableMonitors;
@@ -39,8 +38,8 @@
     selectedMonitor = monitorIndex;
     
     try {
-      await tauriInvoke('move_to_monitor', { monitorIndex });
-      await tauriInvoke('save_monitor_preference', { monitorIndex });
+      await invokeCommand(ALLOWED_COMMANDS.MOVE_TO_MONITOR, { monitorIndex });
+      await invokeCommand(ALLOWED_COMMANDS.SAVE_MONITOR_PREFERENCE, { monitorIndex });
     } catch (err) {
       errorMsg = String(err.message || err);
     }
