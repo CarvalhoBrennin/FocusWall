@@ -60,6 +60,7 @@ npm run tauri:build
 | `npm run preview` | Preview do build |
 | `npm run tauri:dev` | App desktop em modo dev |
 | `npm run tauri:build` | Build nativo do Tauri |
+| `npm run test` | Executa testes de domínio (node:test) |
 
 ## Requisitos do ambiente desktop
 
@@ -95,3 +96,8 @@ Este projeto já estava conectado ao remoto `canvabrennin-alt/FocusWall` e foi m
 ## Deploy
 
 Guia resumido: [docs/DEPLOY.md](docs/DEPLOY.md)
+
+
+## Arquitetura (refactor incremental)
+
+Resumo do refactor orientado a domínio/efeitos: [docs/architecture/refactor-2026-04.md](docs/architecture/refactor-2026-04.md).
