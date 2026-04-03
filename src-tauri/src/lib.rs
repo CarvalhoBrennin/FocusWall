@@ -144,7 +144,9 @@ fn get_launch_on_startup(app: AppHandle) -> Result<bool, String> {
     #[cfg(desktop)]
     {
         use tauri_plugin_autostart::ManagerExt;
-        app.autolaunch().is_enabled().map_err(|error| error.to_string())
+        app.autolaunch()
+            .is_enabled()
+            .map_err(|error| error.to_string())
     }
 
     #[cfg(not(desktop))]
@@ -198,17 +200,22 @@ fn sync_launch_on_startup(app: AppHandle) -> Result<bool, String> {
 
 #[tauri::command]
 fn get_available_monitors(window: tauri::WebviewWindow) -> Result<Vec<MonitorInfo>, String> {
-    let monitors = window.available_monitors().map_err(|error| error.to_string())?;
-    let primary_monitor = window.primary_monitor().map_err(|error| error.to_string())?;
-    
+    let monitors = window
+        .available_monitors()
+        .map_err(|error| error.to_string())?;
+    let primary_monitor = window
+        .primary_monitor()
+        .map_err(|error| error.to_string())?;
+
     let mut monitor_list = Vec::new();
-    
+
     for (index, monitor) in monitors.iter().enumerate() {
         let work_area = monitor.work_area();
-        let is_primary = primary_monitor.as_ref()
+        let is_primary = primary_monitor
+            .as_ref()
             .map(|pm| pm.position() == monitor.position())
             .unwrap_or(false);
-            
+
         monitor_list.push(MonitorInfo {
             index,
             name: format!("Monitor {}", index + 1),
@@ -217,24 +224,34 @@ fn get_available_monitors(window: tauri::WebviewWindow) -> Result<Vec<MonitorInf
             is_primary,
         });
     }
-    
+
     Ok(monitor_list)
 }
 
 #[tauri::command]
 fn get_current_monitor(window: tauri::WebviewWindow) -> Result<MonitorInfo, String> {
-    let monitors = window.available_monitors().map_err(|error| error.to_string())?;
-    let primary_monitor = window.primary_monitor().map_err(|error| error.to_string())?;
-    let current_monitor = window.current_monitor().map_err(|error| error.to_string())?;
-    
+    let monitors = window
+        .available_monitors()
+        .map_err(|error| error.to_string())?;
+    let primary_monitor = window
+        .primary_monitor()
+        .map_err(|error| error.to_string())?;
+    let current_monitor = window
+        .current_monitor()
+        .map_err(|error| error.to_string())?;
+
     if let Some((index, monitor)) = monitors.iter().enumerate().find(|(_, m)| {
-        current_monitor.as_ref().map(|cm| cm.position() == m.position()).unwrap_or(false)
+        current_monitor
+            .as_ref()
+            .map(|cm| cm.position() == m.position())
+            .unwrap_or(false)
     }) {
         let work_area = monitor.work_area();
-        let is_primary = primary_monitor.as_ref()
+        let is_primary = primary_monitor
+            .as_ref()
             .map(|pm| pm.position() == monitor.position())
             .unwrap_or(false);
-            
+
         Ok(MonitorInfo {
             index,
             name: format!("Monitor {}", index + 1),
@@ -249,18 +266,22 @@ fn get_current_monitor(window: tauri::WebviewWindow) -> Result<MonitorInfo, Stri
 
 #[tauri::command]
 fn move_to_monitor(window: tauri::WebviewWindow, monitor_index: usize) -> Result<(), String> {
-    let monitors = window.available_monitors().map_err(|error| error.to_string())?;
-    
+    let monitors = window
+        .available_monitors()
+        .map_err(|error| error.to_string())?;
+
     if let Some(monitor) = monitors.get(monitor_index) {
         let work_area = monitor.work_area();
         let position = work_area.position;
         let size = work_area.size;
 
         let _ = window.set_fullscreen(false);
-        let _ = window.set_position(Position::Physical(PhysicalPosition::new(position.x, position.y)));
+        let _ = window.set_position(Position::Physical(PhysicalPosition::new(
+            position.x, position.y,
+        )));
         let _ = window.set_size(Size::Physical(PhysicalSize::new(size.width, size.height)));
         let _ = window.set_always_on_bottom(true);
-        
+
         Ok(())
     } else {
         Err(format!("Monitor index {} not found", monitor_index))
@@ -275,7 +296,10 @@ fn save_monitor_preference(app: AppHandle, monitor_index: usize) -> Result<(), S
 }
 
 fn app_data_directory(app: &AppHandle) -> Result<PathBuf, String> {
-    let directory = app.path().app_data_dir().map_err(|error| error.to_string())?;
+    let directory = app
+        .path()
+        .app_data_dir()
+        .map_err(|error| error.to_string())?;
     fs::create_dir_all(&directory).map_err(|error| error.to_string())?;
     Ok(directory)
 }
@@ -323,7 +347,10 @@ fn write_state_file(path: &Path, state: &DashboardState) -> Result<(), String> {
     }
 }
 
-fn move_window_to_target_monitor(window: &tauri::WebviewWindow, app: &AppHandle) -> tauri::Result<()> {
+fn move_window_to_target_monitor(
+    window: &tauri::WebviewWindow,
+    app: &AppHandle,
+) -> tauri::Result<()> {
     let monitors = window.available_monitors()?;
     if monitors.is_empty() {
         return Ok(());
@@ -338,7 +365,9 @@ fn move_window_to_target_monitor(window: &tauri::WebviewWindow, app: &AppHandle)
                 let size = work_area.size;
 
                 let _ = window.set_fullscreen(false);
-                let _ = window.set_position(Position::Physical(PhysicalPosition::new(position.x, position.y)));
+                let _ = window.set_position(Position::Physical(PhysicalPosition::new(
+                    position.x, position.y,
+                )));
                 let _ = window.set_size(Size::Physical(PhysicalSize::new(size.width, size.height)));
                 let _ = window.set_always_on_bottom(true);
                 return Ok(());
@@ -362,7 +391,9 @@ fn move_window_to_target_monitor(window: &tauri::WebviewWindow, app: &AppHandle)
     let size = work_area.size;
 
     let _ = window.set_fullscreen(false);
-    let _ = window.set_position(Position::Physical(PhysicalPosition::new(position.x, position.y)));
+    let _ = window.set_position(Position::Physical(PhysicalPosition::new(
+        position.x, position.y,
+    )));
     let _ = window.set_size(Size::Physical(PhysicalSize::new(size.width, size.height)));
     let _ = window.set_always_on_bottom(true);
 

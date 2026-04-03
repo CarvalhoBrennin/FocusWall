@@ -119,7 +119,15 @@ export function addDays(d, n) {
 }
 
 export function cloneTask(t) {
-  return { id: t.id, text: t.text, completed: t.completed, pinned: t.pinned, priority: t.priority, createdAt: t.createdAt, updatedAt: t.updatedAt };
+  return {
+    id: t.id,
+    text: t.text,
+    completed: t.completed,
+    pinned: t.pinned,
+    priority: t.priority,
+    createdAt: t.createdAt,
+    updatedAt: t.updatedAt
+  };
 }
 
 export function getPinnedCount(tasks) {
@@ -137,4 +145,14 @@ export function getPriorityLabel(p) {
   if (p === PRIORITY.HIGH) return 'Alta';
   if (p === PRIORITY.LOW) return 'Baixa';
   return 'Média';
+}
+
+export function pruneTasksByRetention(tasksByDate, currentDateKey, retentionDays = CONFIG.HISTORY_RETENTION_DAYS) {
+  const cutoff = getLocalDateKey(addDays(parseDateKey(currentDateKey), -retentionDays));
+  const normalized = tasksByDate && typeof tasksByDate === 'object' ? tasksByDate : {};
+  const next = {};
+  for (const dk of Object.keys(normalized)) {
+    if (dk >= cutoff) next[dk] = normalized[dk];
+  }
+  return next;
 }

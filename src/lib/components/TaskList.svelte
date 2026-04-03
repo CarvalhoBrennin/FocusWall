@@ -3,6 +3,7 @@
   import EmptyState from './EmptyState.svelte';
   import { visibleTasks, lastAddedTaskId, currentDateKey, viewOffsetDays } from '../stores/app-store.js';
   import { CONFIG } from '../config.js';
+  import { getTaskPageMeta } from '../utils/task-list.js';
 
   let currentPage = $state(0);
   const perPage = CONFIG.TASKS_PER_PAGE;
@@ -14,17 +15,13 @@
   });
 
   const allTasks = $derived($visibleTasks || []);
-  const totalPages = $derived(Math.max(1, Math.ceil(allTasks.length / perPage)));
-  const page = $derived(Math.min(currentPage, Math.max(0, totalPages - 1)));
-  const paginatedTasks = $derived(allTasks.slice(page * perPage, (page + 1) * perPage));
-  const pageStart = $derived(allTasks.length ? page * perPage + 1 : 0);
-  const pageEnd = $derived(Math.min((page + 1) * perPage, allTasks.length));
+  const pageMeta = $derived(getTaskPageMeta(allTasks, perPage, currentPage));
 
   function goPrev() {
     currentPage = Math.max(0, currentPage - 1);
   }
   function goNext() {
-    currentPage = Math.min(totalPages - 1, currentPage + 1);
+    currentPage = Math.min(pageMeta.totalPages - 1, currentPage + 1);
   }
 </script>
 
@@ -36,8 +33,8 @@
       style={`--tasks-per-page: ${perPage};`}
       aria-label="Lista de tarefas do dia"
     >
-      {#each paginatedTasks as task, i (task.id)}
-        {@const globalIndex = page * perPage + i}
+      {#each pageMeta.paginatedTasks as task, i (task.id)}
+        {@const globalIndex = pageMeta.page * perPage + i}
         <TaskItem
           {task}
           index={globalIndex}
@@ -47,12 +44,12 @@
       {/each}
     </ul>
 
-    {#if totalPages > 1}
+    {#if pageMeta.totalPages > 1}
       <nav class="task-pagination" aria-label="Navegação entre páginas">
         <div class="pagination-meta">
           <span class="pagination-kicker">Mostrando</span>
           <span class="pagination-range" aria-live="off">
-            {pageStart}-{pageEnd} de {allTasks.length}
+            {pageMeta.start}-{pageMeta.end} de {allTasks.length}
           </span>
         </div>
         <div class="pagination-controls">
@@ -60,19 +57,19 @@
             type="button"
             class="pagination-btn"
             aria-label="Página anterior"
-            disabled={page <= 0}
+            disabled={pageMeta.page <= 0}
             onclick={goPrev}
           >
             ‹
           </button>
           <span class="pagination-label">
-            {page + 1} / {totalPages}
+            {pageMeta.page + 1} / {pageMeta.totalPages}
           </span>
           <button
             type="button"
             class="pagination-btn"
             aria-label="Próxima página"
-            disabled={page >= totalPages - 1}
+            disabled={pageMeta.page >= pageMeta.totalPages - 1}
             onclick={goNext}
           >
             ›

@@ -15,7 +15,8 @@ import {
   createId,
   cloneTask,
   getPinnedCount,
-  findTaskIndex
+  findTaskIndex,
+  pruneTasksByRetention
 } from '../utils/state.js';
 
 function ensureDateBucket(data, dk) {
@@ -25,12 +26,10 @@ function ensureDateBucket(data, dk) {
 }
 
 function pruneHistory(data, currentDateKey) {
-  const cutoff = getLocalDateKey(addDays(parseDateKey(currentDateKey), -CONFIG.HISTORY_RETENTION_DAYS));
-  const tbd = { ...data.tasksByDate };
-  for (const dk of Object.keys(tbd)) {
-    if (dk < cutoff) delete tbd[dk];
-  }
-  return { ...data, tasksByDate: tbd };
+  return {
+    ...data,
+    tasksByDate: pruneTasksByRetention(data.tasksByDate, currentDateKey, CONFIG.HISTORY_RETENTION_DAYS)
+  };
 }
 
 function getVisibleDateKey(currentDateKey, viewOffsetDays) {

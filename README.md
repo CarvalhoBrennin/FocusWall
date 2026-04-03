@@ -50,16 +50,48 @@ Build desktop:
 npm run tauri:build
 ```
 
-## Scripts
+## Qualidade de engenharia
+
+### Scripts de qualidade
 
 | Comando | Descrição |
 |---|---|
-| `npm run check:setup` | Diagnóstico do ambiente local |
-| `npm run dev` | Preview web |
-| `npm run build` | Build web |
-| `npm run preview` | Preview do build |
-| `npm run tauri:dev` | App desktop em modo dev |
-| `npm run tauri:build` | Build nativo do Tauri |
+| `npm run lint` | Roda lint completo (frontend + Rust/Tauri) |
+| `npm run lint:frontend` | ESLint para JS/Svelte |
+| `npm run lint:rust` | Clippy com `-D warnings` |
+| `npm run format` | Formata frontend (Prettier) e Rust (`cargo fmt`) |
+| `npm run format:check` | Verifica formatação frontend sem alterar arquivos |
+| `npm run format:rust:check` | Verifica formatação Rust sem alterar arquivos |
+| `npm run test` | Suíte de testes (Vitest + Testing Library) |
+| `npm run test:watch` | Testes em modo watch |
+| `npm run test:smoke` | Smoke test mínimo de subida da aplicação |
+| `npm run ci` | Pipeline local equivalente ao CI (format check + lint + test + build) |
+
+### Escopo atual de testes
+
+- **Normalização de tarefa e prioridade**: validações de texto, enum de prioridade e fallback seguro.
+- **Retenção/histórico**: poda de histórico por janela de retenção.
+- **Persistência/local state**: serialização e restauração do estado no `localStorage`.
+- **Paginação/comportamento da lista**: paginação de tarefas e navegação da UI.
+- **Smoke de aplicação**: renderização do shell principal sem crash.
+
+### Como validar localmente
+
+```bash
+npm install
+npm run ci
+```
+
+Se quiser executar em etapas:
+
+```bash
+npm run format:check
+npm run format:rust:check
+npm run lint
+npm run test
+npm run test:smoke
+npm run build
+```
 
 ## Requisitos do ambiente desktop
 
