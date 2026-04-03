@@ -43,12 +43,11 @@
     editValue = task.text;
   }
 
-  function handleCommit() {
-    Promise.all([
-      commitTaskEdit(task.id, editValue),
-      updateTaskTagsFromInput(task.id, editTags),
-      updateTaskDetails(task.id, { dueDate: editDueDate || null })
-    ]).then(() => showToast('Tarefa editada'));
+  async function handleCommit() {
+    await commitTaskEdit(task.id, editValue);
+    await updateTaskTagsFromInput(task.id, editTags);
+    await updateTaskDetails(task.id, { dueDate: editDueDate || null });
+    showToast('Tarefa editada');
   }
 
   function handleEditFocusOut() {
