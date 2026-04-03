@@ -858,6 +858,42 @@ body::after {
   align-items: center;
 }
 
+.composer-filters,
+.task-tool-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.composer-filters label,
+.task-tool-grid label {
+  display: grid;
+  gap: 0.28rem;
+  font-size: 0.76rem;
+  color: var(--light-soft);
+}
+
+.composer-filters input,
+.composer-filters select,
+.task-tool-grid select,
+.task-search {
+  min-height: 2.35rem;
+  border-radius: 10px;
+  border: 1px solid rgba(245, 236, 223, 0.12);
+  background: rgba(12, 16, 13, 0.72);
+  color: var(--light-main);
+  padding: 0.4rem 0.55rem;
+}
+
+.task-tools {
+  display: grid;
+  gap: 0.65rem;
+  padding: 0.65rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(245, 236, 223, 0.08);
+  background: rgba(8, 10, 9, 0.42);
+}
+
 .task-input,
 .task-edit-input {
   width: 100%;
@@ -1415,6 +1451,28 @@ input:disabled {
   padding-block: 0.85rem;
 }
 
+.task-edit-grid {
+  display: grid;
+  grid-template-columns: 1fr 190px;
+  gap: 0.45rem;
+}
+
+.checklist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.32rem;
+}
+
+.checklist li,
+.checklist-add {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 0.32rem;
+  align-items: center;
+}
+
 .task-pagination {
   display: flex;
   align-items: center;
@@ -1740,6 +1798,12 @@ input:disabled {
 
   .composer-panel {
     display: grid;
+  }
+
+  .composer-filters,
+  .task-tool-grid,
+  .task-edit-grid {
+    grid-template-columns: 1fr;
   }
 
   .composer-copy {
