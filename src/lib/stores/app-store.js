@@ -40,6 +40,7 @@ export const currentDateKey = writable(getLocalDateKey(new Date()));
 export const viewOffsetDays = writable(VIEW.TODAY);
 export const editingTaskId = writable(null);
 export const startupEnabled = writable(false);
+export const preferences = writable(structuredClone(DEFAULT_PREFERENCES));
 export const appDataPath = writable('');
 export const appStatusMessage = writable('Inicializando...');
 export const appStatusVariant = writable('');
@@ -51,11 +52,61 @@ export const ratesMeta = writable('Buscando cotações...');
 export const ratesCache = writable(null);
 export const clockTime = writable('00:00:00');
 export const lastAddedTaskId = writable(/** @type {string | null} */ (null));
+export const taskSearch = writable('');
+export const taskFilters = writable({ status: 'all', priority: 'all', tag: 'all', scope: 'all' });
+export const taskSort = writable('manual');
 
 export const visibleTasks = derived([data, currentDateKey, viewOffsetDays], ([$data, $currentDateKey, $viewOffsetDays]) => {
   const visibleDateKey = resolveVisibleDateKey($currentDateKey, $viewOffsetDays);
   return getTasksForDate($data, visibleDateKey);
 });
+
+export const availableTags = derived(visibleTasks, ($tasks) => {
+  const all = new Set();
+  ($tasks || []).forEach((task) => {
+    (task.tags || []).forEach((tag) => all.add(tag));
+  });
+  return [...all].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+});
+
+export const processedVisibleTasks = derived(
+  [visibleTasks, taskSearch, taskFilters, taskSort],
+  ([$tasks, $search, $filters, $sort]) => {
+    const base = Array.isArray($tasks) ? [...$tasks] : [];
+    const search = String($search || '').trim().toLowerCase();
+    const filterByStatus = (task) =>
+      $filters.status === 'all' ||
+      ($filters.status === 'open' && !task.completed) ||
+      ($filters.status === 'done' && task.completed);
+    const filterByPriority = (task) => $filters.priority === 'all' || task.priority === $filters.priority;
+    const filterByTag = (task) => $filters.tag === 'all' || (task.tags || []).includes($filters.tag);
+    const filterByScope = (task) => $filters.scope === 'all' || ($filters.scope === 'inbox' ? task.inInbox : !task.inInbox);
+    const filterBySearch = (task) => {
+      if (!search) return true;
+      const inText = task.text.toLowerCase().includes(search);
+      const inTags = (task.tags || []).some((tag) => tag.includes(search));
+      const inChecklist = (task.checklist || []).some((item) => item.text.toLowerCase().includes(search));
+      return inText || inTags || inChecklist;
+    };
+
+    const filtered = base.filter((task) => filterByStatus(task) && filterByPriority(task) && filterByTag(task) && filterByScope(task) && filterBySearch(task));
+    if ($sort === 'manual') return filtered;
+
+    const priorityScore = { high: 0, medium: 1, low: 2 };
+    return filtered.sort((a, b) => {
+      if ($sort === 'priority') return (priorityScore[a.priority] ?? 9) - (priorityScore[b.priority] ?? 9);
+      if ($sort === 'created-desc') return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      if ($sort === 'updated-desc') return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+      if ($sort === 'due-asc') {
+        if (!a.dueDate && !b.dueDate) return 0;
+        if (!a.dueDate) return 1;
+        if (!b.dueDate) return -1;
+        return a.dueDate.localeCompare(b.dueDate);
+      }
+      return 0;
+    });
+  }
+);
 
 export const todayTasks = derived([data, currentDateKey], ([$data, $currentDateKey]) =>
   getTasksForDate($data, $currentDateKey)
@@ -96,10 +147,13 @@ export function setViewOffset(offset) {
 }
 
 export function setClockTime(now) {
-  const text = new Intl.DateTimeFormat('pt-BR', {
+  const $preferences = get(preferences);
+  const locale = $preferences.locale.code || 'pt-BR';
+  const showSeconds = $preferences.panel.showSeconds !== false;
+  const text = new Intl.DateTimeFormat(locale, {
     hour: '2-digit',
     minute: '2-digit',
-    second: '2-digit',
+    second: showSeconds ? '2-digit' : undefined,
     hour12: false
   }).format(now);
   clockTime.set(text);
@@ -316,6 +370,49 @@ export async function commitTaskEdit(id, nextText) {
   await persistVisibleTasks(nextTasks, state);
 }
 
+export async function updateTaskDetails(id, details = {}) {
+  await updateTask(id, (task) => {
+    if (typeof details.text === 'string') task.text = normalizeTaskText(details.text) || task.text;
+    if (details.priority) task.priority = normalizePriority(details.priority);
+    if (Array.isArray(details.tags)) task.tags = normalizeTags(details.tags);
+    if ('dueDate' in details) task.dueDate = normalizeDueDate(details.dueDate);
+    if ('inInbox' in details) task.inInbox = Boolean(details.inInbox);
+    task.updatedAt = new Date().toISOString();
+  });
+}
+
+export async function updateTaskTagsFromInput(id, tagInput) {
+  await updateTaskDetails(id, { tags: parseTagsInput(tagInput) });
+}
+
+export async function addChecklistItem(id, text) {
+  const clean = normalizeTaskText(text).slice(0, 80);
+  if (!clean) return;
+  await updateTask(id, (task) => {
+    const current = Array.isArray(task.checklist) ? [...task.checklist] : [];
+    if (current.length >= 8) return;
+    current.push({ id: createId(), text: clean, done: false });
+    task.checklist = current;
+    task.updatedAt = new Date().toISOString();
+  });
+}
+
+export async function toggleChecklistItem(taskId, itemId) {
+  await updateTask(taskId, (task) => {
+    task.checklist = (task.checklist || []).map((item) =>
+      item.id === itemId ? { ...item, done: !item.done } : item
+    );
+    task.updatedAt = new Date().toISOString();
+  });
+}
+
+export async function removeChecklistItem(taskId, itemId) {
+  await updateTask(taskId, (task) => {
+    task.checklist = (task.checklist || []).filter((item) => item.id !== itemId);
+    task.updatedAt = new Date().toISOString();
+  });
+}
+
 export async function deleteTask(id, onUndo) {
   const state = get(data);
   const visibleDateKey = resolveVisibleDateKey(get(currentDateKey), get(viewOffsetDays));
@@ -355,13 +452,60 @@ export async function clearTodayTasks(onConfirm) {
   });
 }
 
+
+function applyPreferencesToDom(currentPreferences) {
+  if (typeof document === 'undefined') return;
+  const body = document.body;
+  if (!body) return;
+  body.dataset.theme = currentPreferences.appearance.theme;
+  body.dataset.density = currentPreferences.appearance.density;
+}
+
+export async function updatePreferences(nextPreferences) {
+  const normalized = structuredClone(nextPreferences);
+  const previous = get(preferences);
+  const $data = get(data);
+  const nextData = {
+    ...$data,
+    ui: {
+      ...$data.ui,
+      preferences: normalized
+    }
+  };
+
+  preferences.set(normalized);
+  applyPreferencesToDom(normalized);
+
+  try {
+    await storage.saveState(nextData);
+    data.set(nextData);
+
+    if (storage.mode === 'tauri') {
+      await storage.setWindowLayer(normalized.window.layer);
+      await storage.setCloseToTray(normalized.window.closeToTray);
+      await storage.setAutoHideOnBlur(normalized.panel.autoHideOnBlur);
+    }
+
+    setAppStatus('Preferências salvas com sucesso.', 'live', get(appDataPath));
+    return { ok: true };
+  } catch (error) {
+    preferences.set(previous);
+    applyPreferencesToDom(previous);
+    data.set($data);
+    setAppStatus('Falha ao salvar preferências.', 'error', get(appDataPath));
+    return { ok: false, error: String(error?.message || error) };
+  }
+}
+
 export async function toggleStartup() {
-  if (storage.mode !== 'tauri') return;
+  if (storage.mode !== 'tauri') return { ok: false, message: 'Disponível apenas no app desktop.' };
   try {
     const enabled = Boolean(await storage.setLaunchOnStartup(!get(startupEnabled)));
     startupEnabled.set(enabled);
     setAppStatus(buildStartupToggleStatusMessage(enabled), 'live', get(appDataPath));
   } catch {
-    setAppStatus('Não foi possível alterar a inicialização com Windows.', 'error', get(appDataPath));
+    const message = 'Não foi possível alterar a inicialização com Windows.';
+    setAppStatus(message, 'error', get(appDataPath));
+    return { ok: false, message };
   }
 }
