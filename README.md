@@ -95,3 +95,5 @@ Este projeto já estava conectado ao remoto `canvabrennin-alt/FocusWall` e foi m
 ## Deploy
 
 Guia resumido: [docs/DEPLOY.md](docs/DEPLOY.md)
+
+Configurações: [docs/SETTINGS.md](docs/SETTINGS.md)
