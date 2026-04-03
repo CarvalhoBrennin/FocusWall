@@ -1,6 +1,7 @@
 <script>
   import MonitorSelector from './MonitorSelector.svelte';
   import { settingsModal } from '../stores/ui-store.js';
+  import { openOnboarding } from '../stores/app-store.js';
 
   function handleClose() {
     settingsModal.set(null);
@@ -16,6 +17,11 @@
     if (e.key === 'Escape') {
       handleClose();
     }
+  }
+
+  function handleReopenOnboarding() {
+    openOnboarding();
+    handleClose();
   }
 </script>
 
@@ -43,19 +49,18 @@
     
     <div class="settings-content">
       <MonitorSelector />
-      
-      <!-- Future sections can be added here -->
-      <!--
-      <div class="settings-section">
-        <h3>Aparência</h3>
-        <p>Opções de tema e personalização...</p>
-      </div>
-      
-      <div class="settings-section">
-        <h3>Inicialização</h3>
-        <p>Configurações de startup...</p>
-      </div>
-      -->
+
+      <section class="settings-section" aria-labelledby="settings-onboarding-title">
+        <h3 id="settings-onboarding-title">Onboarding</h3>
+        <p>Reveja o setup inicial para ajustar preferências e contexto do painel.</p>
+        <button
+          type="button"
+          class="ghost-button"
+          on:click={handleReopenOnboarding}
+        >
+          Reabrir onboarding
+        </button>
+      </section>
     </div>
     
     <div class="settings-footer">
@@ -145,6 +150,29 @@
     border-top: 1px solid var(--surface-dark-border);
     display: flex;
     justify-content: flex-end;
+  }
+
+  .settings-section {
+    margin-top: 18px;
+    padding: 14px;
+    border-radius: 12px;
+    border: 1px solid var(--surface-dark-border);
+    background: var(--surface-dark);
+    display: grid;
+    gap: 10px;
+  }
+
+  .settings-section h3 {
+    margin: 0;
+    font-size: 15px;
+    color: var(--light-main);
+  }
+
+  .settings-section p {
+    margin: 0;
+    color: var(--light-muted);
+    font-size: 13px;
+    line-height: 1.5;
   }
 
   /* Scrollbar styling */

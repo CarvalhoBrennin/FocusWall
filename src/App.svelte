@@ -5,6 +5,7 @@
   import Toast from './lib/components/Toast.svelte';
   import Modal from './lib/components/Modal.svelte';
   import SettingsModal from './lib/components/SettingsModal.svelte';
+  import OnboardingModal from './lib/components/OnboardingModal.svelte';
   import { settingsModal } from './lib/stores/ui-store.js';
   import {
     bootstrapApp,
@@ -16,7 +17,8 @@
     updateExchangeRates,
     setViewOffset,
     viewOffsetDays,
-    paused
+    paused,
+    onboardingVisible
   } from './lib/stores/app-store.js';
   import { CONFIG, VIEW } from './lib/config.js';
 
@@ -93,6 +95,10 @@
 
 {#if $settingsModal}
   <SettingsModal />
+{/if}
+
+{#if $onboardingVisible}
+  <OnboardingModal />
 {/if}
 
 <main class="app-shell" aria-label="Painel pessoal de produtividade">

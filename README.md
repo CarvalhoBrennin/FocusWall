@@ -83,6 +83,20 @@ build-bootstrapper.bat
 
 - preview web: `localStorage`
 - app desktop: `dashboard-state.json` no AppData do usuário
+- indicador de onboarding: `ui.onboardingCompleted` no estado local
+
+## Onboarding (primeira execução)
+
+O FocusWall agora inclui um onboarding curto e orientado a ação para reduzir fricção na adoção inicial.
+
+- Abre automaticamente na primeira execução (quando `ui.onboardingCompleted` ainda é `false`).
+- Fluxo objetivo com 4 etapas:
+  1. proposta de valor rápida
+  2. confirmação de monitor + preferência de iniciar com Windows
+  3. leitura guiada do painel
+  4. sugestão de primeira tarefa para começar em segundos
+- Ao concluir, o app salva o indicador de finalização e não reapresenta o fluxo indevidamente.
+- O onboarding pode ser reaberto manualmente em **Configurações > Reabrir onboarding**.
 
 ## Fonte externa
 

@@ -50,6 +50,7 @@ export const appStatusMessage = writable('Inicializando...');
 export const appStatusVariant = writable(''); // 'live' | 'warning' | 'error'
 export const paused = writable(false);
 export const data = writable(createDefaultState());
+export const onboardingVisible = writable(false);
 export const prevRates = writable({ usd: null, eur: null });
 export const ratesStatus = writable(RATE_STATUS.UPDATING);
 export const ratesMeta = writable('Buscando cotações...');
@@ -148,6 +149,7 @@ export function bootstrapApp() {
       let d = ensureDateBucket(loaded, $currentDateKey);
       d = pruneHistory(d, $currentDateKey);
       data.set(d);
+      onboardingVisible.set(!d.ui?.onboardingCompleted);
 
       if (d.ratesCache) {
         prevRates.set({ usd: d.ratesCache.usd, eur: d.ratesCache.eur });
@@ -173,6 +175,7 @@ export function bootstrapApp() {
       const $currentDateKey = getLocalDateKey(new Date());
       const d = ensureDateBucket(def, $currentDateKey);
       data.set(d);
+      onboardingVisible.set(true);
       setAppStatus('Falha ao carregar o estado local. Um estado vazio foi restaurado.', 'error');
     }
   })();
@@ -482,5 +485,38 @@ export async function toggleStartup() {
     );
   } catch {
     setAppStatus('Não foi possível alterar a inicialização com Windows.', 'error', get(appDataPath));
+  }
+}
+
+export function openOnboarding() {
+  onboardingVisible.set(true);
+}
+
+export function closeOnboarding() {
+  onboardingVisible.set(false);
+}
+
+export async function completeOnboarding() {
+  const $data = get(data);
+  if ($data.ui?.onboardingCompleted) {
+    onboardingVisible.set(false);
+    return true;
+  }
+  const nextData = {
+    ...$data,
+    ui: {
+      ...$data.ui,
+      onboardingCompleted: true
+    }
+  };
+  try {
+    await storage.saveState(nextData);
+    data.set(nextData);
+    onboardingVisible.set(false);
+    setAppStatus('Setup inicial concluído.', 'live', get(appDataPath));
+    return true;
+  } catch {
+    setAppStatus('Não foi possível concluir o onboarding.', 'error', get(appDataPath));
+    return false;
   }
 }

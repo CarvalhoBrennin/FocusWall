@@ -6,7 +6,7 @@ export function createDefaultState() {
     tasksByDate: {},
     ratesCache: null,
     ratesBaseline: null,
-    ui: { lastViewedBaseDate: '', viewOffsetDays: 0 }
+    ui: { lastViewedBaseDate: '', viewOffsetDays: 0, onboardingCompleted: false }
   };
 }
 
@@ -28,7 +28,8 @@ export function normalizeState(candidate) {
     ratesBaseline: normalizeRatesBaseline(candidate.ratesBaseline),
     ui: {
       lastViewedBaseDate: typeof candidate.ui?.lastViewedBaseDate === 'string' ? candidate.ui.lastViewedBaseDate : '',
-      viewOffsetDays: Number.isInteger(candidate.ui?.viewOffsetDays) ? candidate.ui.viewOffsetDays : 0
+      viewOffsetDays: Number.isInteger(candidate.ui?.viewOffsetDays) ? candidate.ui.viewOffsetDays : 0,
+      onboardingCompleted: Boolean(candidate.ui?.onboardingCompleted)
     }
   };
 }
