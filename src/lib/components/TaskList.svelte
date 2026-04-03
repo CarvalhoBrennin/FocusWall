@@ -1,7 +1,7 @@
 <script>
   import TaskItem from './TaskItem.svelte';
   import EmptyState from './EmptyState.svelte';
-  import { visibleTasks, lastAddedTaskId, currentDateKey, viewOffsetDays } from '../stores/app-store.js';
+  import { visibleTasks, processedVisibleTasks, taskSort, lastAddedTaskId, currentDateKey, viewOffsetDays } from '../stores/app-store.js';
   import { CONFIG } from '../config.js';
   import { getTaskPageMeta } from '../utils/task-list.js';
 
@@ -37,8 +37,9 @@
         {@const globalIndex = pageMeta.page * perPage + i}
         <TaskItem
           {task}
-          index={globalIndex}
-          tasks={allTasks}
+          index={rawTasks.findIndex((t) => t.id === task.id)}
+          tasks={rawTasks}
+          canReorder={$taskSort === 'manual'}
           isNew={$lastAddedTaskId === task.id}
         />
       {/each}

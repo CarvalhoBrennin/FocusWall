@@ -1,12 +1,56 @@
 import { CONFIG, PRIORITY } from '../config.js';
 
+export const DEFAULT_PREFERENCES = {
+  appearance: {
+    theme: 'system',
+    density: 'comfortable'
+  },
+  locale: {
+    code: 'pt-BR'
+  },
+  panel: {
+    autoHideOnBlur: false,
+    showSeconds: true
+  },
+  window: {
+    layer: 'bottom',
+    closeToTray: true
+  }
+};
+
+function normalizePreferences(prefs) {
+  const candidate = prefs && typeof prefs === 'object' ? prefs : {};
+  const theme = candidate.appearance?.theme;
+  const density = candidate.appearance?.density;
+  const locale = candidate.locale?.code;
+  const layer = candidate.window?.layer;
+
+  return {
+    appearance: {
+      theme: theme === 'dark' || theme === 'light' || theme === 'system' ? theme : DEFAULT_PREFERENCES.appearance.theme,
+      density: density === 'compact' || density === 'comfortable' ? density : DEFAULT_PREFERENCES.appearance.density
+    },
+    locale: {
+      code: locale === 'en-US' || locale === 'pt-BR' ? locale : DEFAULT_PREFERENCES.locale.code
+    },
+    panel: {
+      autoHideOnBlur: Boolean(candidate.panel?.autoHideOnBlur),
+      showSeconds: candidate.panel?.showSeconds !== false
+    },
+    window: {
+      layer: layer === 'top' || layer === 'normal' || layer === 'bottom' ? layer : DEFAULT_PREFERENCES.window.layer,
+      closeToTray: candidate.window?.closeToTray !== false
+    }
+  };
+}
+
 export function createDefaultState() {
   return {
     version: CONFIG.STATE_VERSION,
     tasksByDate: {},
     ratesCache: null,
     ratesBaseline: null,
-    ui: { lastViewedBaseDate: '', viewOffsetDays: 0 }
+    ui: { lastViewedBaseDate: '', viewOffsetDays: 0, preferredMonitor: null, preferences: normalizePreferences() }
   };
 }
 
@@ -28,7 +72,9 @@ export function normalizeState(candidate) {
     ratesBaseline: normalizeRatesBaseline(candidate.ratesBaseline),
     ui: {
       lastViewedBaseDate: typeof candidate.ui?.lastViewedBaseDate === 'string' ? candidate.ui.lastViewedBaseDate : '',
-      viewOffsetDays: Number.isInteger(candidate.ui?.viewOffsetDays) ? candidate.ui.viewOffsetDays : 0
+      viewOffsetDays: Number.isInteger(candidate.ui?.viewOffsetDays) ? candidate.ui.viewOffsetDays : 0,
+      preferredMonitor: Number.isInteger(candidate.ui?.preferredMonitor) ? candidate.ui.preferredMonitor : null,
+      preferences: normalizePreferences(candidate.ui?.preferences)
     }
   };
 }
@@ -54,6 +100,10 @@ export function normalizeTask(task) {
     completed: Boolean(task.completed),
     pinned: Boolean(task.pinned),
     priority: normalizePriority(task.priority),
+    tags: normalizeTags(task.tags),
+    dueDate: normalizeDueDate(task.dueDate),
+    checklist: normalizeChecklist(task.checklist),
+    inInbox: Boolean(task.inInbox),
     createdAt,
     updatedAt: isValidIsoString(task.updatedAt) ? task.updatedAt : createdAt
   };

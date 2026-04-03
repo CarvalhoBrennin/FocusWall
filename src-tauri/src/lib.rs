@@ -3,7 +3,7 @@ use std::{
     collections::BTreeMap,
     fs,
     path::{Path, PathBuf},
-    sync::atomic::{AtomicBool, Ordering},
+    sync::atomic::{AtomicBool, AtomicU8, Ordering},
 };
 use tauri::{
     menu::{Menu, MenuItem},
@@ -18,6 +18,9 @@ const MAIN_WINDOW_LABEL: &str = "main";
 #[derive(Default)]
 struct RuntimeState {
     quitting: AtomicBool,
+    close_to_tray: AtomicBool,
+    auto_hide_on_blur: AtomicBool,
+    window_layer: AtomicU8, // 0=bottom, 1=normal, 2=top
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -78,6 +81,33 @@ struct UiState {
     view_offset_days: i32,
     #[serde(default)]
     preferred_monitor: Option<usize>,
+    #[serde(default)]
+    preferences: UiPreferences,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct UiPreferences {
+    #[serde(default)]
+    window: WindowPreferences,
+    #[serde(default)]
+    panel: PanelPreferences,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct WindowPreferences {
+    #[serde(default = "default_window_layer")]
+    layer: String,
+    #[serde(default = "default_true")]
+    close_to_tray: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct PanelPreferences {
+    #[serde(default)]
+    auto_hide_on_blur: bool,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -108,8 +138,43 @@ impl Default for UiState {
             last_viewed_base_date: String::new(),
             view_offset_days: 0,
             preferred_monitor: None,
+            preferences: UiPreferences::default(),
         }
     }
+}
+
+impl Default for UiPreferences {
+    fn default() -> Self {
+        Self {
+            window: WindowPreferences::default(),
+            panel: PanelPreferences::default(),
+        }
+    }
+}
+
+impl Default for WindowPreferences {
+    fn default() -> Self {
+        Self {
+            layer: default_window_layer(),
+            close_to_tray: true,
+        }
+    }
+}
+
+impl Default for PanelPreferences {
+    fn default() -> Self {
+        Self {
+            auto_hide_on_blur: false,
+        }
+    }
+}
+
+fn default_true() -> bool {
+    true
+}
+
+fn default_window_layer() -> String {
+    "bottom".to_string()
 }
 
 #[tauri::command]
@@ -288,6 +353,58 @@ fn move_to_monitor(window: tauri::WebviewWindow, monitor_index: usize) -> Result
     }
 }
 
+fn apply_window_layer(window: &tauri::WebviewWindow, layer: &str) {
+    match layer {
+        "top" => {
+            let _ = window.set_always_on_bottom(false);
+            let _ = window.set_always_on_top(true);
+        }
+        "normal" => {
+            let _ = window.set_always_on_bottom(false);
+            let _ = window.set_always_on_top(false);
+        }
+        _ => {
+            let _ = window.set_always_on_top(false);
+            let _ = window.set_always_on_bottom(true);
+        }
+    }
+}
+
+#[tauri::command]
+fn set_window_layer(
+    app: AppHandle,
+    window: tauri::WebviewWindow,
+    layer: String,
+) -> Result<bool, String> {
+    apply_window_layer(&window, &layer);
+    let mut state = load_state(app)?;
+    state.ui.preferences.window.layer = layer.clone();
+    save_state(window.app_handle(), state)?;
+    Ok(layer == "top" || layer == "normal" || layer == "bottom")
+}
+
+#[tauri::command]
+fn set_close_to_tray(app: AppHandle, enabled: bool) -> Result<bool, String> {
+    app.state::<RuntimeState>()
+        .close_to_tray
+        .store(enabled, Ordering::Relaxed);
+    let mut state = load_state(app.clone())?;
+    state.ui.preferences.window.close_to_tray = enabled;
+    save_state(app, state)?;
+    Ok(enabled)
+}
+
+#[tauri::command]
+fn set_auto_hide_on_blur(app: AppHandle, enabled: bool) -> Result<bool, String> {
+    app.state::<RuntimeState>()
+        .auto_hide_on_blur
+        .store(enabled, Ordering::Relaxed);
+    let mut state = load_state(app.clone())?;
+    state.ui.preferences.panel.auto_hide_on_blur = enabled;
+    save_state(app, state)?;
+    Ok(enabled)
+}
+
 #[tauri::command]
 fn save_monitor_preference(app: AppHandle, monitor_index: usize) -> Result<(), String> {
     let mut state = load_state(app.clone())?;
@@ -369,7 +486,7 @@ fn move_window_to_target_monitor(
                     position.x, position.y,
                 )));
                 let _ = window.set_size(Size::Physical(PhysicalSize::new(size.width, size.height)));
-                let _ = window.set_always_on_bottom(true);
+                apply_window_layer(window, &state.ui.preferences.window.layer);
                 return Ok(());
             }
         }
@@ -395,7 +512,7 @@ fn move_window_to_target_monitor(
         position.x, position.y,
     )));
     let _ = window.set_size(Size::Physical(PhysicalSize::new(size.width, size.height)));
-    let _ = window.set_always_on_bottom(true);
+    apply_window_layer(window, "bottom");
 
     Ok(())
 }
@@ -464,6 +581,22 @@ pub fn run() {
         ))
         .setup(|app| {
             build_tray(app.handle())?;
+            if let Ok(state) = load_state(app.handle().clone()) {
+                app.state::<RuntimeState>()
+                    .close_to_tray
+                    .store(state.ui.preferences.window.close_to_tray, Ordering::Relaxed);
+                app.state::<RuntimeState>()
+                    .auto_hide_on_blur
+                    .store(state.ui.preferences.panel.auto_hide_on_blur, Ordering::Relaxed);
+                let layer = match state.ui.preferences.window.layer.as_str() {
+                    "top" => 2,
+                    "normal" => 1,
+                    _ => 0,
+                };
+                app.state::<RuntimeState>()
+                    .window_layer
+                    .store(layer, Ordering::Relaxed);
+            }
 
             if let Some(window) = app.get_webview_window(MAIN_WINDOW_LABEL) {
                 let _ = move_window_to_target_monitor(&window, app.handle());
@@ -482,7 +615,10 @@ pub fn run() {
             get_available_monitors,
             get_current_monitor,
             move_to_monitor,
-            save_monitor_preference
+            save_monitor_preference,
+            set_window_layer,
+            set_close_to_tray,
+            set_auto_hide_on_blur
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application");
@@ -490,8 +626,20 @@ pub fn run() {
     app.run(|app, event| match event {
         RunEvent::WindowEvent { label, event, .. } if label == MAIN_WINDOW_LABEL => match event {
             WindowEvent::CloseRequested { api, .. } => {
-                if !app.state::<RuntimeState>().quitting.load(Ordering::Relaxed) {
+                let runtime = app.state::<RuntimeState>();
+                if !runtime.quitting.load(Ordering::Relaxed)
+                    && runtime.close_to_tray.load(Ordering::Relaxed)
+                {
                     api.prevent_close();
+                    hide_main_window(app);
+                }
+            }
+            WindowEvent::Focused(false) => {
+                if app
+                    .state::<RuntimeState>()
+                    .auto_hide_on_blur
+                    .load(Ordering::Relaxed)
+                {
                     hide_main_window(app);
                 }
             }

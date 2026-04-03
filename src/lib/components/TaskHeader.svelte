@@ -6,7 +6,7 @@
     visibleTasks
   } from '../stores/app-store.js';
   import { VIEW, CONFIG } from '../config.js';
-  import { formatters } from '../config.js';
+  import { activeFormatters } from '../stores/preferences-store.js';
   import { parseDateKey, addDays } from '../utils/state.js';
   import SettingsButton from './SettingsButton.svelte';
 
@@ -20,7 +20,7 @@
       ? 'Hoje'
       : $viewOffsetDays === VIEW.YESTERDAY
         ? 'Ontem'
-        : formatters.historyDate.format(visibleDate);
+        : $activeFormatters.historyDate.format(visibleDate);
   $: headline = $viewOffsetDays === VIEW.TODAY ? 'Painel de execução' : 'Arquivo de execução';
 
   $: canGoPrev = $viewOffsetDays > -(CONFIG.HISTORY_VIEW_DAYS - 1);
