@@ -100,6 +100,10 @@ export function normalizeTask(task) {
     completed: Boolean(task.completed),
     pinned: Boolean(task.pinned),
     priority: normalizePriority(task.priority),
+    tags: normalizeTags(task.tags),
+    dueDate: normalizeDueDate(task.dueDate),
+    checklist: normalizeChecklist(task.checklist),
+    inInbox: Boolean(task.inInbox),
     createdAt,
     updatedAt: isValidIsoString(task.updatedAt) ? task.updatedAt : createdAt
   };
@@ -165,7 +169,19 @@ export function addDays(d, n) {
 }
 
 export function cloneTask(t) {
-  return { id: t.id, text: t.text, completed: t.completed, pinned: t.pinned, priority: t.priority, createdAt: t.createdAt, updatedAt: t.updatedAt };
+  return {
+    id: t.id,
+    text: t.text,
+    completed: t.completed,
+    pinned: t.pinned,
+    priority: t.priority,
+    tags: Array.isArray(t.tags) ? [...t.tags] : [],
+    dueDate: normalizeDueDate(t.dueDate),
+    checklist: normalizeChecklist(t.checklist),
+    inInbox: Boolean(t.inInbox),
+    createdAt: t.createdAt,
+    updatedAt: t.updatedAt
+  };
 }
 
 export function getPinnedCount(tasks) {
@@ -183,4 +199,44 @@ export function getPriorityLabel(p) {
   if (p === PRIORITY.HIGH) return 'Alta';
   if (p === PRIORITY.LOW) return 'Baixa';
   return 'Média';
+}
+
+export function normalizeTags(tags) {
+  if (!Array.isArray(tags)) return [];
+  const unique = new Set();
+  for (const tag of tags) {
+    const clean = String(tag || '')
+      .trim()
+      .toLowerCase()
+      .slice(0, 24);
+    if (clean) unique.add(clean);
+    if (unique.size >= 6) break;
+  }
+  return [...unique];
+}
+
+export function parseTagsInput(input) {
+  if (typeof input !== 'string') return [];
+  return normalizeTags(input.split(','));
+}
+
+export function normalizeDueDate(value) {
+  if (typeof value !== 'string') return null;
+  return /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : null;
+}
+
+export function normalizeChecklist(list) {
+  if (!Array.isArray(list)) return [];
+  return list
+    .map((item) => {
+      const text = normalizeTaskText(item?.text).slice(0, 80);
+      if (!text) return null;
+      return {
+        id: typeof item?.id === 'string' && item.id ? item.id : createId(),
+        text,
+        done: Boolean(item?.done)
+      };
+    })
+    .filter(Boolean)
+    .slice(0, 8);
 }

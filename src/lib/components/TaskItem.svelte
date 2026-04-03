@@ -4,9 +4,15 @@
     editingTaskId,
     toggleTask,
     cycleTaskPriority,
+    toggleTaskPin,
     moveTask,
     commitTaskEdit,
-    deleteTask
+    deleteTask,
+    updateTaskDetails,
+    updateTaskTagsFromInput,
+    addChecklistItem,
+    toggleChecklistItem,
+    removeChecklistItem
   } from '../stores/app-store.js';
   import { showToast } from '../stores/ui-store.js';
   import { getPriorityLabel } from '../utils/state.js';
@@ -16,11 +22,19 @@
   export let index;
   export let tasks;
   export let isNew = false;
+  export let canReorder = true;
 
   let editValue = task.text;
+  let editTags = (task.tags || []).join(', ');
+  let editDueDate = task.dueDate || '';
+  let checklistInput = '';
 
   $: isEditing = $editingTaskId === task.id;
-  $: if (task?.text != null && !isEditing) editValue = task.text;
+  $: if (task?.text != null && !isEditing) {
+    editValue = task.text;
+    editTags = (task.tags || []).join(', ');
+    editDueDate = task.dueDate || '';
+  }
   $: canMoveUp = index > 0;
   $: canMoveDown = index < tasks.length - 1;
 
@@ -29,8 +43,11 @@
     editValue = task.text;
   }
 
-  function handleCommit() {
-    commitTaskEdit(task.id, editValue);
+  async function handleCommit() {
+    await commitTaskEdit(task.id, editValue);
+    await updateTaskTagsFromInput(task.id, editTags);
+    await updateTaskDetails(task.id, { dueDate: editDueDate || null });
+    showToast('Tarefa editada');
   }
 
   function handleEditFocusOut() {
@@ -55,7 +72,29 @@
 
   function handleDelete() {
     deleteTask(task.id, (undo) => {
-      showToast('Tarefa excluída', undo);
+      showToast('Tarefa excluída', () => {
+        undo();
+        showToast('Tarefa restaurada');
+      });
+    });
+  }
+
+  function handleToggle() {
+    toggleTask(task.id).then(() => {
+      showToast(task.completed ? 'Tarefa reaberta' : 'Tarefa concluída');
+    });
+  }
+
+  function handleMove(dir, label) {
+    moveTask(task.id, dir).then(() => showToast(`Tarefa movida (${label})`));
+  }
+
+  function handleAddChecklist() {
+    const next = checklistInput;
+    if (!next.trim()) return;
+    addChecklistItem(task.id, next).then(() => {
+      checklistInput = '';
+      showToast('Checklist atualizada');
     });
   }
 </script>
@@ -75,7 +114,7 @@
     aria-label={task.completed ? 'Marcar como pendente' : 'Marcar como concluída'}
     data-action="toggle"
     data-task-id={task.id}
-    on:click={() => toggleTask(task.id)}
+    on:click={handleToggle}
   ></button>
 
   <div class="task-content">
@@ -94,13 +133,19 @@
         {getPriorityLabel(task.priority)}
       </button>
 
-      {#if task.pinned}
-        <span class="task-pill task-pill--ghost">Fixada</span>
-      {/if}
+      <button type="button" class="task-pill task-pill--ghost" on:click={() => toggleTaskPin(task.id)}>
+        {task.pinned ? 'Destaque' : 'Destacar'}
+      </button>
 
       <span class="task-state" class:is-complete={task.completed}>
         {task.completed ? 'Concluída' : 'Em aberto'}
       </span>
+      {#if task.dueDate}
+        <span class="task-pill task-pill--ghost">Até {task.dueDate}</span>
+      {/if}
+      {#each task.tags || [] as tag}
+        <span class="task-pill task-pill--ghost">#{tag}</span>
+      {/each}
     </div>
 
     {#if isEditing}
@@ -114,26 +159,49 @@
         on:keydown={handleKeydown}
         on:focusout={handleEditFocusOut}
       />
+      <div class="task-edit-grid">
+        <input class="task-edit-input" type="text" placeholder="tags: foco, casa" bind:value={editTags} />
+        <input class="task-edit-input" type="date" bind:value={editDueDate} />
+      </div>
     {:else}
-      <!-- svelte-ignore a11y_no_static_element_interactions -->
-      <p
-        class="task-text"
-        on:dblclick|stopPropagation={startEditing}
-      >
-        {task.text}
-      </p>
+      <p class="task-text">{task.text}</p>
     {/if}
+
+    {#if task.checklist?.length}
+      <ul class="checklist">
+        {#each task.checklist as item (item.id)}
+          <li>
+            <button type="button" class="task-toggle" aria-label="Alternar subitem" on:click={() => toggleChecklistItem(task.id, item.id)}></button>
+            <span class:is-complete={item.done}>{item.text}</span>
+            <button type="button" class="task-action delete" aria-label="Remover subitem" on:click={() => removeChecklistItem(task.id, item.id)}>{@html ICONS.delete}</button>
+          </li>
+        {/each}
+      </ul>
+    {/if}
+
+    <div class="checklist-add">
+      <input class="task-edit-input" type="text" maxlength="80" placeholder="Adicionar checklist..." bind:value={checklistInput} on:keydown={(e) => e.key === 'Enter' && handleAddChecklist()} />
+      <button type="button" class="task-action" on:click={handleAddChecklist}>+</button>
+    </div>
   </div>
 
   <div class="task-actions">
     <button
       type="button"
+      class="task-action"
+      aria-label="Editar tarefa"
+      on:click={startEditing}
+    >
+      {@html ICONS.edit}
+    </button>
+    <button
+      type="button"
       class="task-action move"
       aria-label="Subir tarefa"
-      disabled={!canMoveUp}
+      disabled={!canMoveUp || !canReorder}
       data-action="move-up"
       data-task-id={task.id}
-      on:click={() => moveTask(task.id, -1)}
+      on:click={() => handleMove(-1, 'para cima')}
     >
       {@html ICONS.moveUp}
     </button>
@@ -141,10 +209,10 @@
       type="button"
       class="task-action move"
       aria-label="Descer tarefa"
-      disabled={!canMoveDown}
+      disabled={!canMoveDown || !canReorder}
       data-action="move-down"
       data-task-id={task.id}
-      on:click={() => moveTask(task.id, 1)}
+      on:click={() => handleMove(1, 'para baixo')}
     >
       {@html ICONS.moveDown}
     </button>
