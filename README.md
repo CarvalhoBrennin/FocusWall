@@ -128,4 +128,7 @@ Este projeto já estava conectado ao remoto `canvabrennin-alt/FocusWall` e foi m
 
 Guia resumido: [docs/DEPLOY.md](docs/DEPLOY.md)
 
-Configurações: [docs/SETTINGS.md](docs/SETTINGS.md)
+
+## Arquitetura (refactor incremental)
+
+Resumo do refactor orientado a domínio/efeitos: [docs/architecture/refactor-2026-04.md](docs/architecture/refactor-2026-04.md).

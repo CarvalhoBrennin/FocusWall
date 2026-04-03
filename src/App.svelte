@@ -19,14 +19,7 @@
     paused
   } from './lib/stores/app-store.js';
   import { CONFIG, VIEW } from './lib/config.js';
-
-  function checkShouldPause() {
-    if (document.fullscreenElement) return false;
-    if (window.outerHeight === 0 && window.outerWidth === 0) return true;
-    if (document.hidden) return true;
-    return false;
-  }
-
+  import { readRuntimePauseSignal } from './lib/runtime/runtime-effects.js';
   function onClockTick() {
     if ($paused) return;
     const now = new Date();
@@ -42,7 +35,7 @@
   }
 
   function onFullscreenCheck() {
-    onFullscreenPause(checkShouldPause());
+    onFullscreenPause(readRuntimePauseSignal());
   }
 
   function handleKeydown(e) {

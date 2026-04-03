@@ -1,21 +1,19 @@
 import { CONFIG } from '../config.js';
 import { createDefaultState, normalizeState } from '../utils/state.js';
 
-const isTauri = typeof window !== 'undefined' && window.__TAURI__?.core != null;
-const tauriInvoke = isTauri ? window.__TAURI__.core.invoke.bind(window.__TAURI__.core) : null;
+import { ALLOWED_COMMANDS, invokeCommand, isTauriRuntime } from './tauri-api.js';
 
-export const storage = isTauri && tauriInvoke
+const isTauri = isTauriRuntime();
+
+export const storage = isTauri
   ? {
       mode: 'tauri',
-      loadState: () => tauriInvoke('load_state'),
-      saveState: (s) => tauriInvoke('save_state', { state: normalizeState(s) }),
-      getAppDataPath: () => tauriInvoke('get_app_data_path'),
-      getLaunchOnStartup: () => tauriInvoke('get_launch_on_startup'),
-      setLaunchOnStartup: (enabled) => tauriInvoke('set_launch_on_startup', { enabled }),
-      syncLaunchOnStartup: () => tauriInvoke('sync_launch_on_startup'),
-      setWindowLayer: (layer) => tauriInvoke('set_window_layer', { layer }),
-      setCloseToTray: (enabled) => tauriInvoke('set_close_to_tray', { enabled }),
-      setAutoHideOnBlur: (enabled) => tauriInvoke('set_auto_hide_on_blur', { enabled })
+      loadState: () => invokeCommand(ALLOWED_COMMANDS.LOAD_STATE),
+      saveState: (s) => invokeCommand(ALLOWED_COMMANDS.SAVE_STATE, { state: normalizeState(s) }),
+      getAppDataPath: () => invokeCommand(ALLOWED_COMMANDS.GET_APP_DATA_PATH),
+      getLaunchOnStartup: () => invokeCommand(ALLOWED_COMMANDS.GET_LAUNCH_ON_STARTUP),
+      setLaunchOnStartup: (enabled) => invokeCommand(ALLOWED_COMMANDS.SET_LAUNCH_ON_STARTUP, { enabled }),
+      syncLaunchOnStartup: () => invokeCommand(ALLOWED_COMMANDS.SYNC_LAUNCH_ON_STARTUP)
     }
   : {
       mode: 'browser',

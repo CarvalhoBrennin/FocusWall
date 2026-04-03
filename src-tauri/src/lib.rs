@@ -14,6 +14,12 @@ use tauri::{
 const STATE_FILE_NAME: &str = "dashboard-state.json";
 const CORRUPT_FILE_NAME: &str = "dashboard-state.corrupt.json";
 const MAIN_WINDOW_LABEL: &str = "main";
+const MAX_STATE_FILE_BYTES: usize = 2 * 1024 * 1024;
+const MAX_DATE_BUCKETS: usize = 370;
+const MAX_TASKS_PER_DATE: usize = 512;
+const MAX_TASK_ID_LENGTH: usize = 96;
+const MAX_TASK_TEXT_LENGTH: usize = 180;
+const SUPPORTED_STATE_VERSION: u8 = 4;
 
 #[derive(Default)]
 struct RuntimeState {
@@ -123,7 +129,7 @@ struct MonitorInfo {
 impl Default for DashboardState {
     fn default() -> Self {
         Self {
-            version: 4,
+            version: SUPPORTED_STATE_VERSION,
             tasks_by_date: BTreeMap::new(),
             rates_cache: None,
             rates_baseline: None,
@@ -181,10 +187,17 @@ fn default_window_layer() -> String {
 fn load_state(app: AppHandle) -> Result<DashboardState, String> {
     let path = state_file_path(&app)?;
     ensure_state_file(&path)?;
+    enforce_safe_state_file_metadata(&path)?;
     let raw = fs::read_to_string(&path).map_err(|error| error.to_string())?;
 
     match serde_json::from_str::<DashboardState>(&raw) {
-        Ok(state) => Ok(state),
+        Ok(state) => {
+            let normalized = sanitize_state(state);
+            if normalized.version != SUPPORTED_STATE_VERSION {
+                return Err("State version inválida".to_string());
+            }
+            Ok(normalized)
+        }
         Err(_) => {
             let _ = fs::write(corrupt_file_path(&app)?, raw);
             let default_state = DashboardState::default();
@@ -196,7 +209,7 @@ fn load_state(app: AppHandle) -> Result<DashboardState, String> {
 
 #[tauri::command]
 fn save_state(app: AppHandle, state: DashboardState) -> Result<(), String> {
-    write_state_file(&state_file_path(&app)?, &state)
+    write_state_file(&state_file_path(&app)?, &sanitize_state(state))
 }
 
 #[tauri::command]
@@ -407,9 +420,111 @@ fn set_auto_hide_on_blur(app: AppHandle, enabled: bool) -> Result<bool, String> 
 
 #[tauri::command]
 fn save_monitor_preference(app: AppHandle, monitor_index: usize) -> Result<(), String> {
+    if monitor_index > 32 {
+        return Err("Índice de monitor fora do limite".to_string());
+    }
     let mut state = load_state(app.clone())?;
     state.ui.preferred_monitor = Some(monitor_index);
     save_state(app, state)
+}
+
+fn sanitize_state(mut state: DashboardState) -> DashboardState {
+    state.version = SUPPORTED_STATE_VERSION;
+
+    let mut sanitized_tasks_by_date = BTreeMap::new();
+    for (date_key, tasks) in state.tasks_by_date.into_iter().take(MAX_DATE_BUCKETS) {
+        if !is_valid_date_key(&date_key) {
+            continue;
+        }
+        let sanitized_tasks: Vec<Task> = tasks
+            .into_iter()
+            .filter_map(sanitize_task)
+            .take(MAX_TASKS_PER_DATE)
+            .collect();
+        sanitized_tasks_by_date.insert(date_key, sanitized_tasks);
+    }
+    state.tasks_by_date = sanitized_tasks_by_date;
+
+    state.rates_cache = state.rates_cache.and_then(sanitize_rates_cache);
+    state.rates_baseline = state.rates_baseline.and_then(sanitize_rates_baseline);
+    state.ui = sanitize_ui_state(state.ui);
+
+    state
+}
+
+fn sanitize_task(mut task: Task) -> Option<Task> {
+    task.id = task.id.trim().chars().take(MAX_TASK_ID_LENGTH).collect();
+    task.text = task.text.split_whitespace().collect::<Vec<_>>().join(" ");
+    task.text = task.text.chars().take(MAX_TASK_TEXT_LENGTH).collect();
+    task.priority = match task.priority.as_str() {
+        "high" | "medium" | "low" => task.priority,
+        _ => "medium".to_string(),
+    };
+    if task.id.is_empty() || task.text.is_empty() {
+        return None;
+    }
+    if !is_valid_iso_timestamp(&task.created_at) {
+        task.created_at = "1970-01-01T00:00:00.000Z".to_string();
+    }
+    if !is_valid_iso_timestamp(&task.updated_at) {
+        task.updated_at = task.created_at.clone();
+    }
+    Some(task)
+}
+
+fn sanitize_rates_cache(mut cache: RatesCache) -> Option<RatesCache> {
+    if !cache.usd.is_finite() || !cache.eur.is_finite() {
+        return None;
+    }
+    cache.usd_var_bid = cache.usd_var_bid.filter(|value| value.is_finite());
+    cache.usd_pct_change = cache.usd_pct_change.filter(|value| value.is_finite());
+    cache.eur_var_bid = cache.eur_var_bid.filter(|value| value.is_finite());
+    cache.eur_pct_change = cache.eur_pct_change.filter(|value| value.is_finite());
+    if !is_valid_iso_timestamp(&cache.updated_at) || !is_valid_iso_timestamp(&cache.fetched_at) {
+        return None;
+    }
+    Some(cache)
+}
+
+fn sanitize_rates_baseline(mut baseline: RatesBaseline) -> Option<RatesBaseline> {
+    if !is_valid_date_key(&baseline.day_key)
+        || !baseline.usd.is_finite()
+        || !baseline.eur.is_finite()
+    {
+        return None;
+    }
+    Some(baseline)
+}
+
+fn sanitize_ui_state(mut ui: UiState) -> UiState {
+    if !is_valid_date_key(&ui.last_viewed_base_date) {
+        ui.last_viewed_base_date.clear();
+    }
+    ui.view_offset_days = ui.view_offset_days.clamp(-365, 0);
+    if matches!(ui.preferred_monitor, Some(index) if index > 32) {
+        ui.preferred_monitor = None;
+    }
+    ui
+}
+
+fn is_valid_date_key(value: &str) -> bool {
+    if value.is_empty() {
+        return true;
+    }
+    if value.len() != 10 {
+        return false;
+    }
+    let bytes = value.as_bytes();
+    bytes[4] == b'-'
+        && bytes[7] == b'-'
+        && bytes
+            .iter()
+            .enumerate()
+            .all(|(index, byte)| matches!(index, 4 | 7) || byte.is_ascii_digit())
+}
+
+fn is_valid_iso_timestamp(value: &str) -> bool {
+    value.len() >= 20 && value.contains('T') && value.ends_with('Z')
 }
 
 fn app_data_directory(app: &AppHandle) -> Result<PathBuf, String> {
@@ -431,6 +546,7 @@ fn corrupt_file_path(app: &AppHandle) -> Result<PathBuf, String> {
 
 fn ensure_state_file(path: &Path) -> Result<(), String> {
     if path.exists() {
+        enforce_safe_state_file_metadata(path)?;
         return Ok(());
     }
     write_state_file(path, &DashboardState::default())
@@ -442,6 +558,9 @@ fn write_state_file(path: &Path, state: &DashboardState) -> Result<(), String> {
     }
 
     let payload = serde_json::to_vec_pretty(state).map_err(|error| error.to_string())?;
+    if payload.len() > MAX_STATE_FILE_BYTES {
+        return Err("State excede tamanho máximo permitido".to_string());
+    }
     let temp_path = path.with_extension("json.tmp");
     fs::write(&temp_path, payload).map_err(|error| error.to_string())?;
 
