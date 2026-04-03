@@ -8,6 +8,10 @@
   import { CONFIG, PRIORITY } from '../config.js';
 
   let taskInput = '';
+  let tagInput = '';
+  let dueDate = '';
+  let priority = PRIORITY.MEDIUM;
+  let inInbox = false;
 
   $: canAdd = normalizeTaskText(taskInput).length > 0;
   $: tasks = $visibleTasks || [];
@@ -18,10 +22,14 @@
   function handleAdd() {
     const t = normalizeTaskText(taskInput);
     if (!t) return;
-    addTask(t, PRIORITY.MEDIUM).then((id) => {
+    addTask(t, priority, { tags: tagInput.split(','), dueDate, inInbox }).then((id) => {
       if (id) {
         taskInput = '';
-        showToast('Tarefa adicionada');
+        tagInput = '';
+        dueDate = '';
+        inInbox = false;
+        priority = PRIORITY.MEDIUM;
+        showToast('Tarefa adicionada com sucesso');
       }
     });
   }
@@ -66,6 +74,29 @@
       >
         Registrar
       </button>
+    </div>
+
+    <div class="composer-filters">
+      <label>
+        Prioridade
+        <select bind:value={priority}>
+          <option value={PRIORITY.MEDIUM}>Média</option>
+          <option value={PRIORITY.HIGH}>Alta</option>
+          <option value={PRIORITY.LOW}>Baixa</option>
+        </select>
+      </label>
+      <label>
+        Tags
+        <input type="text" placeholder="ex: trabalho, foco" bind:value={tagInput} />
+      </label>
+      <label>
+        Data
+        <input type="date" bind:value={dueDate} />
+      </label>
+      <label class="composer-check">
+        <input type="checkbox" bind:checked={inInbox} />
+        Enviar para inbox
+      </label>
     </div>
 
     <article class="progress-card progress-summary progress-summary--inline" aria-live="polite">

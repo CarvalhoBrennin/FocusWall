@@ -6,25 +6,11 @@
     prevRates,
     ratesBaseline
   } from '../stores/app-store.js';
-  import { formatters, RATE_STATUS, CONFIG } from '../config.js';
+  import { RATE_STATUS, CONFIG } from '../config.js';
+  import { activeFormatters } from '../stores/preferences-store.js';
   import { getBrazilDateKey } from '../utils/state.js';
 
-  let pctFmt;
-  try {
-    pctFmt = new Intl.NumberFormat(CONFIG.LOCALE, {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-      signDisplay: 'exceptZero'
-    });
-  } catch {
-    pctFmt = {
-      format: (n) => {
-        if (n == null || !Number.isFinite(n)) return '';
-        const s = n >= 0 ? '+' : '';
-        return s + n.toFixed(2).replace('.', ',');
-      }
-    };
-  }
+    $: pctFmt = $activeFormatters.percent;
 
   $: statusText =
     $ratesStatus === RATE_STATUS.LIVE
@@ -141,7 +127,7 @@
     }
     const money =
       p.delta != null && Number.isFinite(p.delta)
-        ? (p.delta > 0 ? '+' : '-') + 'R$ ' + formatters.rateNumber.format(Math.abs(p.delta))
+        ? (p.delta > 0 ? '+' : '-') + 'R$ ' + $activeFormatters.rateNumber.format(Math.abs(p.delta))
         : '';
     const pctStr =
       p.pct != null && Number.isFinite(p.pct) ? pctFmt.format(p.pct) + '%' : '';
@@ -247,7 +233,7 @@
           </span>
           {#if usdPrimary?.beforeVal != null && usdPrimary?.delta != null && Math.abs(usdPrimary.delta) > 0.0001}
             <span class="rate-before" aria-label="Cotação anterior em reais">
-              Antes: R$ {formatters.rateNumber.format(usdPrimary.beforeVal)}
+              Antes: R$ {$activeFormatters.rateNumber.format(usdPrimary.beforeVal)}
             </span>
           {/if}
         </div>
@@ -255,7 +241,7 @@
           <strong class="rate-value" class:rate-value--gold={usdGold}>
             <span class="rate-symbol">R$</span>
             <span class="rate-number">
-              {rc?.usd != null ? formatters.rateNumber.format(rc.usd) : '--'}
+              {rc?.usd != null ? $activeFormatters.rateNumber.format(rc.usd) : '--'}
             </span>
           </strong>
           <span class={`rate-pulse ${movementClass(usdPrimary)}`}>{movementLabel(usdPrimary)}</span>
@@ -295,7 +281,7 @@
           </span>
           {#if eurPrimary?.beforeVal != null && eurPrimary?.delta != null && Math.abs(eurPrimary.delta) > 0.0001}
             <span class="rate-before" aria-label="Cotação anterior em reais">
-              Antes: R$ {formatters.rateNumber.format(eurPrimary.beforeVal)}
+              Antes: R$ {$activeFormatters.rateNumber.format(eurPrimary.beforeVal)}
             </span>
           {/if}
         </div>
@@ -303,7 +289,7 @@
           <strong class="rate-value" class:rate-value--gold={eurGold}>
             <span class="rate-symbol">R$</span>
             <span class="rate-number">
-              {rc?.eur != null ? formatters.rateNumber.format(rc.eur) : '--'}
+              {rc?.eur != null ? $activeFormatters.rateNumber.format(rc.eur) : '--'}
             </span>
           </strong>
           <span class={`rate-pulse ${movementClass(eurPrimary)}`}>{movementLabel(eurPrimary)}</span>
