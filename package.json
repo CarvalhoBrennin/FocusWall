@@ -10,7 +10,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "tauri:dev": "tauri dev",
-    "tauri:build": "tauri build"
+    "tauri:build": "tauri build",
+    "test": "node --test src/lib/domain/tests/*.test.js"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^7.0.0",

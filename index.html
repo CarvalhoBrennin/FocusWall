@@ -35,7 +35,11 @@
     window.addEventListener('error', function(e) {
       var el = document.getElementById('app');
       if (el && !el.querySelector('pre')) {
-        el.innerHTML = '<pre style="color:red;padding:2rem;">Erro: ' + (e.message || 'desconhecido') + '</pre>';
+        var pre = document.createElement('pre');
+        pre.style.color = 'red';
+        pre.style.padding = '2rem';
+        pre.textContent = 'Erro: ' + (e.message || 'desconhecido');
+        el.replaceChildren(pre);
       }
     });
   </script>
