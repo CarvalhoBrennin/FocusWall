@@ -10,7 +10,8 @@
   } from '../stores/app-store.js';
   import { showToast } from '../stores/ui-store.js';
   import { getPriorityLabel } from '../utils/state.js';
-  import { CONFIG, ICONS } from '../config.js';
+  import { CONFIG } from '../config.js';
+  import TaskIcons from './icons/TaskIcons.svelte';
 
   export let task;
   export let index;
@@ -75,7 +76,7 @@
     aria-label={task.completed ? 'Marcar como pendente' : 'Marcar como concluída'}
     data-action="toggle"
     data-task-id={task.id}
-    on:click={() => toggleTask(task.id)}
+    onclick={() => toggleTask(task.id)}
   ></button>
 
   <div class="task-content">
@@ -89,7 +90,7 @@
         aria-label="Alterar prioridade"
         data-action="priority"
         data-task-id={task.id}
-        on:click={() => cycleTaskPriority(task.id)}
+        onclick={() => cycleTaskPriority(task.id)}
       >
         {getPriorityLabel(task.priority)}
       </button>
@@ -111,14 +112,14 @@
         aria-label="Editar tarefa"
         data-task-id={task.id}
         bind:value={editValue}
-        on:keydown={handleKeydown}
-        on:focusout={handleEditFocusOut}
+        onkeydown={handleKeydown}
+        onfocusout={handleEditFocusOut}
       />
     {:else}
       <!-- svelte-ignore a11y_no_static_element_interactions -->
       <p
         class="task-text"
-        on:dblclick|stopPropagation={startEditing}
+        ondblclick={(e) => { e.stopPropagation(); startEditing(); }}
       >
         {task.text}
       </p>
@@ -133,9 +134,9 @@
       disabled={!canMoveUp}
       data-action="move-up"
       data-task-id={task.id}
-      on:click={() => moveTask(task.id, -1)}
+      onclick={() => moveTask(task.id, -1)}
     >
-      {@html ICONS.moveUp}
+      <TaskIcons name="moveUp" />
     </button>
     <button
       type="button"
@@ -144,9 +145,9 @@
       disabled={!canMoveDown}
       data-action="move-down"
       data-task-id={task.id}
-      on:click={() => moveTask(task.id, 1)}
+      onclick={() => moveTask(task.id, 1)}
     >
-      {@html ICONS.moveDown}
+      <TaskIcons name="moveDown" />
     </button>
     <button
       type="button"
@@ -154,9 +155,9 @@
       aria-label="Excluir tarefa"
       data-action="delete"
       data-task-id={task.id}
-      on:click={handleDelete}
+      onclick={handleDelete}
     >
-      {@html ICONS.delete}
+      <TaskIcons name="delete" />
     </button>
   </div>
 </li>

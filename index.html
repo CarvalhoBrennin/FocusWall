@@ -3,25 +3,38 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="color-scheme" content="dark light">
+  <meta name="color-scheme" content="dark">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://economia.awesomeapi.com.br; script-src 'self' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; worker-src 'self' blob:;">
   <meta name="description" content="Dashboard desktop pessoal com relógio em tempo real, câmbio BRL e tarefas diárias.">
+  <!-- Fonts: local primeira, CDN fallback -->
+  <style>
+    @font-face {
+      font-family: 'Manrope';
+      font-style: normal;
+      font-weight: 400 800;
+      font-display: swap;
+      src: url('/assets/fonts/Manrope-VariableFont_wght.woff2') format('woff2');
+    }
+    @font-face {
+      font-family: 'Orbitron';
+      font-style: normal;
+      font-weight: 500 900;
+      font-display: swap;
+      src: url('/assets/fonts/Orbitron-VariableFont_wght.woff2') format('woff2');
+    }
+  </style>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
-    href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Orbitron:wght@500;600;700;800;900&display=swap"
     rel="stylesheet"
   >
   <style>
-    /* Font loading optimization */
-    @font-face {
-      font-family: 'Manrope';
-      font-display: swap;
-      src: local('Manrope'), local('Manrope-Regular');
+    html, body {
+      background: transparent !important;
     }
-    @font-face {
-      font-family: 'Space Grotesk';
-      font-display: swap;
-      src: local('Space Grotesk'), local('SpaceGrotesk-Regular');
+    body {
+      font-family: 'Manrope', system-ui, -apple-system, 'Segoe UI', sans-serif;
     }
   </style>
   <title>Focus Dashboard</title>
@@ -30,14 +43,6 @@
   <div id="app">
     <noscript>Habilite JavaScript para usar o Focus Dashboard.</noscript>
   </div>
-  <script type="module" src="/src/main.js"></script>
-  <script>
-    window.addEventListener('error', function(e) {
-      var el = document.getElementById('app');
-      if (el && !el.querySelector('pre')) {
-        el.innerHTML = '<pre style="color:red;padding:2rem;">Erro: ' + (e.message || 'desconhecido') + '</pre>';
-      }
-    });
-  </script>
+  <script type="module" src="/src/main.ts"></script>
 </body>
 </html>

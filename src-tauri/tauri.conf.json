@@ -10,7 +10,7 @@
     "frontendDist": "../dist"
   },
   "app": {
-    "withGlobalTauri": true,
+    "withGlobalTauri": false,
     "windows": [
       {
         "label": "main",
@@ -20,11 +20,12 @@
         "minWidth": 1100,
         "minHeight": 720,
         "decorations": false,
-        "resizable": false,
-        "maximizable": false,
+        "resizable": true,
+        "maximizable": true,
         "minimizable": true,
         "closable": true,
         "shadow": false,
+        "transparent": false,
         "visible": false,
         "skipTaskbar": true,
         "alwaysOnBottom": true,
@@ -32,7 +33,7 @@
       }
     ],
     "security": {
-      "csp": null
+      "csp": "default-src 'self'; connect-src 'self' ipc: http://ipc.localhost https://economia.awesomeapi.com.br; script-src 'self' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' asset: https://asset.localhost blob: data:; worker-src 'self' blob:"
     }
   },
   "bundle": {

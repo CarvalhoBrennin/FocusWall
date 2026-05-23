@@ -47,8 +47,12 @@
       {/each}
     </ul>
 
-    {#if totalPages > 1}
-      <nav class="task-pagination" aria-label="Navegação entre páginas">
+    <nav
+      class="task-pagination"
+      class:is-hidden={totalPages <= 1}
+      aria-label="Navegação entre páginas"
+      aria-hidden={totalPages <= 1}
+    >
         <div class="pagination-meta">
           <span class="pagination-kicker">Mostrando</span>
           <span class="pagination-range" aria-live="off">
@@ -60,7 +64,7 @@
             type="button"
             class="pagination-btn"
             aria-label="Página anterior"
-            disabled={page <= 0}
+            disabled={totalPages <= 1 || page <= 0}
             onclick={goPrev}
           >
             ‹
@@ -72,14 +76,13 @@
             type="button"
             class="pagination-btn"
             aria-label="Próxima página"
-            disabled={page >= totalPages - 1}
+            disabled={totalPages <= 1 || page >= totalPages - 1}
             onclick={goNext}
           >
             ›
           </button>
         </div>
       </nav>
-    {/if}
   </div>
 
   <EmptyState hidden={allTasks.length > 0} />

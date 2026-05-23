@@ -1,5 +1,5 @@
 <script>
-  import { ICONS } from '../config.js';
+  import TaskIcons from './icons/TaskIcons.svelte';
   import { showSettingsModal } from '../stores/ui-store.js';
 
   function handleClick() {
@@ -11,9 +11,9 @@
   type="button"
   class="settings-button"
   aria-label="Configurações"
-  on:click={handleClick}
+  onclick={handleClick}
 >
-  {@html ICONS.settings}
+  <TaskIcons name="settings" />
 </button>
 
 <style>
@@ -21,28 +21,31 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 40px;
-    height: 40px;
-    border: none;
-    border-radius: 50%;
-    background: var(--surface-dark-soft);
+    width: 2.5rem;
+    height: 2.5rem;
+    border: 1px solid rgba(241, 236, 236, 0.12);
+    border-radius: 0;
+    background: rgba(255, 255, 255, 0.06);
     color: var(--light-soft);
     cursor: pointer;
-    transition: all 0.2s ease;
+    box-shadow: var(--shadow-xs);
+    transition:
+      transform var(--transition-fast),
+      border-color var(--transition-fast),
+      background-color var(--transition-fast),
+      color var(--transition-fast),
+      box-shadow var(--transition-fast);
   }
 
   .settings-button:hover {
-    background: var(--surface-dark-strong);
-    color: var(--light-main);
-    transform: scale(1.05);
-  }
-
-  .settings-button:active {
-    transform: scale(0.95);
+    transform: translateY(-1px);
+    border-color: rgba(207, 206, 205, 0.28);
+    background: rgba(255, 255, 255, 0.12);
+    color: var(--light-strong);
   }
 
   .settings-button :global(svg) {
-    width: 18px;
-    height: 18px;
+    width: 1.05rem;
+    height: 1.05rem;
   }
 </style>

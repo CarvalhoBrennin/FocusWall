@@ -1,5 +1,5 @@
 import { writable, derived, get } from 'svelte/store';
-import { CONFIG, VIEW, RATE_STATUS, PRIORITY_ORDER } from '../config.js';
+import { CONFIG, VIEW, RATE_STATUS, PRIORITY_ORDER, formatters } from '../config.js';
 import { storage } from '../services/storage.js';
 import { startTimer, stopAllTimers } from '../services/timer.js';
 import { fetchExchangeRates } from '../services/exchange.js';
@@ -17,6 +17,10 @@ import {
   getPinnedCount,
   findTaskIndex
 } from '../utils/state.js';
+import { applyTheme } from './theme-store.js';
+import { setLocale } from '../i18n/index.js';
+import { rebuildFormatters } from '../config.js';
+import type { LocaleId, ThemeId, AppState, RateStatus } from '../types/app.js';
 
 function ensureDateBucket(data, dk) {
   const tbd = { ...data.tasksByDate };
@@ -37,24 +41,27 @@ function getVisibleDateKey(currentDateKey, viewOffsetDays) {
   return getLocalDateKey(addDays(parseDateKey(currentDateKey), viewOffsetDays));
 }
 
-function getTasksByDate(data, dk) {
+function getTasksByDate(data: import('../types/app.js').AppState, dk: string) {
   return Array.isArray(data.tasksByDate?.[dk]) ? data.tasksByDate[dk] : [];
 }
 
 export const currentDateKey = writable(getLocalDateKey(new Date()));
-export const viewOffsetDays = writable(VIEW.TODAY);
+export const viewOffsetDays = writable<number>(VIEW.TODAY);
 export const editingTaskId = writable(null);
 export const startupEnabled = writable(false);
 export const appDataPath = writable('');
 export const appStatusMessage = writable('Inicializando...');
 export const appStatusVariant = writable(''); // 'live' | 'warning' | 'error'
+export const bootstrapLoading = writable(true);
+export const bootstrapError = writable('');
 export const paused = writable(false);
-export const data = writable(createDefaultState());
+export const data = writable<AppState>(createDefaultState());
 export const prevRates = writable({ usd: null, eur: null });
-export const ratesStatus = writable(RATE_STATUS.UPDATING);
+export const ratesStatus = writable<RateStatus>(RATE_STATUS.UPDATING);
 export const ratesMeta = writable('Buscando cotações...');
 export const ratesCache = writable(null);
 export const clockTime = writable('00:00:00');
+export const clockNow = writable(new Date());
 export const lastAddedTaskId = writable(/** @type {string | null} */ (null));
 
 export const visibleTasks = derived(
@@ -72,13 +79,13 @@ export const todayTasks = derived([data, currentDateKey], ([$data, $currentDateK
 export const ratesBaseline = derived(data, ($d) => $d?.ratesBaseline ?? null);
 
 let ratesRequestId = 0;
-let activeRatesController = null;
+let ratesInFlight = false;
 let saveDebounceId = null;
 let ratesTickCount = 0;
 
 function buildRateMeta(iso, prefix) {
   const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? prefix + '.' : prefix + ' às ' + new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit', hour12: false }).format(d) + '.';
+  return Number.isNaN(d.getTime()) ? prefix + '.' : prefix + ' às ' + formatters.shortTime.format(d) + '.';
 }
 
 async function persistStateImmediate() {
@@ -108,46 +115,125 @@ export function persistStateDebounced() {
   }, CONFIG.SAVE_DEBOUNCE_MS);
 }
 
-function checkShouldPause() {
-  if (document.fullscreenElement) return false;
-  if (window.outerHeight === 0 && window.outerWidth === 0) return true;
-  if (document.hidden) return true;
-  return false;
-}
-
 export function setAppStatus(message, variant = '', path = '') {
   appStatusMessage.set(message);
   appStatusVariant.set(variant);
   if (path) appDataPath.set(path);
 }
 
-export function setViewOffset(offset) {
+export function setViewOffset(offset: number) {
   const min = -(CONFIG.HISTORY_VIEW_DAYS - 1);
   viewOffsetDays.set(Math.max(min, Math.min(VIEW.TODAY, Number(offset) || 0)));
   editingTaskId.set(null);
   persistStateDebounced();
 }
 
-export function setClockTime(now) {
-  const text = new Intl.DateTimeFormat('pt-BR', {
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false
-  }).format(now);
-  clockTime.set(text);
+export async function setPreferredMonitorPreference(preferredMonitor: number) {
+  if (!Number.isInteger(preferredMonitor) || preferredMonitor < 0) return false;
+  const $data = get(data);
+  const nextData = {
+    ...$data,
+    ui: {
+      ...$data.ui,
+      preferredMonitor
+    }
+  };
+
+  try {
+    await storage.saveState(nextData);
+    data.set(nextData);
+    return true;
+  } catch {
+    setAppStatus('Não foi possível salvar a preferência de monitor.', 'error', get(appDataPath));
+    return false;
+  }
+}
+
+export async function setThemePreference(nextTheme: ThemeId) {
+  applyTheme(nextTheme);
+  const $data = get(data);
+  const nextData = { ...$data, ui: { ...$data.ui, theme: nextTheme } };
+  try {
+    await storage.saveState(nextData);
+    data.set(nextData);
+    return true;
+  } catch {
+    setAppStatus('Não foi possível salvar o tema.', 'error', get(appDataPath));
+    return false;
+  }
+}
+
+export async function setLocalePreference(nextLocale: LocaleId) {
+  setLocale(nextLocale);
+  rebuildFormatters(nextLocale);
+  const $data = get(data);
+  const nextData = { ...$data, ui: { ...$data.ui, locale: nextLocale } };
+  try {
+    await storage.saveState(nextData);
+    data.set(nextData);
+    return true;
+  } catch {
+    setAppStatus('Não foi possível salvar o idioma.', 'error', get(appDataPath));
+    return false;
+  }
+}
+
+export function setClockTime(now: Date) {
+  clockNow.set(now);
+  clockTime.set(formatters.time.format(now));
+}
+
+export function exportStateBackup() {
+  const payload = JSON.stringify(get(data), null, 2);
+  const blob = new Blob([payload], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  const stamp = getLocalDateKey(new Date());
+  anchor.href = url;
+  anchor.download = `focus-dashboard-backup-${stamp}.json`;
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
+
+export async function setFilesLastPath(path: string) {
+  if (typeof path !== 'string' || !path.trim()) return;
+  const $data = get(data);
+  const nextData = {
+    ...$data,
+    ui: {
+      ...$data.ui,
+      filesLastPath: path
+    }
+  };
+  try {
+    await storage.saveState(nextData);
+    data.set(nextData);
+  } catch {
+    setAppStatus('Não foi possível salvar o último diretório.', 'error', get(appDataPath));
+  }
 }
 
 export function bootstrapApp() {
   return (async () => {
+    bootstrapLoading.set(true);
+    bootstrapError.set('');
     try {
-      const loaded = normalizeState(await storage.loadState());
+      const raw = await storage.loadState();
+      const loaded = normalizeState(raw);
+      if (!loaded || typeof loaded !== 'object' || !loaded.tasksByDate) {
+        throw new Error('Estado local inválido ou corrompido.');
+      }
+
       const $currentDateKey = getLocalDateKey(new Date());
       currentDateKey.set($currentDateKey);
       viewOffsetDays.set(VIEW.TODAY);
       let d = ensureDateBucket(loaded, $currentDateKey);
       d = pruneHistory(d, $currentDateKey);
       data.set(d);
+      applyTheme(d.ui.theme ?? 'dark');
+      const bootLocale = d.ui.locale ?? 'pt-BR';
+      setLocale(bootLocale);
+      rebuildFormatters(bootLocale);
 
       if (d.ratesCache) {
         prevRates.set({ usd: d.ratesCache.usd, eur: d.ratesCache.eur });
@@ -168,12 +254,15 @@ export function bootstrapApp() {
       } else {
         setAppStatus('Modo navegador: usando armazenamento local para pré-visualização.', 'warning');
       }
-    } catch {
+    } catch (err) {
       const def = createDefaultState();
       const $currentDateKey = getLocalDateKey(new Date());
       const d = ensureDateBucket(def, $currentDateKey);
       data.set(d);
+      bootstrapError.set(String(err?.message || err));
       setAppStatus('Falha ao carregar o estado local. Um estado vazio foi restaurado.', 'error');
+    } finally {
+      bootstrapLoading.set(false);
     }
   })();
 }
@@ -193,9 +282,10 @@ export function stopAllAppTimers() {
   stopAllTimers();
 }
 
-export async function updateExchangeRates(options = {}) {
+export async function updateExchangeRates(options: { force?: boolean; silent?: boolean } = {}) {
   const $paused = get(paused);
   if ($paused) return;
+  if (ratesInFlight && !options.force) return;
 
   const rid = ++ratesRequestId;
   const $data = get(data);
@@ -213,10 +303,11 @@ export async function updateExchangeRates(options = {}) {
     );
   }
 
-  activeRatesController = new AbortController();
+  ratesInFlight = true;
+  const controller = new AbortController();
 
   try {
-    const fresh = await fetchExchangeRates(activeRatesController);
+    const fresh = await fetchExchangeRates(controller);
     if (rid !== ratesRequestId) return;
     const before = get(ratesCache);
     if (before && Number.isFinite(before.usd) && Number.isFinite(before.eur)) {
@@ -246,12 +337,12 @@ export async function updateExchangeRates(options = {}) {
       cached ? buildRateMeta(cached.updatedAt, 'Mostrando cache') : 'Cotações indisponíveis no momento.'
     );
   } finally {
-    activeRatesController = null;
+    ratesInFlight = false;
   }
 }
 
 export function abortRatesFetch() {
-  if (activeRatesController) activeRatesController.abort();
+  ratesRequestId += 1;
 }
 
 export function onDayChange() {
@@ -311,7 +402,7 @@ export async function addTask(text, priority) {
     data.set(nextData);
     setAppStatus('Tarefa salva localmente.', 'live', get(appDataPath));
     lastAddedTaskId.set(newTask.id);
-    setTimeout(() => lastAddedTaskId.update((id) => (id === newTask.id ? null : id)), 450);
+    setTimeout(() => lastAddedTaskId.update((id) => (id === newTask.id ? null : id)), CONFIG.TASK_HIGHLIGHT_MS);
     return newTask.id;
   } catch {
     return null;

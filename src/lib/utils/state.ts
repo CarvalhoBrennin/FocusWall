@@ -1,12 +1,22 @@
 import { CONFIG, PRIORITY } from '../config.js';
+import type { AppState } from '../types/app.js';
 
-export function createDefaultState() {
+export function createDefaultState(): AppState {
   return {
     version: CONFIG.STATE_VERSION,
     tasksByDate: {},
+    calendarEvents: [],
     ratesCache: null,
     ratesBaseline: null,
-    ui: { lastViewedBaseDate: '', viewOffsetDays: 0 }
+    ui: {
+      lastViewedBaseDate: '',
+      viewOffsetDays: 0,
+      calendarMonth: '',
+      filesLastPath: '',
+      theme: 'dark',
+      locale: 'pt-BR',
+      preferredMonitor: null
+    }
   };
 }
 
@@ -24,11 +34,20 @@ export function normalizeState(candidate) {
   return {
     version: CONFIG.STATE_VERSION,
     tasksByDate: normalizeTasksByDate(candidate.tasksByDate),
+    calendarEvents: normalizeCalendarEvents(candidate.calendarEvents),
     ratesCache: normalizeRatesCache(candidate.ratesCache),
     ratesBaseline: normalizeRatesBaseline(candidate.ratesBaseline),
     ui: {
       lastViewedBaseDate: typeof candidate.ui?.lastViewedBaseDate === 'string' ? candidate.ui.lastViewedBaseDate : '',
-      viewOffsetDays: Number.isInteger(candidate.ui?.viewOffsetDays) ? candidate.ui.viewOffsetDays : 0
+      viewOffsetDays: Number.isInteger(candidate.ui?.viewOffsetDays) ? candidate.ui.viewOffsetDays : 0,
+      calendarMonth: normalizeMonthKey(candidate.ui?.calendarMonth) || '',
+      preferredMonitor: Number.isInteger(candidate.ui?.preferredMonitor) ? candidate.ui.preferredMonitor : null,
+      filesLastPath: typeof candidate.ui?.filesLastPath === 'string' ? candidate.ui.filesLastPath : '',
+      theme:
+        candidate.ui?.theme === 'light' || candidate.ui?.theme === 'olive' || candidate.ui?.theme === 'dark'
+          ? candidate.ui.theme
+          : 'dark',
+      locale: candidate.ui?.locale === 'en-US' ? 'en-US' : 'pt-BR'
     }
   };
 }
@@ -56,6 +75,34 @@ export function normalizeTask(task) {
     priority: normalizePriority(task.priority),
     createdAt,
     updatedAt: isValidIsoString(task.updatedAt) ? task.updatedAt : createdAt
+  };
+}
+
+export function normalizeCalendarEvents(events) {
+  if (!Array.isArray(events)) return [];
+  return events.map(normalizeCalendarEvent).filter(Boolean);
+}
+
+export function normalizeCalendarEvent(event) {
+  if (!event || typeof event !== 'object') return null;
+  const title = normalizeCalendarTitle(event.title);
+  const dateKey = normalizeDateKey(event.dateKey);
+  if (!title || !dateKey) return null;
+
+  const startTime = normalizeTimeValue(event.startTime);
+  const endTime = normalizeTimeValue(event.endTime);
+  const createdAt = isValidIsoString(event.createdAt) ? event.createdAt : new Date().toISOString();
+
+  return {
+    id: typeof event.id === 'string' && event.id ? event.id : createId('event'),
+    title,
+    dateKey,
+    startTime: startTime || undefined,
+    endTime: endTime && (!startTime || endTime >= startTime) ? endTime : undefined,
+    notes: normalizeCalendarNotes(event.notes) || undefined,
+    color: normalizeCalendarColor(event.color),
+    createdAt,
+    updatedAt: isValidIsoString(event.updatedAt) ? event.updatedAt : createdAt
   };
 }
 
@@ -88,12 +135,40 @@ export function normalizeTaskText(text) {
   return String(text || '').replace(/\s+/g, ' ').trim().slice(0, CONFIG.MAX_TASK_LENGTH);
 }
 
+export function normalizeCalendarTitle(title) {
+  return String(title || '').replace(/\s+/g, ' ').trim().slice(0, 120);
+}
+
+export function normalizeCalendarNotes(notes) {
+  return String(notes || '').trim().slice(0, 500);
+}
+
+export function normalizeCalendarColor(color) {
+  return color === 'accent' || color === 'success' || color === 'danger' ? color : 'neutral';
+}
+
+export function normalizeDateKey(dateKey) {
+  if (typeof dateKey !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) return '';
+  const parsed = parseDateKey(dateKey);
+  return !Number.isNaN(parsed.getTime()) && getLocalDateKey(parsed) === dateKey ? dateKey : '';
+}
+
+export function normalizeMonthKey(monthKey) {
+  if (typeof monthKey !== 'string' || !/^\d{4}-\d{2}$/.test(monthKey)) return '';
+  const month = Number(monthKey.slice(5, 7));
+  return month >= 1 && month <= 12 ? monthKey : '';
+}
+
+export function normalizeTimeValue(time) {
+  return typeof time === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(time) ? time : '';
+}
+
 export function isValidIsoString(v) {
   return typeof v === 'string' && v !== '' && !Number.isNaN(new Date(v).getTime());
 }
 
-export function createId() {
-  return 'task-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
+export function createId(prefix = 'task') {
+  return prefix + '-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
 }
 
 export function getLocalDateKey(d) {

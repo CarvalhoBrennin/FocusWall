@@ -1,0 +1,363 @@
+@media (max-width: 1600px) {
+  .app-shell-frame {
+    grid-template-columns: minmax(288px, 0.32fr) minmax(0, 1fr);
+  }
+
+  .rate-row-top {
+    grid-template-columns: 1fr;
+    align-items: flex-start;
+  }
+
+  .rate-value-wrap {
+    justify-items: start;
+  }
+}
+
+@media (max-width: 1200px) {
+  body {
+    overflow: auto;
+  }
+
+  .app-shell {
+    height: auto;
+    min-height: calc(100vh - var(--taskbar-height));
+  }
+
+  .app-shell-frame {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+
+  .info-rail {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
+  }
+
+  .task-panel {
+    min-height: min(920px, calc(100vh - var(--taskbar-height) - 2rem));
+  }
+
+  .task-list {
+    display: flex;
+    flex-direction: column;
+    max-height: 58vh;
+    overflow: auto;
+    padding-bottom: 0.2rem;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(241, 236, 236, 0.2) transparent;
+  }
+
+  .task-list::-webkit-scrollbar {
+    width: 10px;
+  }
+
+  .task-list::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .task-list::-webkit-scrollbar-thumb {
+    background: rgba(241, 236, 236, 0.18);
+    border-radius: 0;
+  }
+
+  .task-list::-webkit-scrollbar-thumb:hover {
+    background: rgba(241, 236, 236, 0.28);
+  }
+
+  .calendar-body {
+    grid-template-columns: 1fr;
+    overflow: auto;
+    padding-right: 0.1rem;
+  }
+
+  .calendar-grid {
+    min-height: 24rem;
+    grid-template-rows: repeat(6, minmax(0, 1fr));
+    grid-auto-rows: minmax(0, 1fr);
+  }
+
+  .opencode-launcher-body {
+    min-height: 16rem;
+    max-height: 48vh;
+    overflow: auto;
+  }
+
+  .opencode-project-list {
+    max-height: none;
+  }
+}
+
+@media (max-width: 920px) {
+  .task-header,
+  .composer-panel,
+  .task-tools {
+    grid-template-columns: 1fr;
+  }
+
+  .task-header {
+    flex-direction: column;
+  }
+
+  .history-nav {
+    align-self: flex-start;
+  }
+
+  .calendar-toolbar,
+  .calendar-detail-header {
+    grid-template-columns: 1fr;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .calendar-toolbar-actions {
+    justify-content: space-between;
+  }
+
+  .calendar-form-grid,
+  .calendar-color-group {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .composer-panel {
+    display: grid;
+  }
+
+  .composer-copy {
+    gap: 0.5rem;
+  }
+
+  .composer-title {
+    max-width: none;
+  }
+
+  .progress-summary--inline {
+    grid-template-columns: 1fr;
+  }
+
+  .opencode-launcher-toolbar,
+  .opencode-launcher-footer,
+  .opencode-session-bar {
+    grid-template-columns: 1fr;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .opencode-launcher-toolbar {
+    display: grid;
+  }
+
+  .opencode-launcher-footer .primary-button,
+  .opencode-launcher-toolbar .ghost-button {
+    width: 100%;
+  }
+
+  .section-heading--rates {
+    align-items: flex-start;
+  }
+
+  .rates-status {
+    justify-items: start;
+  }
+}
+
+@media (max-width: 720px) {
+  .app-shell {
+    padding: 0.85rem;
+  }
+
+  .task-item {
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+      "toggle content"
+      ". actions";
+    align-items: flex-start;
+  }
+
+  .task-toggle {
+    grid-area: toggle;
+  }
+
+  .task-content {
+    grid-area: content;
+  }
+
+  .task-actions {
+    grid-area: actions;
+    justify-content: flex-start;
+    min-width: 0;
+    width: auto;
+    max-width: 100%;
+  }
+
+  .info-rail {
+    grid-template-columns: 1fr;
+  }
+
+  .clock-block,
+  .rates-card,
+  .composer-panel,
+  .task-list-wrap {
+    padding: 0.85rem;
+  }
+
+  .clock-header,
+  .section-heading {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .rate-row-top {
+    grid-template-columns: 1fr;
+    align-items: flex-start;
+  }
+
+  .rate-value-wrap {
+    justify-items: start;
+  }
+
+  .composer-entry {
+    grid-template-columns: 1fr;
+  }
+
+  .primary-button {
+    width: 100%;
+  }
+
+  .progress-metrics {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .task-pagination {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .calendar-grid-shell {
+    padding: 0.4rem;
+  }
+
+  .calendar-weekdays,
+  .calendar-grid {
+    gap: 0.24rem;
+  }
+
+  .calendar-grid {
+    min-height: 21rem;
+    grid-template-rows: repeat(6, minmax(0, 1fr));
+    grid-auto-rows: minmax(0, 1fr);
+  }
+
+  .calendar-day {
+    padding: 0.42rem;
+  }
+
+  .calendar-form-grid,
+  .calendar-color-group,
+  .calendar-event-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .pagination-meta {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .pagination-range {
+    text-align: center;
+  }
+}
+
+@media (max-width: 520px) {
+  .app-shell {
+    padding: 0.6rem;
+  }
+
+  .task-panel {
+    padding: 0.75rem;
+  }
+
+  .task-header h1 {
+    font-size: clamp(2.05rem, 12vw, 3rem);
+  }
+
+  .panel-tabs {
+    display: grid;
+    grid-template-columns: 1fr;
+    width: 100%;
+  }
+
+  .panel-tab {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .history-nav,
+  .calendar-toolbar-actions {
+    width: 100%;
+  }
+
+  .history-label {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .calendar-toolbar {
+    align-items: stretch;
+  }
+
+  .calendar-toolbar-actions {
+    justify-content: space-between;
+  }
+
+  .calendar-today-button {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .opencode-project-item {
+    grid-template-columns: 1fr;
+  }
+
+  .opencode-project-tags {
+    justify-content: flex-start;
+  }
+
+  .task-pagination {
+    align-items: stretch;
+  }
+
+  .pagination-controls {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    scroll-behavior: auto !important;
+    transition-duration: var(--transition-minimal) !important;
+    transition-delay: 0ms !important;
+  }
+
+  .task-item.is-new,
+  .toast,
+  .task-item,
+  .modal-overlay.is-open .modal {
+    animation: none !important;
+  }
+
+  .task-item:hover,
+  .nav-button:hover,
+  .task-action:hover,
+  .primary-button:hover,
+  .ghost-button:hover,
+  .toast-undo:hover,
+  .pagination-btn:hover {
+    transform: none;
+  }
+}

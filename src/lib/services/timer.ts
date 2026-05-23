@@ -23,6 +23,7 @@ function createTimerWorker() {
     URL.revokeObjectURL(url);
     return worker;
   } catch {
+    console.warn('[timer] Web Worker indisponível — usando setInterval como fallback.');
     return null;
   }
 }

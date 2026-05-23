@@ -2,53 +2,59 @@
 setlocal
 
 set "ROOT=%~dp0"
-set "PROJECT_ROOT=%ROOT%"
-set "APP=%PROJECT_ROOT%src-tauri\target\release\focus-desktop-dashboard.exe"
+cd /d "%ROOT%"
 
-if not exist "%APP%" (
-  set "PROJECT_ROOT=%ROOT%wallpaper\"
-  set "APP=%PROJECT_ROOT%src-tauri\target\release\focus-desktop-dashboard.exe"
+set "INSTALLED=%LOCALAPPDATA%\FocusWall\focus-desktop-dashboard.exe"
+set "RELEASE=%ROOT%src-tauri\target\release\focus-desktop-dashboard.exe"
+set "DIST=%ROOT%dist\index.html"
+
+if /I "%~1"=="--debug" goto DEV_MODE
+if /I "%~1"=="--installed" goto USE_INSTALLED
+if /I "%~1"=="--release" goto USE_RELEASE
+
+REM Padrao: release local, depois instalado.
+REM Nunca abra o .exe de debug direto — ele depende do Vite em 127.0.0.1:1420.
+goto USE_RELEASE
+
+:USE_RELEASE
+if not exist "%RELEASE%" goto TRY_INSTALLED
+if not exist "%DIST%" goto NEED_BUILD
+echo Abrindo Focus Dashboard...
+start "" "%RELEASE%"
+exit /b 0
+
+:TRY_INSTALLED
+if /I "%~1"=="--release" goto NOT_FOUND
+
+:USE_INSTALLED
+if exist "%INSTALLED%" (
+    echo Abrindo Focus Dashboard instalado...
+    start "" "%INSTALLED%"
+    exit /b 0
 )
+goto NOT_FOUND
 
-set "PATH=%USERPROFILE%\.cargo\bin;%PATH%"
+:DEV_MODE
+echo Modo desenvolvimento: iniciando Vite + Tauri...
+call npm run tauri:dev
+exit /b %ERRORLEVEL%
 
-for /f %%I in ('powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-  "$project = '%PROJECT_ROOT%'.TrimEnd('\');" ^
-  "$exe = '%APP%';" ^
-  "if (-not (Test-Path $project)) { 'missing_project'; exit }" ^
-  "$sourcePatterns = @('*.html','*.css','*.js','*.json','*.rs','*.toml','*.mjs','*.svelte');" ^
-  "$files = Get-ChildItem -Path $project -Recurse -File -Include $sourcePatterns | Where-Object { $_.FullName -notmatch '\\node_modules\\|\\dist\\|\\target\\' };" ^
-  "if (-not (Test-Path $exe)) { 'rebuild'; exit }" ^
-  "$latestSource = ($files | Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 1).LastWriteTimeUtc;" ^
-  "$exeTime = (Get-Item $exe).LastWriteTimeUtc;" ^
-  "if ($latestSource -gt $exeTime) { 'rebuild' } else { 'run' }"') do set "ACTION=%%I"
+:NEED_BUILD
+echo Frontend nao compilado. Execute:
+echo   npm run tauri:build
+echo.
+pause
+exit /b 1
 
-if /i "%ACTION%"=="missing_project" (
-  echo Pasta do projeto nao encontrada:
-  echo %PROJECT_ROOT%
-  pause
-  exit /b 1
-)
-
-if /i "%ACTION%"=="rebuild" (
-  echo Alteracoes detectadas. Atualizando o executavel...
-  pushd "%PROJECT_ROOT%"
-  call npm run tauri:build
-  if errorlevel 1 (
-    popd
-    echo.
-    echo Falha ao atualizar o app.
-    pause
-    exit /b 1
-  )
-  popd
-)
-
-if not exist "%APP%" (
-  echo Executavel nao encontrado em:
-  echo %APP%
-  pause
-  exit /b 1
-)
-
-start "" "%APP%"
+:NOT_FOUND
+echo Focus Dashboard nao encontrado.
+echo.
+echo Desenvolvedor:
+echo   npm run tauri:build          ^(gera o .exe standalone^)
+echo   abrir-dashboard.bat --debug  ^(modo dev com hot reload^)
+echo   npm run open:dev
+echo.
+echo Usuario final: execute o instalador (Instalar-Focus-Setup.exe).
+echo.
+pause
+exit /b 1

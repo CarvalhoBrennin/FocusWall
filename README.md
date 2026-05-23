@@ -1,6 +1,6 @@
 # Focus Dashboard
 
-Dashboard desktop em `Tauri + Svelte` para acompanhar tarefas do dia, relógio local e câmbio BRL em uma interface pensada para ficar residente no ambiente do Windows.
+Dashboard desktop em `Tauri + Svelte` para acompanhar tarefas do dia, relógio local, câmbio BRL, calendário, arquivos e terminal OpenCode — pensado para ficar residente no ambiente do Windows.
 
 ## Visão geral
 
@@ -10,9 +10,13 @@ O projeto nasceu como um painel pessoal de produtividade e contexto rápido: tar
 
 - app desktop em Tauri 2
 - interface em Svelte 5
-- bloco de tarefas do dia
+- bloco de tarefas do dia com histórico
+- calendário mensal com eventos
+- painel de arquivos locais
+- terminal OpenCode integrado
 - relógio em tempo real
 - card de câmbio BRL
+- seleção de monitor e autostart com Windows
 - preview web para desenvolvimento
 - bootstrapper opcional para setup automatizado no Windows
 
@@ -58,6 +62,7 @@ npm run tauri:build
 | `npm run dev` | Preview web |
 | `npm run build` | Build web |
 | `npm run preview` | Preview do build |
+| `npm run test` | Testes unitários (Vitest) |
 | `npm run tauri:dev` | App desktop em modo dev |
 | `npm run tauri:build` | Build nativo do Tauri |
 
@@ -83,14 +88,15 @@ build-bootstrapper.bat
 
 - preview web: `localStorage`
 - app desktop: `dashboard-state.json` no AppData do usuário
+- backup manual: exportação JSON nas configurações
 
 ## Fonte externa
 
 - AwesomeAPI: `https://economia.awesomeapi.com.br/json/last/USD-BRL,EUR-BRL`
 
-## Estado do repositório
+## Changelog
 
-Este projeto já estava conectado ao remoto `canvabrennin-alt/FocusWall` e foi mantido sem troca de remoto, apenas com ajustes de documentação e higiene do versionamento.
+Ver [CHANGELOG.md](CHANGELOG.md).
 
 ## Deploy
 

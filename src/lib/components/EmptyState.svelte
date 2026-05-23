@@ -19,8 +19,8 @@
   role="button"
   tabindex="0"
   aria-label="Adicionar primeira tarefa"
-  on:click={handleClick}
-  on:keydown={handleKeydown}
+  onclick={handleClick}
+  onkeydown={handleKeydown}
 >
   <div>
     <p class="empty-title">Quadro aberto.</p>

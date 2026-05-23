@@ -1,0 +1,20 @@
+[[permission]]
+identifier = "allow-app-commands"
+description = "Allow Focus Dashboard custom invoke commands."
+commands.allow = [
+  "load_state",
+  "save_state",
+  "get_app_data_path",
+  "get_launch_on_startup",
+  "set_launch_on_startup",
+  "sync_launch_on_startup",
+  "get_available_monitors",
+  "get_current_monitor",
+  "move_to_monitor",
+  "save_monitor_preference",
+  "search_project_dirs",
+  "pick_project_directory",
+  "read_directory",
+  "open_file",
+  "get_desktop_path",
+]

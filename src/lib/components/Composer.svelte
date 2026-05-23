@@ -6,6 +6,7 @@
   import { showToast } from '../stores/ui-store.js';
   import { normalizeTaskText } from '../utils/state.js';
   import { CONFIG, PRIORITY } from '../config.js';
+  import { t } from '../i18n/index.js';
 
   let taskInput = '';
 
@@ -39,10 +40,10 @@
   <div class="composer-copy">
     <p class="eyebrow">Nova entrada</p>
     <h2 class="composer-title">Defina o próximo movimento.</h2>
-    <p class="composer-note">Uma tarefa clara, sem fricção.</p>
   </div>
 
   <div class="composer-shell">
+    <p class="composer-hint sr-only">{$t('composer.hint')}</p>
     <div class="composer-entry">
       <label class="sr-only" for="task-input">Nova tarefa</label>
       <input
@@ -53,8 +54,9 @@
         placeholder="Adicionar uma tarefa importante..."
         autocomplete="off"
         inputmode="text"
+        aria-describedby="task-progress-summary"
         bind:value={taskInput}
-        on:keydown={handleKeydown}
+        onkeydown={handleKeydown}
       />
 
       <button
@@ -62,13 +64,13 @@
         class="primary-button"
         type="button"
         disabled={!canAdd}
-        on:click={handleAdd}
+        onclick={handleAdd}
       >
         Registrar
       </button>
     </div>
 
-    <article class="progress-card progress-summary progress-summary--inline" aria-live="polite">
+    <article id="task-progress-summary" class="progress-card progress-summary progress-summary--inline" aria-live="polite">
       <div class="progress-copy">
         <span class="progress-title">Resumo</span>
         <p class="progress-footnote">

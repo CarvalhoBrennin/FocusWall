@@ -2,41 +2,48 @@
   import { onMount } from 'svelte';
   import { get } from 'svelte/store';
   import { modal } from '../stores/ui-store.js';
+  import { trapFocus } from '../utils/focus-trap.js';
 
-  function handleEscape(e) {
-    if (e.key === 'Escape') {
-      const m = get(modal);
-      if (m) {
-        e.preventDefault();
-        m.onCancel?.();
-        modal.set(null);
-      }
-    }
+  let overlayEl = $state(null);
+  let confirmButtonEl = $state(null);
+
+  function closeModal() {
+    const m = get(modal);
+    m?.onCancel?.();
+    modal.set(null);
   }
 
   function handleOverlayClick(e) {
     if (e.target === e.currentTarget && $modal) {
-      $modal.onCancel?.();
-      modal.set(null);
+      closeModal();
     }
   }
 
   onMount(() => {
-    document.addEventListener('keydown', handleEscape);
-    return () => document.removeEventListener('keydown', handleEscape);
+    return () => {};
+  });
+
+  $effect(() => {
+    if (!$modal || !overlayEl) return;
+
+    return trapFocus(overlayEl, {
+      initialFocus: confirmButtonEl,
+      onEscape: closeModal
+    });
   });
 </script>
 
 {#if $modal}
   <!-- svelte-ignore a11y_no_noninteractive_tabindex a11y_click_events_have_key_events -->
   <div
+    bind:this={overlayEl}
     class="modal-overlay is-open"
     aria-hidden="false"
     role="dialog"
     aria-modal="true"
     aria-labelledby="modal-title"
     tabindex="-1"
-    on:click={handleOverlayClick}
+    onclick={handleOverlayClick}
   >
     <div class="modal">
       <h2 id="modal-title" class="modal-title">{$modal.title}</h2>
@@ -45,15 +52,16 @@
         <button
           type="button"
           class="ghost-button modal-cancel"
-          on:click={() => $modal.onCancel?.()}
+          onclick={() => $modal.onCancel?.()}
         >
           Cancelar
         </button>
         <button
+          bind:this={confirmButtonEl}
           type="button"
           class="primary-button modal-confirm"
           class:danger-button={$modal.confirmDanger}
-          on:click={() => $modal.onConfirm?.()}
+          onclick={() => $modal.onConfirm?.()}
         >
           {$modal.confirmLabel}
         </button>

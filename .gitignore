@@ -4,7 +4,14 @@ tools/bootstrapper/target/
 dist/
 data/
 exports/
+FocusWall-Installer/
 Instalar-Focus-Setup.exe
 .DS_Store
 Thumbs.db
 desktop.ini
+.env
+.env.*
+.vscode/
+.idea/
+*.log
+*.pdb

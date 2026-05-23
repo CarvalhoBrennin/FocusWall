@@ -28,9 +28,10 @@ const checks = [
   },
 ];
 
-let hasError = false;
+console.log("Verificando ambiente de DESENVOLVIMENTO do Focus Dashboard...\n");
+console.log("(Usuario final: use o instalador portatil, nao precisa disto.)\n");
 
-console.log("Verificando prerequisitos do Focus Dashboard...\n");
+let hasError = false;
 
 for (const check of checks) {
   const result = spawnSync(check.command, check.args, {
@@ -78,40 +79,14 @@ if (process.platform === "win32") {
       "     Instale o Visual Studio Build Tools com o workload 'Desktop development with C++'.",
     );
   }
-
-  const webview2 = spawnSync(
-    "reg",
-    [
-      "query",
-      "HKLM\\SOFTWARE\\WOW6432Node\\Microsoft\\EdgeUpdate\\Clients\\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}",
-      "/v",
-      "pv",
-    ],
-    { encoding: "utf8" },
-  );
-
-  const webview2Output = `${webview2.stdout || ""}`.trim();
-
-  if (webview2.status === 0 && webview2Output && !webview2Output.includes("0.0.0.0")) {
-    const match = webview2Output.match(/pv\s+REG_SZ\s+(.+)/);
-    const version = match ? match[1].trim() : "detectado";
-    console.log(`OK  WebView2 Runtime: ${version}`);
-  } else {
-    hasError = true;
-    console.log("ERRO WebView2 Runtime: nao encontrado.");
-    console.log(
-      "     Instale em https://developer.microsoft.com/en-us/microsoft-edge/webview2/",
-    );
-  }
-
-  console.log("");
 }
 
+console.log("");
+
 if (hasError) {
-  console.log("Ambiente incompleto. Corrija os itens acima e rode novamente.");
+  console.log("Ambiente de desenvolvimento incompleto. Corrija os itens acima.");
   process.exit(1);
 }
 
-console.log("Ambiente pronto. Proximo passo:");
-console.log("1. npm install");
-console.log("2. npm run tauri:dev");
+console.log("Ambiente de desenvolvimento pronto!");
+console.log("Para buildar: npm install && npm run tauri:build");
