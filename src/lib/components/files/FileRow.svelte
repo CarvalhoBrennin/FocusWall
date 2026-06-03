@@ -1,43 +1,16 @@
 <script>
+  import FileIcon from './FileIcon.svelte';
+  import { resolveFileIcon } from '../../utils/file-icons.js';
+
   const { entry, onclick, ondblclick } = $props();
-
-  const docExts = new Set([
-    'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx',
-    'txt', 'md', 'csv', 'json', 'xml', 'yaml', 'yml', 'toml',
-    'log', 'rtf', 'odt', 'ods'
-  ]);
-
-  const mediaExts = new Set([
-    'jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp', 'ico',
-    'mp4', 'mov', 'avi', 'mkv', 'webm', 'wmv',
-    'mp3', 'wav', 'flac', 'ogg', 'aac', 'wma'
-  ]);
-
-  const codeExts = new Set([
-    'js', 'ts', 'jsx', 'tsx', 'mjs', 'cjs',
-    'py', 'rs', 'go', 'java', 'c', 'cpp', 'h', 'hpp', 'cs',
-    'rb', 'php', 'swift', 'kt', 'scala', 'r', 'lua', 'zig',
-    'svelte', 'vue', 'html', 'css', 'scss', 'less',
-    'sql', 'sh', 'bat', 'ps1', 'bash', 'zsh',
-    'toml', 'yaml', 'yml', 'json', 'xml'
-  ]);
 
   const extension = $derived(entry.extension ?? '');
   const isDir = $derived(!!entry.isDir);
   const sizeBytes = $derived(entry.sizeBytes ?? 0);
   const modifiedAt = $derived(entry.modifiedAt ?? '');
+  const name = $derived(entry.name ?? '—');
 
-  const fileType = $derived(isDir
-    ? 'dir'
-    : codeExts.has(extension)
-      ? 'code'
-      : docExts.has(extension)
-        ? 'doc'
-        : mediaExts.has(extension)
-          ? 'media'
-          : 'other');
-
-  const accentClass = $derived(`file-accent--${fileType}`);
+  const icon = $derived(resolveFileIcon(name, extension, isDir));
 
   function formatSize(bytes) {
     if (!bytes) return '—';
@@ -60,16 +33,18 @@
   class="file-row"
   class:is-dir={isDir}
   type="button"
-  aria-label={isDir ? `Abrir pasta ${entry.name}` : `Abrir arquivo ${entry.name}`}
+  aria-label={isDir ? `Abrir pasta ${name}, ${icon.label}` : `Abrir arquivo ${name}, ${icon.label}`}
   {onclick}
   {ondblclick}
 >
-  <span class="file-accent {accentClass}" aria-hidden="true"></span>
+  <span class="file-row-icon">
+    <FileIcon kind={icon.kind} color={icon.color} size={22} />
+  </span>
   <div class="file-row-body">
-    <span class="file-name">{entry.name ?? '—'}</span>
+    <span class="file-name" style:--file-name-accent={icon.color}>{name}</span>
     <span class="file-meta">
       {#if !isDir}
-        <span class="file-ext">.{extension || '--'}</span>
+        <span class="file-ext" style:--file-ext-color={icon.color}>.{extension || '--'}</span>
         <span class="file-size">{sizeLabel}</span>
       {/if}
       <span class="file-date">{shortTime}</span>
@@ -81,9 +56,9 @@
   .file-row {
     position: relative;
     display: grid;
-    grid-template-columns: 3px minmax(0, 1fr);
+    grid-template-columns: auto minmax(0, 1fr);
     align-items: center;
-    gap: 0.85rem;
+    gap: 0.75rem;
     width: 100%;
     min-height: 3.2rem;
     padding: 0.6rem 0.75rem 0.6rem 0.85rem;
@@ -125,34 +100,9 @@
     z-index: 0;
   }
 
-  .file-accent {
-    width: 3px;
-    height: 50%;
-    border-radius: 0;
-  }
-
-  .file-accent--dir {
-    background: var(--accent);
-    box-shadow: 0 0 16px rgba(207, 206, 205, 0.24);
-  }
-
-  .file-accent--doc {
-    background: var(--success);
-    box-shadow: 0 0 14px rgba(91, 140, 91, 0.22);
-  }
-
-  .file-accent--media {
-    background: var(--accent-gold);
-    box-shadow: 0 0 14px rgba(183, 177, 177, 0.22);
-  }
-
-  .file-accent--code {
-    background: var(--accent-olive);
-    box-shadow: 0 0 14px rgba(75, 70, 70, 0.26);
-  }
-
-  .file-accent--other {
-    background: var(--light-soft);
+  .file-row-icon {
+    position: relative;
+    z-index: 1;
   }
 
   .file-row-body {
@@ -175,14 +125,14 @@
     min-width: 0;
   }
 
+  .file-row.is-dir .file-name {
+    color: color-mix(in srgb, var(--file-name-accent, var(--accent-strong)) 72%, var(--light-strong));
+  }
+
   .file-row.is-dir .file-name::after {
     content: " ›";
     color: var(--light-soft);
     font-weight: 700;
-  }
-
-  .file-row.is-dir .file-name {
-    color: var(--accent-strong);
   }
 
   .file-row.is-dir:hover .file-name {
@@ -202,9 +152,9 @@
     align-items: center;
     min-height: 1.55rem;
     padding: 0.12rem 0.45rem;
-    border: 1px solid var(--control-border);
-    background: var(--control-bg);
-    color: var(--light-soft);
+    border: 1px solid color-mix(in srgb, var(--file-ext-color, var(--control-border)) 45%, var(--control-border));
+    background: color-mix(in srgb, var(--file-ext-color, var(--control-bg)) 12%, var(--control-bg));
+    color: color-mix(in srgb, var(--file-ext-color, var(--light-soft)) 65%, var(--light-soft));
     font-size: 0.7rem;
     font-weight: 800;
     letter-spacing: 0.08em;
