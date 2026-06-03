@@ -1,3 +1,5 @@
+mod metrics;
+
 use log::{error, info, warn};
 use reqwest::blocking::Client;
 use serde::{Deserialize, Serialize};
@@ -1366,7 +1368,24 @@ fn write_state_file(path: &Path, state: &DashboardState) -> Result<(), String> {
     })
 }
 
-fn validate_directory_path(path: &str) -> Result<PathBuf, String> {
+#[cfg(windows)]
+fn normalize_windows_path_input(path: &str) -> PathBuf {
+    let trimmed = path.trim();
+    if trimmed.len() == 2 {
+        let bytes = trimmed.as_bytes();
+        if bytes[1] == b':' && bytes[0].is_ascii_alphabetic() {
+            return PathBuf::from(format!("{}\\", trimmed));
+        }
+    }
+    PathBuf::from(trimmed)
+}
+
+#[cfg(not(windows))]
+fn normalize_windows_path_input(path: &str) -> PathBuf {
+    PathBuf::from(path.trim())
+}
+
+fn resolve_absolute_path(path: &str) -> Result<PathBuf, String> {
     if path.trim().is_empty() {
         return Err("Caminho nao pode ficar vazio.".to_string());
     }
@@ -1374,14 +1393,21 @@ fn validate_directory_path(path: &str) -> Result<PathBuf, String> {
         return Err("Caminho contem caracteres invalidos.".to_string());
     }
 
-    let dir = PathBuf::from(path);
-    if !dir.is_absolute() {
-        return Err("Caminho deve ser absoluto.".to_string());
+    let mut candidate = normalize_windows_path_input(path);
+    if !candidate.is_absolute() {
+        let cwd = std::env::current_dir().map_err(|e| e.to_string())?;
+        candidate = cwd.join(candidate);
     }
 
-    let canonical = std::fs::canonicalize(&dir).map_err(|e| e.to_string())?;
+    std::fs::canonicalize(&candidate).map_err(|e| {
+        format!("Nao foi possivel resolver o caminho \"{}\": {}", path.trim(), e)
+    })
+}
+
+fn validate_directory_path(path: &str) -> Result<PathBuf, String> {
+    let canonical = resolve_absolute_path(path)?;
     if !canonical.is_dir() {
-        return Err(format!("{} nao e um diretorio.", path));
+        return Err(format!("{} nao e um diretorio.", path.trim()));
     }
 
     Ok(canonical)
@@ -1395,15 +1421,17 @@ fn validate_file_path(path: &str) -> Result<PathBuf, String> {
         return Err("Caminho contem caracteres invalidos.".to_string());
     }
 
-    let file = PathBuf::from(path);
-    if !file.is_absolute() {
-        return Err("Caminho deve ser absoluto.".to_string());
-    }
-    if !file.exists() {
-        return Err(format!("{} nao existe.", path));
+    let mut candidate = normalize_windows_path_input(path);
+    if !candidate.is_absolute() {
+        let cwd = std::env::current_dir().map_err(|e| e.to_string())?;
+        candidate = cwd.join(candidate);
     }
 
-    Ok(file)
+    if !candidate.exists() {
+        return Err(format!("{} nao existe.", path.trim()));
+    }
+
+    Ok(candidate)
 }
 
 #[tauri::command]
@@ -1415,8 +1443,15 @@ fn read_directory(path: String, include_hidden: Option<bool>) -> Result<Vec<File
 
     let read = fs::read_dir(&dir).map_err(|e| e.to_string())?;
     for entry in read.flatten() {
-        let file_path = entry.path();
         let name = entry.file_name().to_string_lossy().into_owned();
+        let file_path = {
+            let raw = entry.path();
+            if raw.is_absolute() {
+                raw
+            } else {
+                dir.join(&name)
+            }
+        };
 
         if !show_hidden && name.starts_with('.') {
             continue;
@@ -1767,7 +1802,8 @@ pub fn run() {
             read_directory,
             open_file,
             get_desktop_path,
-            get_well_known_folders
+            get_well_known_folders,
+            metrics::get_system_snapshot
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application");

@@ -6,8 +6,6 @@
     monthKey,
     selectedDateKey,
     todayDateKey,
-    eventsByDate = {},
-    taskCountsByDate = {},
     onSelect = () => {}
   } = $props();
 
@@ -50,7 +48,7 @@
       moveSelection(-1);
     } else if (e.key === 'ArrowRight') {
       e.preventDefault();
-      moveSelection(1);
+      moveSelection(+1);
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
       moveSelection(-7);
@@ -82,8 +80,6 @@
         outsideMonth={cell.outsideMonth}
         today={cell.dateKey === todayDateKey}
         selected={cell.dateKey === selectedDateKey}
-        events={eventsByDate[cell.dateKey] || []}
-        taskCount={taskCountsByDate[cell.dateKey] || 0}
         onSelect={onSelect}
       />
     {/each}

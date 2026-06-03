@@ -8,11 +8,117 @@ import {
   parseDateKey,
   getMonthKeyFromDateKey
 } from '../utils/state.js';
-import type { AppState, CalendarEvent } from '../types/app.js';
+import type { AppState, CalendarEvent, Task } from '../types/app.js';
 import { setPanelTab } from './ui-store.js';
-import { data, currentDateKey, viewOffsetDays, editingTaskId, appDataPath, persistStateDebounced, setAppStatus } from './app-store.js';
+import {
+  data,
+  visibleDateKey,
+  visibleTasks,
+  appDataPath,
+  persistStateDebounced,
+  setAppStatus,
+  setExecutionDateForDateKey
+} from './app-store.js';
 
 export const calendarMonth = derived(data, ($d) => $d.ui?.calendarMonth ?? '');
+
+export type TaskDayStats = {
+  total: number;
+  completed: number;
+  pending: number;
+};
+
+export type TaskDayMarker = {
+  id: string;
+  completed: boolean;
+  priority: Task['priority'];
+};
+
+export type CalendarDayTasks = {
+  stats: TaskDayStats;
+  markers: TaskDayMarker[];
+};
+
+export const EMPTY_DAY_TASKS: CalendarDayTasks = {
+  stats: { total: 0, completed: 0, pending: 0 },
+  markers: []
+};
+
+/** Contagens por dia — derived store para o calendário reagir a edições no painel de execução. */
+export function buildTaskCountsByDate(
+  tasksByDate: Record<string, Task[]> | undefined
+): Record<string, TaskDayStats> {
+  const counts: Record<string, TaskDayStats> = {};
+  for (const [dateKey, bundle] of Object.entries(buildCalendarDayTasks(tasksByDate))) {
+    counts[dateKey] = bundle.stats;
+  }
+  return counts;
+}
+
+/** Stats + marcadores para uma lista de tarefas (mesma fonte que o painel de execução). */
+export function buildDayTasksFromList(tasks: Task[] | undefined): CalendarDayTasks {
+  const list = Array.isArray(tasks) ? tasks : [];
+  const completed = list.filter((t) => t?.completed).length;
+  return {
+    stats: {
+      total: list.length,
+      completed,
+      pending: list.length - completed
+    },
+    markers: list.map((t) => ({
+      id: t.id,
+      completed: Boolean(t.completed),
+      priority: t.priority || 'medium'
+    }))
+  };
+}
+
+/** Stats + marcadores (quadradinhos) por dia para o grid do calendário. */
+export function buildCalendarDayTasks(
+  tasksByDate: Record<string, Task[]> | undefined
+): Record<string, CalendarDayTasks> {
+  const overlay: Record<string, CalendarDayTasks> = {};
+  for (const [dateKey, tasks] of Object.entries(tasksByDate || {})) {
+    overlay[dateKey] = buildDayTasksFromList(tasks);
+  }
+  return overlay;
+}
+
+export function getCalendarDayTasks(
+  overlay: Record<string, CalendarDayTasks>,
+  dateKey: string
+): CalendarDayTasks {
+  return overlay[dateKey] ?? EMPTY_DAY_TASKS;
+}
+
+export function buildEventsByDate(events: CalendarEvent[]): Record<string, CalendarEvent[]> {
+  const grouped: Record<string, CalendarEvent[]> = {};
+  for (const event of events || []) {
+    if (!grouped[event.dateKey]) grouped[event.dateKey] = [];
+    grouped[event.dateKey].push(event);
+  }
+  for (const dateKey of Object.keys(grouped)) {
+    grouped[dateKey] = sortCalendarEvents(grouped[dateKey]);
+  }
+  return grouped;
+}
+
+export const taskCountsByDate = derived(data, ($d) => buildTaskCountsByDate($d.tasksByDate));
+
+/** Marcadores por dia (histórico salvo) — o dia em execução usa visibleTasks ao vivo na célula. */
+export const calendarDayTasks = derived(data, ($d) => buildCalendarDayTasks($d.tasksByDate));
+
+/** Digest só do dia visível no painel de execução — única fonte de tarefas no calendário. */
+export const executionTasksDigest = derived(visibleTasks, ($tasks) =>
+  ($tasks || [])
+    .map(
+      (task) =>
+        `${task.id}|${task.completed ? 1 : 0}|${task.priority}|${task.updatedAt ?? ''}`
+    )
+    .join('\n')
+);
+
+export const eventsByDate = derived(data, ($d) => buildEventsByDate(getCalendarEvents($d)));
 
 export function sortCalendarEvents(events: CalendarEvent[]): CalendarEvent[] {
   return [...events].sort((left, right) => {
@@ -52,16 +158,14 @@ export function setCalendarMonth(yearMonth: string) {
   persistStateDebounced();
 }
 
-/** Keep persisted month in sync when empty or still showing a past month (e.g. May while today is June). */
-export function ensureCurrentCalendarMonth(todayDateKey: string) {
-  const currentMonth = getMonthKeyFromDateKey(todayDateKey);
-  if (!currentMonth) return;
-
+/** Inicializa calendarMonth apenas se estiver vazio (permite navegar a meses anteriores). */
+export function ensureCalendarMonthInitialized(todayDateKey: string) {
   const $data = get(data);
   const stored = normalizeMonthKey($data.ui?.calendarMonth) || '';
-  if (!stored || stored < currentMonth) {
-    setCalendarMonth(currentMonth);
-  }
+  if (stored) return;
+
+  const currentMonth = getMonthKeyFromDateKey(todayDateKey);
+  if (currentMonth) setCalendarMonth(currentMonth);
 }
 
 async function saveCalendarState(nextData: AppState, success: string, failure: string) {
@@ -133,13 +237,11 @@ export async function deleteCalendarEvent(id: string): Promise<boolean> {
   );
 }
 
+export function getVisibleExecutionDateKey(): string {
+  return get(visibleDateKey);
+}
+
 export function jumpToExecutionForDate(dateKey: string) {
-  const target = parseDateKey(dateKey);
-  if (Number.isNaN(target.getTime())) return;
-  const current = parseDateKey(get(currentDateKey));
-  const offset = Math.round((target.getTime() - current.getTime()) / CONFIG.MS_PER_DAY);
-  viewOffsetDays.set(offset);
-  editingTaskId.set(null);
+  setExecutionDateForDateKey(dateKey);
   setPanelTab('execution');
-  persistStateDebounced();
 }

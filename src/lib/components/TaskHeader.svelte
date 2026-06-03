@@ -10,7 +10,7 @@
   // import { opencodeSessionActive } from '../stores/ui-store.js';
   import { VIEW, CONFIG } from '../config.js';
   import { formatters } from '../config.js';
-  import { parseDateKey, addDays } from '../utils/state.js';
+  import { parseDateKey, parseMonthKey, addDays, normalizeMonthKey } from '../utils/state.js';
 
   $: tasks = $visibleTasks || [];
   $: total = tasks.length;
@@ -27,27 +27,31 @@
     $viewOffsetDays === VIEW.TODAY ? 'Painel de execução' : 'Arquivo de execução';
   // $: opencodeHeadline = $opencodeSessionActive ? 'OpenCode' : 'Escolher repositório';
   // $: opencodeKicker = $opencodeSessionActive ? 'Sessão ativa' : 'Workspace';
-  $: calendarMonth =
-    $data.ui?.calendarMonth && $data.ui.calendarMonth >= $currentDateKey.slice(0, 7)
-      ? $data.ui.calendarMonth
-      : $currentDateKey.slice(0, 7);
-  $: calendarKicker = formatters.monthYear.format(parseDateKey(`${calendarMonth}-01`));
+  $: calendarMonthKey =
+    normalizeMonthKey($data.ui?.calendarMonth) || $currentDateKey.slice(0, 7);
+  $: calendarKicker = formatters.monthYear.format(parseMonthKey(calendarMonthKey));
   // opencode: : $panelTab === 'opencode' ? opencodeHeadline :
   $: headline =
     $panelTab === 'calendar'
       ? 'Calendário'
       : $panelTab === 'files'
         ? 'Arquivos'
-        : executionHeadline;
+        : $panelTab === 'system'
+          ? 'Sistema'
+          : executionHeadline;
   // opencode: : $panelTab === 'opencode' ? opencodeKicker :
   $: kicker =
     $panelTab === 'calendar'
       ? calendarKicker
       : $panelTab === 'files'
         ? 'Desktop'
-        : historyLabel;
+        : $panelTab === 'system'
+          ? 'Desempenho'
+          : historyLabel;
 
-  $: canGoPrev = $viewOffsetDays > -(CONFIG.HISTORY_VIEW_DAYS - 1);
+  $: historySpanDays =
+    $panelTab === 'calendar' ? CONFIG.HISTORY_RETENTION_DAYS : CONFIG.HISTORY_VIEW_DAYS;
+  $: canGoPrev = $viewOffsetDays > -(historySpanDays - 1);
   $: canGoNext = $viewOffsetDays < VIEW.TODAY;
 </script>
 
@@ -107,22 +111,36 @@
       >
         Arquivos
       </button>
+      <button
+        class="panel-tab"
+        class:is-active={$panelTab === 'system'}
+        type="button"
+        role="tab"
+        aria-selected={$panelTab === 'system'}
+        aria-controls="system-panel"
+        onclick={() => setPanelTab('system')}
+      >
+        Sistema
+      </button>
     </div>
   </div>
 
   <div
     class="history-nav"
-    class:is-dormant={$panelTab !== 'execution'}
+    class:is-dormant={$panelTab !== 'execution' && $panelTab !== 'calendar'}
     aria-label="Histórico rápido"
-    aria-hidden={$panelTab !== 'execution'}
+    aria-hidden={$panelTab !== 'execution' && $panelTab !== 'calendar'}
   >
     <button
       class="nav-button"
       type="button"
       aria-label="Dia anterior"
-      disabled={$panelTab !== 'execution' || !canGoPrev}
-      tabindex={$panelTab === 'execution' ? 0 : -1}
-      onclick={() => setViewOffset($viewOffsetDays - 1)}
+      disabled={($panelTab !== 'execution' && $panelTab !== 'calendar') || !canGoPrev}
+      tabindex={$panelTab === 'execution' || $panelTab === 'calendar' ? 0 : -1}
+      onclick={() =>
+        setViewOffset($viewOffsetDays - 1, {
+          maxHistoryDays: $panelTab === 'calendar' ? CONFIG.HISTORY_RETENTION_DAYS : undefined
+        })}
     >
       &lt;
     </button>
@@ -131,9 +149,12 @@
       class="nav-button"
       type="button"
       aria-label="Dia seguinte"
-      disabled={$panelTab !== 'execution' || !canGoNext}
-      tabindex={$panelTab === 'execution' ? 0 : -1}
-      onclick={() => setViewOffset($viewOffsetDays + 1)}
+      disabled={($panelTab !== 'execution' && $panelTab !== 'calendar') || !canGoNext}
+      tabindex={$panelTab === 'execution' || $panelTab === 'calendar' ? 0 : -1}
+      onclick={() =>
+        setViewOffset($viewOffsetDays + 1, {
+          maxHistoryDays: $panelTab === 'calendar' ? CONFIG.HISTORY_RETENTION_DAYS : undefined
+        })}
     >
       &gt;
     </button>

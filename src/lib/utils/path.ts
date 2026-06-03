@@ -1,7 +1,37 @@
 /** Windows-aware path helpers for the Files panel. */
 
 export function normalizePath(path) {
-  return String(path || '').replace(/\\/g, '/').replace(/\/+/g, '/').replace(/\/$/, '');
+  const raw = String(path || '').trim();
+  if (!raw) return '';
+  if (raw.startsWith('\\\\')) {
+    return raw.replace(/\//g, '\\').replace(/\\+$/, '');
+  }
+  return raw.replace(/\\/g, '/').replace(/\/+/g, '/').replace(/\/$/, '');
+}
+
+/** Garante formato absoluto no Windows antes de chamar comandos Tauri (ex.: C: → C:\\). */
+export function ensureAbsolutePath(path) {
+  const trimmed = String(path || '').trim();
+  if (!trimmed) return '';
+
+  if (trimmed.startsWith('\\\\')) {
+    return trimmed.replace(/\//g, '\\');
+  }
+
+  if (/^[A-Za-z]:$/i.test(trimmed)) {
+    return `${trimmed.slice(0, 2)}\\`;
+  }
+
+  const normalized = normalizePath(trimmed);
+  if (/^[A-Za-z]:$/i.test(normalized)) {
+    return `${normalized}\\`;
+  }
+
+  if (/^[A-Za-z]:\//i.test(normalized)) {
+    return toWindowsPath(normalized);
+  }
+
+  return toWindowsPath(trimmed);
 }
 
 export function toWindowsPath(path) {
@@ -15,19 +45,24 @@ export function splitPathParts(path) {
 }
 
 export function buildPathSegments(fullPath) {
-  const parts = splitPathParts(fullPath);
+  const absolute = ensureAbsolutePath(fullPath);
+  const parts = splitPathParts(absolute);
   if (parts.length === 0) return [];
 
   const segments = [];
   for (let i = 0; i < parts.length; i++) {
     let segPath;
-    if (i === 0 && /^[A-Za-z]:$/.test(parts[0])) {
-      segPath = `${parts[0]}\\`;
-    } else if (/^[A-Za-z]:$/.test(parts[0])) {
+    if (/^[A-Za-z]:$/.test(parts[0])) {
       segPath = `${parts[0]}\\${parts.slice(1, i + 1).join('\\')}`;
+      if (i === 0) {
+        segPath = `${parts[0]}\\`;
+      }
+    } else if (absolute.startsWith('\\\\')) {
+      segPath = `\\\\${parts.slice(0, i + 1).join('\\')}`;
     } else {
       segPath = parts.slice(0, i + 1).join('\\');
     }
+    segPath = ensureAbsolutePath(segPath) || segPath;
 
     const name = parts[i].endsWith(':') ? parts[i].slice(0, -1) : parts[i];
     segments.push({
@@ -41,17 +76,26 @@ export function buildPathSegments(fullPath) {
 }
 
 export function parentDirectory(fullPath) {
-  const parts = splitPathParts(fullPath);
-  if (parts.length <= 1) return null;
+  const absolute = ensureAbsolutePath(fullPath);
+  const parts = splitPathParts(absolute);
+  if (parts.length === 0) return null;
 
-  if (parts.length === 2 && /^[A-Za-z]:$/.test(parts[0])) {
+  if (/^[A-Za-z]:$/i.test(parts[0]) && parts.length === 1) {
+    return null;
+  }
+
+  if (parts.length === 2 && /^[A-Za-z]:$/i.test(parts[0])) {
     return `${parts[0]}\\`;
   }
 
   const parentParts = parts.slice(0, -1);
-  if (/^[A-Za-z]:$/.test(parentParts[0])) {
-    return `${parentParts[0]}\\${parentParts.slice(1).join('\\')}`;
+  if (/^[A-Za-z]:$/i.test(parentParts[0])) {
+    return ensureAbsolutePath(`${parentParts[0]}\\${parentParts.slice(1).join('\\')}`);
   }
 
-  return parentParts.join('\\');
+  if (absolute.startsWith('\\\\') && parentParts.length <= 2) {
+    return null;
+  }
+
+  return ensureAbsolutePath(parentParts.join('\\'));
 }

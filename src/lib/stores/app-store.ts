@@ -18,6 +18,7 @@ import {
   getPinnedCount,
   findTaskIndex
 } from '../utils/state.js';
+import { ensureAbsolutePath } from '../utils/path.js';
 import { applyTheme } from './theme-store.js';
 import { setLocale } from '../i18n/index.js';
 import { rebuildFormatters } from '../config.js';
@@ -38,7 +39,7 @@ function pruneHistory(data, currentDateKey) {
   return { ...data, tasksByDate: tbd };
 }
 
-function getVisibleDateKey(currentDateKey, viewOffsetDays) {
+export function getVisibleDateKey(currentDateKey, viewOffsetDays) {
   return getLocalDateKey(addDays(parseDateKey(currentDateKey), viewOffsetDays));
 }
 
@@ -46,14 +47,14 @@ function getTasksByDate(data: import('../types/app.js').AppState, dk: string) {
   return Array.isArray(data.tasksByDate?.[dk]) ? data.tasksByDate[dk] : [];
 }
 
-/** Sync ui.calendarMonth when persisted month is empty or behind today (YYYY-MM). */
+/** Define ui.calendarMonth só quando ainda não há mês salvo (não força mês atual). */
 function syncCalendarMonthIfStale(todayDateKey: string) {
   const currentMonth = todayDateKey.slice(0, 7);
   if (!/^\d{4}-\d{2}$/.test(currentMonth)) return;
 
   const $data = get(data);
   const stored = normalizeMonthKey($data.ui?.calendarMonth) || '';
-  if (!stored || stored < currentMonth) {
+  if (!stored) {
     data.set({
       ...$data,
       ui: { ...$data.ui, calendarMonth: currentMonth }
@@ -81,13 +82,27 @@ export const clockTime = writable('00:00:00');
 export const clockNow = writable(new Date());
 export const lastAddedTaskId = writable(/** @type {string | null} */ (null));
 
-export const visibleTasks = derived(
-  [data, currentDateKey, viewOffsetDays],
-  ([$data, $currentDateKey, $viewOffsetDays]) => {
-    const dk = getVisibleDateKey($currentDateKey, $viewOffsetDays);
-    return getTasksByDate($data, dk);
-  }
+export const visibleDateKey = derived(
+  [currentDateKey, viewOffsetDays],
+  ([$currentDateKey, $viewOffsetDays]) => getVisibleDateKey($currentDateKey, $viewOffsetDays)
 );
+
+export const visibleTasks = derived(
+  [data, visibleDateKey],
+  ([$data, $visibleDateKey]) => getTasksByDate($data, $visibleDateKey)
+);
+
+/** Alinha o painel de execução ao dia escolhido no calendário (sem trocar de aba). */
+export function setExecutionDateForDateKey(dateKey: string) {
+  const target = parseDateKey(dateKey);
+  if (Number.isNaN(target.getTime())) return;
+  const current = parseDateKey(get(currentDateKey));
+  const offset = Math.round((target.getTime() - current.getTime()) / CONFIG.MS_PER_DAY);
+  const min = -(CONFIG.HISTORY_RETENTION_DAYS - 1);
+  viewOffsetDays.set(Math.max(min, Math.min(VIEW.TODAY, offset)));
+  editingTaskId.set(null);
+  persistStateDebounced();
+}
 
 export const todayTasks = derived([data, currentDateKey], ([$data, $currentDateKey]) =>
   getTasksByDate($data, $currentDateKey)
@@ -138,8 +153,9 @@ export function setAppStatus(message, variant = '', path = '') {
   if (path) appDataPath.set(path);
 }
 
-export function setViewOffset(offset: number) {
-  const min = -(CONFIG.HISTORY_VIEW_DAYS - 1);
+export function setViewOffset(offset: number, options: { maxHistoryDays?: number } = {}) {
+  const span = options.maxHistoryDays ?? CONFIG.HISTORY_VIEW_DAYS;
+  const min = -(span - 1);
   viewOffsetDays.set(Math.max(min, Math.min(VIEW.TODAY, Number(offset) || 0)));
   editingTaskId.set(null);
   persistStateDebounced();
@@ -214,12 +230,13 @@ export function exportStateBackup() {
 
 export async function setFilesLastPath(path: string) {
   if (typeof path !== 'string' || !path.trim()) return;
+  const absolute = ensureAbsolutePath(path) || path.trim();
   const $data = get(data);
   const nextData = {
     ...$data,
     ui: {
       ...$data.ui,
-      filesLastPath: path
+      filesLastPath: absolute
     }
   };
   try {

@@ -1,4 +1,5 @@
 import { tauriInvoke } from '../utils/tauri.js';
+import { ensureAbsolutePath } from '../utils/path.js';
 import { pickProjectDir, folderLabel } from './opencode.js';
 
 const FAVORITES_KEY = 'focuswall-files-favorites';
@@ -23,9 +24,10 @@ export function normalizeFileEntry(entry: Record<string, unknown>): FileEntry | 
   if (!path || !name) return null;
 
   const isDir = Boolean(entry.isDir ?? entry.is_dir);
+  const absolutePath = ensureAbsolutePath(path) || path;
   return {
     name,
-    path,
+    path: absolutePath,
     isDir,
     sizeBytes: Number(entry.sizeBytes ?? entry.size_bytes) || 0,
     modifiedAt: String(entry.modifiedAt ?? entry.modified_at ?? ''),
@@ -65,7 +67,7 @@ export function loadFilesRecents(): string[] {
 
 export function rememberFilesPath(path: string) {
   if (!path?.trim()) return;
-  const trimmed = path.trim();
+  const trimmed = ensureAbsolutePath(path) || path.trim();
   const next = [trimmed, ...loadFilesRecents().filter((item) => item !== trimmed)].slice(
     0,
     MAX_RECENTS
@@ -93,14 +95,25 @@ export async function getWellKnownFolders(): Promise<WellKnownFolder[]> {
 }
 
 export async function readDirectory(path: string, includeHidden = false): Promise<FileEntry[]> {
-  const raw = await tauriInvoke<Record<string, unknown>[]>('read_directory', { path, includeHidden });
+  const absolute = ensureAbsolutePath(path);
+  if (!absolute) {
+    throw new Error('Caminho inválido.');
+  }
+  const raw = await tauriInvoke<Record<string, unknown>[]>('read_directory', {
+    path: absolute,
+    includeHidden
+  });
   return (Array.isArray(raw) ? raw : [])
     .map((item) => normalizeFileEntry(item))
     .filter((item): item is FileEntry => item !== null);
 }
 
 export async function openPath(path: string) {
-  return tauriInvoke('open_file', { path });
+  const absolute = ensureAbsolutePath(path);
+  if (!absolute) {
+    throw new Error('Caminho inválido.');
+  }
+  return tauriInvoke('open_file', { path: absolute });
 }
 
 export async function pickFolder(defaultPath: string | null = null) {
@@ -119,10 +132,10 @@ export function sortEntries(entries: FileEntry[], sortBy: FilesSort) {
 
   const compare = (left: FileEntry, right: FileEntry) => {
     if (sortBy === 'size') {
-      return (right.size_bytes || 0) - (left.size_bytes || 0);
+      return (right.sizeBytes || 0) - (left.sizeBytes || 0);
     }
     if (sortBy === 'date') {
-      return (right.modified_at || '').localeCompare(left.modified_at || '', 'pt-BR');
+      return (right.modifiedAt || '').localeCompare(left.modifiedAt || '', 'pt-BR');
     }
     return left.name.localeCompare(right.name, 'pt-BR', { sensitivity: 'base' });
   };

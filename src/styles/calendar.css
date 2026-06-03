@@ -216,11 +216,75 @@
   font-weight: 800;
 }
 
-.calendar-day-markers {
+.calendar-task-badge.is-all-done {
+  border-color: color-mix(in srgb, var(--success) 55%, var(--control-border-strong));
+  background: color-mix(in srgb, var(--success) 22%, var(--control-bg));
+  color: var(--success);
+}
+
+.calendar-task-link-stats {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--light-soft);
+}
+
+.calendar-marker-group {
   display: inline-flex;
   align-items: center;
-  gap: 0.24rem;
+  gap: 0.14rem;
+}
+
+.calendar-marker-group--events {
+  margin-left: 0.12rem;
+}
+
+.calendar-day-markers {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.22rem;
   max-width: 100%;
+  margin-top: auto;
+}
+
+.calendar-task-dot {
+  width: 0.46rem;
+  height: 0.46rem;
+  flex: 0 0 auto;
+  border: 1px solid var(--control-border);
+  background: var(--priority-medium);
+}
+
+.calendar-task-dot[data-priority="high"] {
+  border-color: color-mix(in srgb, var(--priority-high) 55%, var(--control-border));
+  background: var(--priority-high);
+}
+
+.calendar-task-dot[data-priority="medium"] {
+  border-color: color-mix(in srgb, var(--priority-medium) 45%, var(--control-border));
+  background: var(--priority-medium);
+}
+
+.calendar-task-dot[data-priority="low"] {
+  border-color: color-mix(in srgb, var(--priority-low) 45%, var(--control-border));
+  background: var(--priority-low);
+}
+
+.calendar-task-dot[data-completed="true"] {
+  border-color: color-mix(in srgb, var(--success) 60%, var(--control-border));
+  background: var(--success);
+  opacity: 0.92;
+}
+
+.calendar-day.has-all-tasks-done {
+  box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--success) 55%, transparent);
+}
+
+.calendar-marker-extra {
+  color: var(--light-muted);
+  font-size: 0.62rem;
+  font-weight: 800;
+  line-height: 1;
 }
 
 .calendar-event-dot {
@@ -250,7 +314,7 @@
 
 .calendar-event-extra {
   color: var(--light-muted);
-  font-size: 0.68rem;
+  font-size: 0.62rem;
   font-weight: 800;
 }
 
@@ -285,14 +349,109 @@
   margin: 0;
 }
 
+.calendar-events-section {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.calendar-task-section {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.calendar-task-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.calendar-task-section-title {
+  margin: 0;
+  color: var(--light-strong);
+  font-family: var(--font-ui);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.calendar-task-section-meta {
+  color: var(--light-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.calendar-task-preview {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.calendar-task-preview-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.5rem;
+  align-items: start;
+  padding: 0.5rem 0.55rem;
+  border: 1px solid var(--control-border-soft);
+  background: var(--card-bg-muted);
+}
+
+.calendar-task-preview-item.is-done {
+  opacity: 0.72;
+}
+
+.calendar-task-preview-item.is-done .calendar-task-preview-text {
+  text-decoration: line-through;
+  color: var(--light-muted);
+}
+
+.calendar-task-preview-state {
+  width: 0.46rem;
+  height: 0.46rem;
+  margin-top: 0.28rem;
+  border: 1px solid var(--control-border);
+  background: var(--priority-medium);
+}
+
+.calendar-task-preview-state[data-priority="high"] {
+  border-color: color-mix(in srgb, var(--priority-high) 55%, var(--control-border));
+  background: var(--priority-high);
+}
+
+.calendar-task-preview-state[data-priority="medium"] {
+  border-color: color-mix(in srgb, var(--priority-medium) 45%, var(--control-border));
+  background: var(--priority-medium);
+}
+
+.calendar-task-preview-state[data-priority="low"] {
+  border-color: color-mix(in srgb, var(--priority-low) 45%, var(--control-border));
+  background: var(--priority-low);
+}
+
+.calendar-task-preview-state[data-completed="true"] {
+  border-color: color-mix(in srgb, var(--success) 60%, var(--control-border));
+  background: var(--success);
+}
+
+.calendar-task-preview-text {
+  color: var(--light-main);
+  font-size: 0.82rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
 .calendar-task-link {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   gap: 0.75rem;
   width: 100%;
   min-height: 2.55rem;
   padding: 0.65rem 0.8rem;
-  text-align: left;
+  text-align: center;
 }
 
 .calendar-new-event-button {

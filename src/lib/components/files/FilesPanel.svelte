@@ -7,6 +7,7 @@
   import { data, setFilesLastPath } from '../../stores/app-store.js';
   import { showToast } from '../../stores/ui-store.js';
   import { isTauri } from '../../utils/tauri.js';
+  import { ensureAbsolutePath } from '../../utils/path.js';
   import {
     getWellKnownFolders,
     readDirectory,
@@ -51,7 +52,7 @@
     try {
       places = await getWellKnownFolders();
       const saved = get(data).ui?.filesLastPath;
-      if (saved) {
+      if (saved && ensureAbsolutePath(saved)) {
         await readDir(saved);
         return;
       }
@@ -70,13 +71,14 @@
   }
 
   async function readDir(path) {
-    if (!path) return;
+    const absolute = ensureAbsolutePath(path);
+    if (!absolute) return;
     loading = true;
     errorMsg = null;
     try {
-      rawEntries = await readDirectory(path, showHidden);
-      currentPath = path;
-      rememberFilesPath(path);
+      rawEntries = await readDirectory(absolute, showHidden);
+      currentPath = absolute;
+      rememberFilesPath(absolute);
       recents = loadFilesRecents();
       await setFilesLastPath(path);
     } catch (err) {

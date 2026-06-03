@@ -1,23 +1,22 @@
 <script>
   import CalendarMonthGrid from './CalendarMonthGrid.svelte';
   import CalendarDayDetail from './CalendarDayDetail.svelte';
-  import { data, currentDateKey } from '../../stores/app-store.js';
+  import { currentDateKey, visibleDateKey, setExecutionDateForDateKey } from '../../stores/app-store.js';
   import {
     setCalendarMonth,
     calendarMonth,
-    ensureCurrentCalendarMonth
+    ensureCalendarMonthInitialized
   } from '../../stores/calendar-store.js';
   import { formatters } from '../../config.js';
   import {
     getLocalDateKey,
-    parseDateKey,
     parseMonthKey,
     getMonthKeyFromDateKey
   } from '../../utils/state.js';
 
   let { active = false } = $props();
 
-  let selectedDateKey = $state(getLocalDateKey(new Date()));
+  let wasActive = false;
 
   function getMonthKey(dateKey) {
     return getMonthKeyFromDateKey(dateKey);
@@ -42,49 +41,20 @@
     return `${monthKey}-${String(day).padStart(2, '0')}`;
   }
 
-  function groupEvents(events) {
-    const grouped = {};
-    for (const event of events || []) {
-      if (!grouped[event.dateKey]) grouped[event.dateKey] = [];
-      grouped[event.dateKey].push(event);
-    }
-    for (const dateKey of Object.keys(grouped)) {
-      grouped[dateKey].sort((left, right) => {
-        const leftTime = left.startTime || '';
-        const rightTime = right.startTime || '';
-        if (!leftTime && rightTime) return -1;
-        if (leftTime && !rightTime) return 1;
-        return leftTime.localeCompare(rightTime) || left.title.localeCompare(right.title, 'pt-BR');
-      });
-    }
-    return grouped;
-  }
-
-  function countTasks(tasksByDate) {
-    const counts = {};
-    for (const [dateKey, tasks] of Object.entries(tasksByDate || {})) {
-      counts[dateKey] = Array.isArray(tasks) ? tasks.length : 0;
-    }
-    return counts;
-  }
-
   const todayDateKey = $derived($currentDateKey);
+  const executionDateKey = $derived($visibleDateKey);
   const displayedMonthKey = $derived($calendarMonth || getMonthKey(todayDateKey));
   const displayedMonthLabel = $derived(formatters.monthYear.format(parseMonthKey(displayedMonthKey)));
-  const eventsByDate = $derived(groupEvents($data.calendarEvents));
-  const taskCountsByDate = $derived(countTasks($data.tasksByDate));
-  const selectedEvents = $derived(eventsByDate[selectedDateKey] || []);
-  const selectedTaskCount = $derived(taskCountsByDate[selectedDateKey] || 0);
 
   $effect(() => {
-    if (!active) return;
-
-    ensureCurrentCalendarMonth(todayDateKey);
-
-    const monthKey = $calendarMonth || getMonthKey(todayDateKey);
-    if (getMonthKey(selectedDateKey) !== monthKey) {
-      selectedDateKey = getClampedDateInMonth(monthKey, selectedDateKey);
+    if (active && !wasActive) {
+      ensureCalendarMonthInitialized(todayDateKey);
+      const monthKey = getMonthKey(executionDateKey);
+      if (monthKey && monthKey !== ($calendarMonth || getMonthKey(todayDateKey))) {
+        setCalendarMonth(monthKey);
+      }
     }
+    wasActive = active;
   });
 
   $effect(() => {
@@ -106,7 +76,7 @@
   });
 
   function selectDate(dateKey) {
-    selectedDateKey = dateKey;
+    setExecutionDateForDateKey(dateKey);
     const monthKey = getMonthKey(dateKey);
     if (monthKey !== displayedMonthKey) {
       setCalendarMonth(monthKey);
@@ -115,12 +85,13 @@
 
   function navigateMonth(delta) {
     const monthKey = shiftMonth(displayedMonthKey, delta);
-    selectedDateKey = getClampedDateInMonth(monthKey, selectedDateKey);
+    const dateKey = getClampedDateInMonth(monthKey, executionDateKey);
+    setExecutionDateForDateKey(dateKey);
     setCalendarMonth(monthKey);
   }
 
   function goToToday() {
-    selectedDateKey = todayDateKey;
+    setExecutionDateForDateKey(todayDateKey);
     setCalendarMonth(getMonthKey(todayDateKey));
   }
 </script>
@@ -159,16 +130,10 @@
   <div class="calendar-body">
     <CalendarMonthGrid
       monthKey={displayedMonthKey}
-      {selectedDateKey}
+      selectedDateKey={executionDateKey}
       {todayDateKey}
-      {eventsByDate}
-      {taskCountsByDate}
       onSelect={selectDate}
     />
-    <CalendarDayDetail
-      dateKey={selectedDateKey}
-      events={selectedEvents}
-      taskCount={selectedTaskCount}
-    />
+    <CalendarDayDetail dateKey={executionDateKey} />
   </div>
 </section>

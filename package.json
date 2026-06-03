@@ -17,7 +17,8 @@
     "tauri:build:installer": "tauri build",
     "open": "abrir-dashboard.bat",
     "open:dev": "npm run tauri:dev",
-    "dist": "npm run tauri:build && build-bootstrapper.bat"
+    "dist": "npm run tauri:build && build-bootstrapper.bat",
+    "seed:demo-may": "node tools/seed-demo-may.mjs"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^7.0.0",

@@ -7,9 +7,15 @@ export const settingsModal = writable(null);
 export const panelTab = writable('execution');
 export const opencodeSessionActive = writable(false);
 
-/** @param {'execution' | 'opencode' | 'calendar' | 'files'} tab */
+/** @param {'execution' | 'opencode' | 'calendar' | 'files' | 'system'} tab */
 export function setPanelTab(tab) {
-  if (tab === 'execution' || tab === 'opencode' || tab === 'calendar' || tab === 'files') {
+  if (
+    tab === 'execution' ||
+    tab === 'opencode' ||
+    tab === 'calendar' ||
+    tab === 'files' ||
+    tab === 'system'
+  ) {
     panelTab.set(tab);
   }
 }

@@ -16,13 +16,15 @@
 
   let filesMounted = $state(false);
 
-
+  let systemMounted = $state(false);
 
   // let OpenCodePanel = $state(null);
 
   let CalendarPanel = $state(null);
 
   let FilesPanel = $state(null);
+
+  let SystemPanel = $state(null);
 
 
 
@@ -62,6 +64,22 @@
         import('./files/FilesPanel.svelte').then((mod) => {
 
           FilesPanel = mod.default;
+
+        });
+
+      }
+
+    }
+
+    if ($panelTab === 'system') {
+
+      systemMounted = true;
+
+      if (!SystemPanel) {
+
+        import('./system/SystemPanel.svelte').then((mod) => {
+
+          SystemPanel = mod.default;
 
         });
 
@@ -155,6 +173,28 @@
         >
 
           <FilesPanel />
+
+        </div>
+
+      {/if}
+
+
+
+      {#if systemMounted && SystemPanel}
+
+        <div
+
+          id="system-panel"
+
+          class="panel-view"
+
+          class:is-active={$panelTab === 'system'}
+
+          aria-hidden={$panelTab !== 'system'}
+
+        >
+
+          <SystemPanel active={$panelTab === 'system'} />
 
         </div>
 

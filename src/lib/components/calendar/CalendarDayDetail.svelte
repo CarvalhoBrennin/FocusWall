@@ -1,135 +1,65 @@
 <script>
-  import CalendarEventForm from './CalendarEventForm.svelte';
-  import {
-    addCalendarEvent,
-    updateCalendarEvent,
-    deleteCalendarEvent,
-    jumpToExecutionForDate
-  } from '../../stores/calendar-store.js';
-  import { showConfirmModal, showToast } from '../../stores/ui-store.js';
+  import { visibleDateKey, visibleTasks } from '../../stores/app-store.js';
+  import { setPanelTab } from '../../stores/ui-store.js';
   import { formatters } from '../../config.js';
   import { parseDateKey } from '../../utils/state.js';
 
-  let {
-    dateKey,
-    events = [],
-    taskCount = 0
-  } = $props();
+  let { dateKey } = $props();
 
-  let formOpen = $state(false);
-  let editingEvent = $state(null);
+  const isSyncedDay = $derived(dateKey === $visibleDateKey);
+  const tasks = $derived(isSyncedDay ? $visibleTasks || [] : []);
 
   const dateLabel = $derived(formatters.longDate.format(parseDateKey(dateKey)));
-
-  $effect(() => {
-    dateKey;
-    formOpen = false;
-    editingEvent = null;
-  });
-
-  function formatEventTime(event) {
-    if (!event.startTime) return 'Dia inteiro';
-    return event.endTime ? `${event.startTime} - ${event.endTime}` : event.startTime;
-  }
-
-  function openNewForm() {
-    editingEvent = null;
-    formOpen = true;
-  }
-
-  function openEditForm(event) {
-    editingEvent = event;
-    formOpen = true;
-  }
-
-  function closeForm() {
-    formOpen = false;
-    editingEvent = null;
-  }
-
-  async function saveEvent(payload) {
-    if (editingEvent) {
-      if (await updateCalendarEvent(editingEvent.id, payload)) {
-        showToast('Evento atualizado');
-        closeForm();
-        return true;
-      }
-      return false;
-    }
-
-    if (await addCalendarEvent(payload)) {
-      showToast('Evento criado');
-      closeForm();
-      return true;
-    }
-    return false;
-  }
-
-  function confirmDelete(event) {
-    showConfirmModal({
-      title: 'Excluir evento',
-      body: `Excluir "${event.title}" do calendário?`,
-      confirmLabel: 'Excluir',
-      confirmDanger: true,
-      onConfirm: async () => {
-        if (await deleteCalendarEvent(event.id)) {
-          showToast('Evento excluído');
-        }
-      }
-    });
-  }
+  const taskPending = $derived(tasks.filter((t) => !t.completed).length);
+  const taskCompleted = $derived(tasks.filter((t) => t.completed).length);
 </script>
 
-<aside class="calendar-day-detail" aria-label="Detalhes do dia">
+<aside class="calendar-day-detail" aria-label="Tarefas do dia">
   <div class="calendar-detail-header">
     <div>
-      <p class="calendar-detail-kicker">Dia selecionado</p>
+      <p class="calendar-detail-kicker">Mesmo dia do painel de execução</p>
       <h2>{dateLabel}</h2>
     </div>
-    <button type="button" class="ghost-button calendar-compact-button calendar-new-event-button" onclick={openNewForm}>
-      Novo evento
-    </button>
   </div>
 
-  <button type="button" class="ghost-button calendar-task-link" onclick={() => jumpToExecutionForDate(dateKey)}>
-    Ver tarefas deste dia
-    {#if taskCount > 0}
-      <span>{taskCount}</span>
-    {/if}
-  </button>
+  <section class="calendar-task-section" aria-label="Tarefas do painel de execução">
+    <div class="calendar-task-section-head">
+      <h3 class="calendar-task-section-title">Tarefas</h3>
+      {#if tasks.length > 0}
+        <span class="calendar-task-section-meta">
+          {#if taskPending > 0}
+            {taskPending} pend.
+          {/if}
+          {#if taskCompleted > 0}
+            {#if taskPending > 0} · {/if}
+            {taskCompleted} ok
+          {/if}
+        </span>
+      {/if}
+    </div>
 
-  {#if formOpen}
-    <CalendarEventForm
-      event={editingEvent}
-      {dateKey}
-      onSave={saveEvent}
-      onCancel={closeForm}
-    />
-  {/if}
-
-  <div class="calendar-event-list" aria-live="polite">
-    {#if events.length === 0}
-      <p class="calendar-empty-copy">Nenhum evento neste dia.</p>
+    {#if !isSyncedDay}
+      <p class="calendar-empty-copy">Selecione este dia no calendário para sincronizar com o painel de execução.</p>
+    {:else if tasks.length === 0}
+      <p class="calendar-empty-copy">Nenhuma tarefa neste dia no painel de execução.</p>
     {:else}
-      {#each events as event (event.id)}
-        <article class="calendar-event-item" data-color={event.color || 'neutral'}>
-          <div class="calendar-event-main">
-            <span class="calendar-event-time">{formatEventTime(event)}</span>
-            <h3>{event.title}</h3>
-            {#if event.notes}
-              <p>{event.notes}</p>
-            {/if}
-          </div>
-          <div class="calendar-event-actions">
-            <button type="button" class="ghost-button" aria-label={`Editar ${event.title}`} onclick={() => openEditForm(event)}>
-              Editar
-            </button>
-            <button type="button" class="ghost-button danger-button" aria-label={`Excluir ${event.title}`} onclick={() => confirmDelete(event)}>
-              Excluir
-            </button>
-          </div>
-        </article>
-      {/each}
+      <ul class="calendar-task-preview" aria-label="Tarefas do painel de execução">
+        {#each tasks as task (task.id)}
+          <li class="calendar-task-preview-item" class:is-done={task.completed}>
+            <span
+              class="calendar-task-preview-state"
+              data-priority={task.priority || 'medium'}
+              data-completed={task.completed ? 'true' : 'false'}
+              aria-hidden="true"
+            ></span>
+            <span class="calendar-task-preview-text">{task.text}</span>
+          </li>
+        {/each}
+      </ul>
     {/if}
-  </div>
+
+    <button type="button" class="ghost-button calendar-task-link" onclick={() => setPanelTab('execution')}>
+      Editar tarefas no painel de execução
+    </button>
+  </section>
 </aside>
