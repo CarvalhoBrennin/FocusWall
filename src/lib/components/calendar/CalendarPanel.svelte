@@ -2,20 +2,25 @@
   import CalendarMonthGrid from './CalendarMonthGrid.svelte';
   import CalendarDayDetail from './CalendarDayDetail.svelte';
   import { data, currentDateKey } from '../../stores/app-store.js';
-  import { setCalendarMonth, calendarMonth } from '../../stores/calendar-store.js';
+  import {
+    setCalendarMonth,
+    calendarMonth,
+    ensureCurrentCalendarMonth
+  } from '../../stores/calendar-store.js';
   import { formatters } from '../../config.js';
-  import { getLocalDateKey, parseDateKey } from '../../utils/state.js';
+  import {
+    getLocalDateKey,
+    parseDateKey,
+    parseMonthKey,
+    getMonthKeyFromDateKey
+  } from '../../utils/state.js';
 
   let { active = false } = $props();
 
   let selectedDateKey = $state(getLocalDateKey(new Date()));
 
   function getMonthKey(dateKey) {
-    return dateKey.slice(0, 7);
-  }
-
-  function parseMonthKey(monthKey) {
-    return parseDateKey(`${monthKey}-01`);
+    return getMonthKeyFromDateKey(dateKey);
   }
 
   function shiftMonth(monthKey, delta) {
@@ -74,10 +79,9 @@
   $effect(() => {
     if (!active) return;
 
+    ensureCurrentCalendarMonth(todayDateKey);
+
     const monthKey = $calendarMonth || getMonthKey(todayDateKey);
-    if (!$calendarMonth) {
-      setCalendarMonth(monthKey);
-    }
     if (getMonthKey(selectedDateKey) !== monthKey) {
       selectedDateKey = getClampedDateInMonth(monthKey, selectedDateKey);
     }

@@ -31,7 +31,13 @@ export type MessageKey =
   | 'shortcuts.addTask'
   | 'shortcuts.focusComposer'
   | 'shortcuts.navigateDays'
-  | 'shortcuts.navigateMonths';
+  | 'shortcuts.navigateMonths'
+  | 'opencode.notFound'
+  | 'opencode.invalidDir'
+  | 'opencode.spawnFailed'
+  | 'opencode.exitedUnexpectedly'
+  | 'opencode.starting'
+  | 'opencode.desktopOnly';
 
 const messages: Record<LocaleId, Record<MessageKey, string>> = {
   'pt-BR': {
@@ -65,7 +71,13 @@ const messages: Record<LocaleId, Record<MessageKey, string>> = {
     'shortcuts.addTask': 'Adicionar tarefa',
     'shortcuts.focusComposer': 'Focar campo de tarefa',
     'shortcuts.navigateDays': 'Navegar entre dias',
-    'shortcuts.navigateMonths': 'Navegar entre meses'
+    'shortcuts.navigateMonths': 'Navegar entre meses',
+    'opencode.notFound': 'OpenCode não encontrado. Instale com: npm i -g opencode-cli ou configure o PATH.',
+    'opencode.invalidDir': 'Diretório de trabalho inválido.',
+    'opencode.spawnFailed': 'Falha ao iniciar OpenCode.',
+    'opencode.exitedUnexpectedly': 'OpenCode encerrou inesperadamente.',
+    'opencode.starting': 'Iniciando...',
+    'opencode.desktopOnly': 'OpenCode CLI só está disponível no desktop (Tauri).'
   },
   'en-US': {
     'app.loading': 'Loading Focus Dashboard...',
@@ -98,7 +110,13 @@ const messages: Record<LocaleId, Record<MessageKey, string>> = {
     'shortcuts.addTask': 'Add task',
     'shortcuts.focusComposer': 'Focus task field',
     'shortcuts.navigateDays': 'Navigate between days',
-    'shortcuts.navigateMonths': 'Navigate between months'
+    'shortcuts.navigateMonths': 'Navigate between months',
+    'opencode.notFound': 'OpenCode not found. Install with: npm i -g opencode-cli or configure your PATH.',
+    'opencode.invalidDir': 'Invalid working directory.',
+    'opencode.spawnFailed': 'Failed to start OpenCode.',
+    'opencode.exitedUnexpectedly': 'OpenCode exited unexpectedly.',
+    'opencode.starting': 'Starting...',
+    'opencode.desktopOnly': 'OpenCode CLI is only available on desktop (Tauri).'
   }
 };
 

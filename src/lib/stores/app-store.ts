@@ -8,6 +8,7 @@ import {
   normalizeState,
   normalizeTaskText,
   normalizePriority,
+  normalizeMonthKey,
   getLocalDateKey,
   getBrazilDateKey,
   parseDateKey,
@@ -43,6 +44,22 @@ function getVisibleDateKey(currentDateKey, viewOffsetDays) {
 
 function getTasksByDate(data: import('../types/app.js').AppState, dk: string) {
   return Array.isArray(data.tasksByDate?.[dk]) ? data.tasksByDate[dk] : [];
+}
+
+/** Sync ui.calendarMonth when persisted month is empty or behind today (YYYY-MM). */
+function syncCalendarMonthIfStale(todayDateKey: string) {
+  const currentMonth = todayDateKey.slice(0, 7);
+  if (!/^\d{4}-\d{2}$/.test(currentMonth)) return;
+
+  const $data = get(data);
+  const stored = normalizeMonthKey($data.ui?.calendarMonth) || '';
+  if (!stored || stored < currentMonth) {
+    data.set({
+      ...$data,
+      ui: { ...$data.ui, calendarMonth: currentMonth }
+    });
+    persistStateDebounced();
+  }
 }
 
 export const currentDateKey = writable(getLocalDateKey(new Date()));
@@ -230,6 +247,7 @@ export function bootstrapApp() {
       let d = ensureDateBucket(loaded, $currentDateKey);
       d = pruneHistory(d, $currentDateKey);
       data.set(d);
+      syncCalendarMonthIfStale($currentDateKey);
       applyTheme(d.ui.theme ?? 'dark');
       const bootLocale = d.ui.locale ?? 'pt-BR';
       setLocale(bootLocale);
@@ -259,6 +277,7 @@ export function bootstrapApp() {
       const $currentDateKey = getLocalDateKey(new Date());
       const d = ensureDateBucket(def, $currentDateKey);
       data.set(d);
+      applyTheme(d.ui.theme);
       bootstrapError.set(String(err?.message || err));
       setAppStatus('Falha ao carregar o estado local. Um estado vazio foi restaurado.', 'error');
     } finally {
@@ -350,6 +369,7 @@ export function onDayChange() {
   const $current = get(currentDateKey);
   if (next === $current) return;
 
+  const monthChanged = next.slice(0, 7) !== $current.slice(0, 7);
   currentDateKey.set(next);
   viewOffsetDays.set(VIEW.TODAY);
   editingTaskId.set(null);
@@ -357,6 +377,9 @@ export function onDayChange() {
   let d = ensureDateBucket($data, next);
   d = pruneHistory(d, next);
   data.set(d);
+  if (monthChanged) {
+    syncCalendarMonthIfStale(next);
+  }
   persistStateDebounced();
 }
 

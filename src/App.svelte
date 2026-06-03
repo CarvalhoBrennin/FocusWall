@@ -102,11 +102,9 @@
 
     const target = e.target instanceof Element ? e.target : null;
 
-    const inTerminal = target?.closest('.xterm');
+    const inTextInput = target?.closest('input, textarea, [contenteditable="true"]');
 
-
-
-    if (inTerminal) return;
+    if (inTextInput) return;
 
 
 

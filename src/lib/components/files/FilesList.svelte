@@ -1,17 +1,24 @@
 <script>
   import FileRow from './FileRow.svelte';
 
-  const { entries = [], onNavigate, onOpen } = $props();
+  const { entries = [], searchQuery = '', onNavigate, onOpen } = $props();
 </script>
 
 <div class="files-list">
   {#if entries.length === 0}
-    <p class="files-empty">Diretório vazio.</p>
+    <p class="files-empty">
+      {searchQuery.trim() ? 'Nenhum item corresponde à busca.' : 'Diretório vazio.'}
+    </p>
   {:else}
     {#each entries as entry (entry.path)}
       <FileRow
         {entry}
-        onclick={() => entry.is_dir ? onNavigate(entry.path) : onOpen(entry.path)}
+        ondblclick={(e) => {
+          e.preventDefault();
+          if (entry.isDir) onNavigate(entry.path);
+          else onOpen(entry.path);
+        }}
+        onclick={() => (entry.isDir ? onNavigate(entry.path) : onOpen(entry.path))}
       />
     {/each}
   {/if}

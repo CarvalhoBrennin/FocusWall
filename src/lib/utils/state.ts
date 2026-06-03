@@ -175,6 +175,20 @@ export function getLocalDateKey(d) {
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 }
 
+/** YYYY-MM from a local date key (YYYY-MM-DD). */
+export function getMonthKeyFromDateKey(dateKey) {
+  return typeof dateKey === 'string' ? dateKey.slice(0, 7) : '';
+}
+
+/** Parse YYYY-MM as local midnight (avoids UTC shift in month labels). */
+export function parseMonthKey(monthKey) {
+  const normalized = normalizeMonthKey(monthKey);
+  if (!normalized) return new Date(Number.NaN);
+  const year = Number(normalized.slice(0, 4));
+  const month = Number(normalized.slice(5, 7));
+  return new Date(year, month - 1, 1);
+}
+
 export function getBrazilDateKey(d) {
   try {
     return d.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });

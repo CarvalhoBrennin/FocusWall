@@ -118,7 +118,7 @@
     align-items: center;
     gap: 0.85rem;
     padding: 0.95rem 1rem 0.95rem 1.35rem;
-    border: 1px solid rgba(241, 236, 236, 0.08);
+    border: 1px solid var(--control-border-soft);
     border-radius: 0;
     cursor: pointer;
     transition:
@@ -127,9 +127,9 @@
       background-color var(--transition-fast),
       box-shadow var(--transition-fast);
     background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.022));
+      linear-gradient(180deg, var(--glare-soft), var(--glare-faint));
     box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.04),
+      inset 0 1px 0 var(--glare-soft),
       var(--shadow-xs);
     isolation: isolate;
   }
@@ -142,7 +142,7 @@
     bottom: 0.8rem;
     width: 3px;
     border-radius: 0;
-    background: rgba(241, 236, 236, 0.18);
+    background: var(--control-border-strong);
   }
 
   .monitor-option::after {
@@ -150,7 +150,7 @@
     position: absolute;
     inset: 0;
     pointer-events: none;
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.03), transparent 52%);
+    background: linear-gradient(135deg, var(--glare-soft), transparent 52%);
     opacity: 0.85;
     z-index: 0;
   }
@@ -158,13 +158,13 @@
   .monitor-option:hover {
     transform: translateY(-1px);
     border-color: rgba(207, 206, 205, 0.22);
-    box-shadow: 0 18px 26px rgba(0, 0, 0, 0.14);
+    box-shadow: 0 18px 26px var(--shadow-color);
   }
 
   .monitor-option.selected {
     border-color: rgba(207, 206, 205, 0.28);
     background:
-      linear-gradient(135deg, rgba(207, 206, 205, 0.12), rgba(10, 10, 10, 0.9));
+      linear-gradient(135deg, var(--accent-soft), var(--field-bg));
   }
 
   .monitor-option.selected::before {

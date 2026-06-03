@@ -33,7 +33,6 @@
     <ul
       id="task-list"
       class="task-list"
-      style={`--tasks-per-page: ${perPage};`}
       aria-label="Lista de tarefas do dia"
     >
       {#each paginatedTasks as task, i (task.id)}

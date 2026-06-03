@@ -80,6 +80,27 @@
   ></button>
 
   <div class="task-content">
+    {#if isEditing}
+      <input
+        class="task-edit-input"
+        type="text"
+        maxlength={CONFIG.MAX_TASK_LENGTH}
+        aria-label="Editar tarefa"
+        data-task-id={task.id}
+        bind:value={editValue}
+        onkeydown={handleKeydown}
+        onfocusout={handleEditFocusOut}
+      />
+    {:else}
+      <!-- svelte-ignore a11y_no_static_element_interactions -->
+      <p
+        class="task-text"
+        ondblclick={(e) => { e.stopPropagation(); startEditing(); }}
+      >
+        {task.text}
+      </p>
+    {/if}
+
     <div class="task-meta">
       <button
         type="button"
@@ -103,27 +124,6 @@
         {task.completed ? 'Concluída' : 'Em aberto'}
       </span>
     </div>
-
-    {#if isEditing}
-      <input
-        class="task-edit-input"
-        type="text"
-        maxlength={CONFIG.MAX_TASK_LENGTH}
-        aria-label="Editar tarefa"
-        data-task-id={task.id}
-        bind:value={editValue}
-        onkeydown={handleKeydown}
-        onfocusout={handleEditFocusOut}
-      />
-    {:else}
-      <!-- svelte-ignore a11y_no_static_element_interactions -->
-      <p
-        class="task-text"
-        ondblclick={(e) => { e.stopPropagation(); startEditing(); }}
-      >
-        {task.text}
-      </p>
-    {/if}
   </div>
 
   <div class="task-actions">

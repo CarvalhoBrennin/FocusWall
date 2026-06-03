@@ -5,7 +5,8 @@
     loadOpencodeRecents,
     pickProjectDir,
     rememberOpencodeDir,
-    searchProjectDirs
+    searchProjectDirs,
+    validateProjectDirectory
   } from '../services/opencode.js';
   import { showToast } from '../stores/ui-store.js';
 
@@ -20,10 +21,17 @@
   let browsing = $state(false);
   let browseError = $state('');
   let hydrated = $state(false);
+  let starting = $state(false);
+  let selectedProjectIndex = $derived(results.findIndex((entry) => entry.path === selectedPath));
 
   /** @type {ReturnType<typeof setTimeout> | null} */
   let searchTimer = null;
   let searchRequestId = 0;
+
+  function errorMessage(err, fallback) {
+    if (typeof err === 'string') return err;
+    return err?.message || fallback;
+  }
 
   function mergeEntries(entries) {
     const map = new Map();
@@ -59,7 +67,7 @@
     } catch (err) {
       if (requestId !== searchRequestId) return;
       results = mergeEntries([]);
-      showToast(err?.message || 'Falha ao buscar pastas.');
+      showToast(errorMessage(err, 'Falha ao buscar pastas.'));
     } finally {
       if (requestId === searchRequestId) {
         searching = false;
@@ -96,10 +104,20 @@
     }
   }
 
-  function startOpenCode() {
-    if (!selectedPath) return;
-    rememberOpencodeDir(selectedPath);
-    onStart(selectedPath);
+  async function startOpenCode(path = selectedPath) {
+    if (!path || starting) return;
+
+    starting = true;
+    try {
+      const canonical = await validateProjectDirectory(path);
+      selectedPath = canonical;
+      rememberOpencodeDir(canonical);
+      onStart(canonical);
+    } catch (err) {
+      showToast(errorMessage(err, 'Falha ao validar diretorio.'));
+    } finally {
+      starting = false;
+    }
   }
 
   function handleSearchInput(event) {
@@ -107,11 +125,30 @@
     scheduleSearch(query);
   }
 
-  function handleKeydown(event) {
-    if (event.key === 'Enter' && selectedPath) {
+  function handleProjectKeydown(event) {
+    const items = [...event.currentTarget.querySelectorAll('.opencode-project-item')];
+    const currentIndex = items.indexOf(document.activeElement);
+
+    if (event.key === 'ArrowDown') {
       event.preventDefault();
-      startOpenCode();
+      const next = currentIndex < items.length - 1 ? items[currentIndex + 1] : items[0];
+      next?.focus();
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      const prev = currentIndex > 0 ? items[currentIndex - 1] : items[items.length - 1];
+      prev?.focus();
+    } else if (event.key === 'Enter' && document.activeElement?.closest('.opencode-project-item')) {
+      event.preventDefault();
+      const path = document.activeElement.dataset.path || '';
+      selectPath(path);
+      startOpenCode(path);
     }
+  }
+
+  function handleKeydown(event) {
+    if (event.isComposing || event.key !== 'Enter' || !selectedPath || starting) return;
+    event.preventDefault();
+    startOpenCode();
   }
 
   $effect(() => {
@@ -141,6 +178,10 @@
   <div class="opencode-launcher-copy">
     <h2 class="opencode-launcher-title">Escolha onde iniciar.</h2>
     <p class="opencode-launcher-note">Busque pastas recentes ou abra o seletor nativo do Windows.</p>
+    <div class="opencode-terminal-line" aria-hidden="true">
+      <span>C:\FocusWall&gt;</span>
+      <code>opencode serve --hostname 127.0.0.1 --port auto</code>
+    </div>
   </div>
 
   <div class="opencode-launcher-toolbar">
@@ -171,30 +212,41 @@
     {:else if results.length === 0}
       <p class="opencode-launcher-status">Nenhuma pasta encontrada. Use "Escolher pasta".</p>
     {:else}
-      <ul class="opencode-project-list" aria-label="Pastas disponíveis">
-        {#each results as entry (entry.path)}
-          <li>
-            <button
-              class="opencode-project-item"
-              class:is-selected={selectedPath === entry.path}
-              type="button"
-              aria-pressed={selectedPath === entry.path}
-              onclick={() => selectPath(entry.path)}
-            >
-              <span class="opencode-project-name">{entry.name}</span>
-              <span class="opencode-project-path">{entry.path}</span>
-              <span class="opencode-project-tags">
-                {#if entry.isRecent}
-                  <span class="opencode-tag">Recente</span>
-                {/if}
-                {#if entry.isGit}
-                  <span class="opencode-tag opencode-tag--git">Git</span>
-                {/if}
-              </span>
-            </button>
-          </li>
+      {#if searching}
+        <p class="opencode-launcher-searching">Buscando...</p>
+      {/if}
+      <div
+        class="opencode-project-list"
+        role="listbox"
+        aria-label="Pastas disponiveis"
+        aria-activedescendant={selectedProjectIndex >= 0 ? `opencode-project-${selectedProjectIndex}` : undefined}
+        tabindex="0"
+        onkeydown={handleProjectKeydown}
+      >
+        {#each results as entry, index (entry.path)}
+          <button
+            id={`opencode-project-${index}`}
+            class="opencode-project-item"
+            class:is-selected={selectedPath === entry.path}
+            type="button"
+            role="option"
+            aria-selected={selectedPath === entry.path}
+            data-path={entry.path}
+            onclick={() => selectPath(entry.path)}
+          >
+            <span class="opencode-project-name">{entry.name}</span>
+            <span class="opencode-project-path">{entry.path}</span>
+            <span class="opencode-project-tags">
+              {#if entry.isRecent}
+                <span class="opencode-tag">Recente</span>
+              {/if}
+              {#if entry.isGit}
+                <span class="opencode-tag opencode-tag--git">Git</span>
+              {/if}
+            </span>
+          </button>
         {/each}
-      </ul>
+      </div>
     {/if}
   </div>
 
@@ -208,10 +260,10 @@
     <button
       class="primary-button"
       type="button"
-      disabled={!selectedPath}
-      onclick={startOpenCode}
+      disabled={!selectedPath || starting}
+      onclick={() => startOpenCode()}
     >
-      Iniciar OpenCode
+      {starting ? 'Iniciando...' : 'Iniciar OpenCode'}
     </button>
   </footer>
 </section>

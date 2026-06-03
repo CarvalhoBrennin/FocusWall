@@ -5,7 +5,8 @@ import {
   normalizeCalendarEvent,
   normalizeMonthKey,
   createId,
-  parseDateKey
+  parseDateKey,
+  getMonthKeyFromDateKey
 } from '../utils/state.js';
 import type { AppState, CalendarEvent } from '../types/app.js';
 import { setPanelTab } from './ui-store.js';
@@ -49,6 +50,18 @@ export function setCalendarMonth(yearMonth: string) {
     }
   });
   persistStateDebounced();
+}
+
+/** Keep persisted month in sync when empty or still showing a past month (e.g. May while today is June). */
+export function ensureCurrentCalendarMonth(todayDateKey: string) {
+  const currentMonth = getMonthKeyFromDateKey(todayDateKey);
+  if (!currentMonth) return;
+
+  const $data = get(data);
+  const stored = normalizeMonthKey($data.ui?.calendarMonth) || '';
+  if (!stored || stored < currentMonth) {
+    setCalendarMonth(currentMonth);
+  }
 }
 
 async function saveCalendarState(nextData: AppState, success: string, failure: string) {

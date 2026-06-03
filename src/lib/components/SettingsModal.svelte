@@ -98,7 +98,7 @@
   .settings-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.72);
+    background: var(--overlay-bg);
     backdrop-filter: blur(6px);
     display: flex;
     align-items: center;
@@ -109,8 +109,7 @@
 
   .settings-modal {
     position: relative;
-    background:
-      linear-gradient(180deg, rgba(10, 10, 10, 0.96), rgba(8, 8, 8, 0.94));
+    background: var(--panel-bg);
     border: 1px solid var(--surface-dark-border);
     border-radius: 0;
     box-shadow: var(--shadow-lg);
@@ -129,8 +128,8 @@
     inset: 0;
     pointer-events: none;
     background:
-      linear-gradient(140deg, rgba(255, 255, 255, 0.08), transparent 28%),
-      linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 40%);
+      linear-gradient(140deg, var(--glare-strong), transparent 28%),
+      linear-gradient(180deg, var(--glare-faint), transparent 40%);
   }
 
   .settings-modal::after {
@@ -138,7 +137,7 @@
     position: absolute;
     inset: 1px;
     pointer-events: none;
-    border: 1px solid rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--control-border-soft);
   }
 
   .settings-header {
@@ -148,7 +147,7 @@
     align-items: center;
     justify-content: space-between;
     padding: var(--space-4) var(--space-4) var(--space-3);
-    border-bottom: 1px solid rgba(241, 236, 236, 0.08);
+    border-bottom: 1px solid var(--divider);
   }
 
   .settings-title {
@@ -162,9 +161,9 @@
   .settings-close {
     width: 2.5rem;
     height: 2.5rem;
-    border: 1px solid rgba(241, 236, 236, 0.12);
+    border: 1px solid var(--control-border-strong);
     border-radius: 0;
-    background: rgba(255, 255, 255, 0.06);
+    background: var(--control-bg);
     color: var(--light-main);
     font-size: 1.25rem;
     cursor: pointer;
@@ -182,8 +181,8 @@
 
   .settings-close:hover {
     transform: translateY(-1px);
-    border-color: rgba(207, 206, 205, 0.28);
-    background: rgba(255, 255, 255, 0.12);
+    border-color: var(--accent-soft);
+    background: var(--control-bg-hover);
     color: var(--light-strong);
   }
 
@@ -199,7 +198,7 @@
   }
 
   .settings-section {
-    border-bottom: 1px solid rgba(241, 236, 236, 0.08);
+    border-bottom: 1px solid var(--divider);
   }
 
   .settings-section:last-child {
@@ -217,7 +216,7 @@
     position: relative;
     z-index: 1;
     padding: var(--space-3) var(--space-4);
-    border-top: 1px solid rgba(241, 236, 236, 0.08);
+    border-top: 1px solid var(--divider);
     display: flex;
     justify-content: flex-end;
   }

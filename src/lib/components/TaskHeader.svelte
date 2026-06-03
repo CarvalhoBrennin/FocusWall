@@ -6,7 +6,8 @@
     data,
     visibleTasks
   } from '../stores/app-store.js';
-  import { panelTab, setPanelTab, opencodeSessionActive } from '../stores/ui-store.js';
+  import { panelTab, setPanelTab } from '../stores/ui-store.js';
+  // import { opencodeSessionActive } from '../stores/ui-store.js';
   import { VIEW, CONFIG } from '../config.js';
   import { formatters } from '../config.js';
   import { parseDateKey, addDays } from '../utils/state.js';
@@ -24,26 +25,27 @@
         : formatters.historyDate.format(visibleDate);
   $: executionHeadline =
     $viewOffsetDays === VIEW.TODAY ? 'Painel de execução' : 'Arquivo de execução';
-  $: opencodeHeadline = $opencodeSessionActive ? 'Terminal OpenCode' : 'Escolher repositório';
-  $: opencodeKicker = $opencodeSessionActive ? 'Sessão ativa' : 'Workspace';
-  $: calendarMonth = $data.ui?.calendarMonth || $currentDateKey.slice(0, 7);
+  // $: opencodeHeadline = $opencodeSessionActive ? 'OpenCode' : 'Escolher repositório';
+  // $: opencodeKicker = $opencodeSessionActive ? 'Sessão ativa' : 'Workspace';
+  $: calendarMonth =
+    $data.ui?.calendarMonth && $data.ui.calendarMonth >= $currentDateKey.slice(0, 7)
+      ? $data.ui.calendarMonth
+      : $currentDateKey.slice(0, 7);
   $: calendarKicker = formatters.monthYear.format(parseDateKey(`${calendarMonth}-01`));
+  // opencode: : $panelTab === 'opencode' ? opencodeHeadline :
   $: headline =
     $panelTab === 'calendar'
       ? 'Calendário'
-      : $panelTab === 'opencode'
-        ? opencodeHeadline
-        : $panelTab === 'files'
-          ? 'Arquivos'
-          : executionHeadline;
+      : $panelTab === 'files'
+        ? 'Arquivos'
+        : executionHeadline;
+  // opencode: : $panelTab === 'opencode' ? opencodeKicker :
   $: kicker =
     $panelTab === 'calendar'
       ? calendarKicker
-      : $panelTab === 'opencode'
-        ? opencodeKicker
-        : $panelTab === 'files'
-          ? 'Desktop'
-          : historyLabel;
+      : $panelTab === 'files'
+        ? 'Desktop'
+        : historyLabel;
 
   $: canGoPrev = $viewOffsetDays > -(CONFIG.HISTORY_VIEW_DAYS - 1);
   $: canGoNext = $viewOffsetDays < VIEW.TODAY;
@@ -70,6 +72,7 @@
       >
         Execução
       </button>
+      <!-- OpenCode tab oculto temporariamente
       <button
         class="panel-tab"
         class:is-active={$panelTab === 'opencode'}
@@ -81,6 +84,7 @@
       >
         OpenCode
       </button>
+      -->
       <button
         class="panel-tab"
         class:is-active={$panelTab === 'calendar'}

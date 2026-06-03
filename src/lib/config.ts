@@ -3,7 +3,7 @@ export const CONFIG = {
   STORAGE_KEY: 'focus-dashboard-browser-preview',
   STATE_VERSION: 5,
   MAX_TASK_LENGTH: 180,
-  TASKS_PER_PAGE: 4,
+  TASKS_PER_PAGE: 6,
   EXCHANGE_API_URL: 'https://economia.awesomeapi.com.br/json/last/USD-BRL,EUR-BRL',
   RATE_REFRESH_MS: 60000,
   RATE_GOLD_USD_AT_OR_BELOW: 5.0,

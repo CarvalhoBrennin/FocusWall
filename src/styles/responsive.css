@@ -1,3 +1,28 @@
+@media (max-width: 1280px) {
+  .opencode-chat {
+    grid-template-columns: minmax(12rem, 16rem) minmax(0, 1fr);
+    grid-template-rows: 1fr auto;
+  }
+
+  .opencode-chat-inspector {
+    grid-column: 1 / -1;
+    min-height: 14rem;
+    flex-direction: row;
+    gap: 0.65rem;
+  }
+
+  .opencode-inspector-section {
+    flex: 1;
+    min-height: 0;
+    border-bottom: 0;
+    border-right: 1px solid var(--control-border-soft);
+  }
+
+  .opencode-inspector-section--diff {
+    border-right: 0;
+  }
+}
+
 @media (max-width: 1600px) {
   .app-shell-frame {
     grid-template-columns: minmax(288px, 0.32fr) minmax(0, 1fr);
@@ -86,6 +111,20 @@
   .opencode-project-list {
     max-height: none;
   }
+
+  .opencode-chat {
+    grid-template-columns: 1fr;
+    overflow: auto;
+  }
+
+  .opencode-chat-sidebar,
+  .opencode-chat-inspector {
+    min-height: 12rem;
+  }
+
+  .opencode-chat-main {
+    min-height: 26rem;
+  }
 }
 
 @media (max-width: 920px) {
@@ -150,6 +189,22 @@
   .opencode-launcher-footer .primary-button,
   .opencode-launcher-toolbar .ghost-button {
     width: 100%;
+  }
+
+  .opencode-composer {
+    grid-template-columns: 1fr;
+  }
+
+  .opencode-composer-actions {
+    flex-direction: row;
+    justify-content: flex-end;
+    align-self: auto;
+  }
+
+  .opencode-composer-actions .primary-button,
+  .opencode-composer-actions .ghost-button {
+    flex: 0 0 auto;
+    min-width: auto;
   }
 
   .section-heading--rates {

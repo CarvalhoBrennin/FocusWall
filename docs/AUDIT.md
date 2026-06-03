@@ -74,7 +74,7 @@ Auditoria exaustiva de todos os arquivos do projeto com verificação pós-corre
 | 30 | ✅ | `updater.ts + UpdateSettings.svelte` | Sem auto-updater | `tauri-plugin-updater` integrado. `checkForUpdates()` + `installUpdate()` com download, install e relaunch. UI em UpdateSettings.svelte. Docs em `docs/UPDATER.md`. |
 | 31 | ✅ | `Cargo.toml` | Sem profile.release | `[profile.release]` com `lto = true`, `strip = true`, `codegen-units = 1`, `opt-level = "s"`. |
 | 32 | ✅ | `src/lib/utils/tauri.ts` | window.__TAURI__ duplicado | Utilitário único `src/lib/utils/tauri.ts` exportando `tauriInvoke`, `isTauri()`. Usado por todos os 6 arquivos. |
-| 33 | ✅ | `opencode.ts:67,78` | tauri-pty top-level import | Substituído por `const { spawn } = await import('tauri-pty')`. Code-splitting do OpenCode funcional. |
+| 33 | ✅ | `opencode.ts + OpenCodeChat.svelte` | OpenCode dependia de PTY/TUI embutida | Fluxo principal substituído por cliente visual para `opencode serve`, com proxy Tauri HTTP e polling. Dependências xterm/tauri-pty removidas. |
 
 ### Acessibilidade
 

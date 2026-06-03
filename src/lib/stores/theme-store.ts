@@ -9,9 +9,24 @@ export const THEME_OPTIONS: { id: ThemeId; labelKey: 'theme.dark' | 'theme.light
   { id: 'olive', labelKey: 'theme.olive' }
 ];
 
+function isThemeId(value: unknown): value is ThemeId {
+  return value === 'dark' || value === 'light' || value === 'olive';
+}
+
 export function applyTheme(next: ThemeId) {
-  theme.set(next);
-  document.documentElement.dataset.theme = next;
+  const resolved = isThemeId(next) ? next : 'dark';
+  theme.set(resolved);
+
+  if (typeof document === 'undefined') return;
+
+  const root = document.documentElement;
+  root.dataset.theme = resolved;
+  root.style.colorScheme = resolved === 'light' ? 'light' : 'dark';
+
+  const meta = document.querySelector<HTMLMetaElement>('meta[name="color-scheme"]');
+  if (meta) {
+    meta.content = resolved === 'light' ? 'light dark' : 'dark light';
+  }
 }
 
 export function initThemeFromState(saved?: ThemeId) {

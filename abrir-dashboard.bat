@@ -12,11 +12,15 @@ if /I "%~1"=="--debug" goto DEV_MODE
 if /I "%~1"=="--installed" goto USE_INSTALLED
 if /I "%~1"=="--release" goto USE_RELEASE
 
-REM Padrao: release local, depois instalado.
-REM Nunca abra o .exe de debug direto — ele depende do Vite em 127.0.0.1:1420.
+REM Padrao: compila o release local, abre o release, depois tenta instalado.
+REM Nunca abra o .exe de debug direto; ele depende do Vite em 127.0.0.1:1420.
+call :BUILD_RELEASE
+if errorlevel 1 exit /b %ERRORLEVEL%
 goto USE_RELEASE
 
 :USE_RELEASE
+call :BUILD_RELEASE
+if errorlevel 1 exit /b %ERRORLEVEL%
 if not exist "%RELEASE%" goto TRY_INSTALLED
 if not exist "%DIST%" goto NEED_BUILD
 echo Abrindo Focus Dashboard...
@@ -38,6 +42,28 @@ goto NOT_FOUND
 echo Modo desenvolvimento: iniciando Vite + Tauri...
 call npm run tauri:dev
 exit /b %ERRORLEVEL%
+
+:BUILD_RELEASE
+if "%SKIP_FOCUSWALL_BUILD%"=="1" exit /b 0
+set "SKIP_FOCUSWALL_BUILD=1"
+
+tasklist /FI "IMAGENAME eq focus-desktop-dashboard.exe" 2>NUL | find /I "focus-desktop-dashboard.exe" >NUL
+if not errorlevel 1 (
+    echo Fechando Focus Dashboard em execucao para atualizar o build...
+    taskkill /F /IM focus-desktop-dashboard.exe >NUL 2>NUL
+)
+
+echo Compilando Focus Dashboard...
+call npm run tauri:build
+if errorlevel 1 (
+    echo.
+    echo Falha ao compilar o Focus Dashboard.
+    echo Feche o aplicativo se ele ainda estiver aberto e tente novamente.
+    echo.
+    pause
+    exit /b %ERRORLEVEL%
+)
+exit /b 0
 
 :NEED_BUILD
 echo Frontend nao compilado. Execute:

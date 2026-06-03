@@ -23,9 +23,9 @@
     justify-content: center;
     width: 2.5rem;
     height: 2.5rem;
-    border: 1px solid rgba(241, 236, 236, 0.12);
+    border: 1px solid var(--control-border-strong);
     border-radius: 0;
-    background: rgba(255, 255, 255, 0.06);
+    background: var(--control-bg);
     color: var(--light-soft);
     cursor: pointer;
     box-shadow: var(--shadow-xs);
@@ -39,8 +39,8 @@
 
   .settings-button:hover {
     transform: translateY(-1px);
-    border-color: rgba(207, 206, 205, 0.28);
-    background: rgba(255, 255, 255, 0.12);
+    border-color: var(--accent-soft);
+    background: var(--control-bg-hover);
     color: var(--light-strong);
   }
 

@@ -50,9 +50,13 @@
   .settings-field select {
     width: 100%;
     padding: 0.75rem 0.85rem;
-    border: 1px solid rgba(241, 236, 236, 0.12);
-    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--control-border-strong);
+    background: var(--field-bg);
     color: var(--light-main);
     font: inherit;
+  }
+
+  .settings-field select:hover {
+    background: var(--field-bg-hover);
   }
 </style>

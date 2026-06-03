@@ -43,9 +43,9 @@
   gap: 0.4rem;
   height: 3.1rem;
   padding: 0.3rem;
-  border: 1px solid rgba(241, 236, 236, 0.08);
-  background: rgba(255, 255, 255, 0.05);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--control-border-soft);
+  background: var(--control-bg);
+  box-shadow: inset 0 1px 0 var(--glare-soft);
 }
 
 .calendar-today-button,
@@ -68,8 +68,8 @@
   min-width: 5.5rem;
   height: 2.5rem;
   padding: 0 0.9rem;
-  background: rgba(255, 255, 255, 0.055);
-  border-color: rgba(241, 236, 236, 0.1);
+  background: var(--control-bg);
+  border-color: var(--control-border);
   box-shadow: none;
   color: var(--light-main);
   font-size: 0.9rem;
@@ -89,12 +89,12 @@
 .calendar-day-detail {
   min-width: 0;
   min-height: 0;
-  border: 1px solid rgba(241, 236, 236, 0.08);
+  border: 1px solid var(--control-border-soft);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.018)),
-    rgba(10, 10, 10, 0.62);
+    linear-gradient(180deg, var(--glare-soft), var(--glare-faint)),
+    var(--panel-bg-soft);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.03),
+    inset 0 1px 0 var(--glare-soft),
     var(--shadow-sm);
 }
 
@@ -140,9 +140,9 @@
   min-width: 0;
   min-height: 0;
   padding: 0.42rem;
-  border: 1px solid rgba(241, 236, 236, 0.07);
+  border: 1px solid var(--control-border-soft);
   border-radius: 0;
-  background: rgba(255, 255, 255, 0.035);
+  background: var(--card-bg-muted);
   color: var(--light-main);
   font: inherit;
   overflow: hidden;
@@ -150,7 +150,7 @@
 
 .calendar-day:hover {
   border-color: rgba(207, 206, 205, 0.22);
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--card-bg-flat);
 }
 
 .calendar-day.is-outside-month {
@@ -209,8 +209,8 @@
   min-width: 1.12rem;
   height: 1.12rem;
   padding: 0 0.28rem;
-  border: 1px solid rgba(241, 236, 236, 0.12);
-  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid var(--control-border-strong);
+  background: var(--control-bg);
   color: var(--light-main);
   font-size: 0.68rem;
   font-weight: 800;
@@ -298,8 +298,8 @@
 .calendar-new-event-button {
   justify-content: center;
   width: 100%;
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(241, 236, 236, 0.1);
+  background: var(--control-bg);
+  border-color: var(--control-border);
   box-shadow: none;
 }
 
@@ -317,7 +317,7 @@
   margin: 0;
   min-height: 3.35rem;
   padding: 0.9rem 1rem;
-  border: 1px dashed rgba(241, 236, 236, 0.14);
+  border: 1px dashed var(--control-border-strong);
   color: var(--light-muted);
   font-size: 0.86rem;
   letter-spacing: 0;
@@ -331,8 +331,8 @@
   display: grid;
   gap: 0.65rem;
   padding: 0.78rem 0.8rem 0.78rem 1rem;
-  border: 1px solid rgba(241, 236, 236, 0.08);
-  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--control-border-soft);
+  background: var(--card-bg-flat);
 }
 
 .calendar-event-item::before {
@@ -394,8 +394,8 @@
   display: grid;
   gap: 0.7rem;
   padding: 0.8rem;
-  border: 1px solid rgba(241, 236, 236, 0.1);
-  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid var(--control-border);
+  background: var(--card-bg-muted);
 }
 
 .calendar-form-row,
@@ -422,9 +422,9 @@
 .calendar-field textarea {
   width: 100%;
   min-width: 0;
-  border: 1px solid rgba(241, 236, 236, 0.12);
+  border: 1px solid var(--control-border-strong);
   border-radius: 0;
-  background: rgba(10, 10, 10, 0.68);
+  background: var(--field-bg);
   color: var(--light-strong);
   font: inherit;
   font-size: 0.86rem;
@@ -445,7 +445,7 @@
 
 .calendar-field input::placeholder,
 .calendar-field textarea::placeholder {
-  color: rgba(241, 236, 236, 0.38);
+  color: var(--field-placeholder);
 }
 
 .calendar-color-group {
@@ -461,8 +461,8 @@
   gap: 0.4rem;
   min-width: 0;
   padding: 0.5rem;
-  border: 1px solid rgba(241, 236, 236, 0.08);
-  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid var(--control-border-soft);
+  background: var(--card-bg-muted);
   color: var(--light-muted);
   font-size: 0.72rem;
   font-weight: 800;

@@ -2,7 +2,7 @@
   position: relative;
   height: calc(100vh - var(--taskbar-height));
   padding: clamp(1rem, 1.8vw, 2rem);
-  background: #0A0A0A;
+  background: var(--app-bg);
 }
 
 .app-shell-frame {
@@ -31,8 +31,8 @@
   pointer-events: none;
   border-radius: inherit;
   background:
-    linear-gradient(140deg, rgba(255, 255, 255, 0.08), transparent 28%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 40%);
+    linear-gradient(140deg, var(--glare-strong), transparent 28%),
+    linear-gradient(180deg, var(--glare-faint), transparent 40%);
 }
 
 .panel::after {
@@ -41,7 +41,7 @@
   inset: 1px;
   border-radius: inherit;
   pointer-events: none;
-  border: 1px solid rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--control-border-soft);
 }
 
 .info-rail {
@@ -53,8 +53,7 @@
   padding: clamp(1.5rem, 2vw, 2.2rem);
   color: var(--light-main);
   border: 1px solid var(--surface-dark-border);
-  background:
-    linear-gradient(180deg, rgba(10, 10, 10, 0.96), rgba(8, 8, 8, 0.94));
+  background: var(--panel-bg);
   animation: panelEnter 520ms ease-out both;
   min-height: 0;
   height: 100%;
@@ -82,13 +81,11 @@
   gap: 0.85rem;
   padding: 1.15rem 1.2rem;
   border-radius: var(--radius-xl);
-  border: 1px solid rgba(241, 236, 236, 0.08);
+  border: 1px solid var(--control-border-soft);
   overflow: hidden;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02)),
-    linear-gradient(180deg, rgba(10, 10, 10, 0.92), rgba(8, 8, 8, 0.9));
+  background: var(--card-bg);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    inset 0 1px 0 var(--glare-soft),
     var(--shadow-sm);
 }
 
@@ -111,8 +108,8 @@
   min-height: 2rem;
   padding: 0.35rem 0.8rem;
   border-radius: 0;
-  background: rgba(207, 206, 205, 0.12);
-  color: rgba(241, 236, 236, 0.82);
+  background: var(--accent-soft);
+  color: var(--light-main);
   font-size: 0.74rem;
   font-weight: 800;
   letter-spacing: 0.12em;
@@ -209,8 +206,8 @@
   min-height: 1.85rem;
   padding: 0.26rem 0.68rem;
   border-radius: 0;
-  border: 1px solid rgba(241, 236, 236, 0.08);
-  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--control-border-soft);
+  background: var(--control-bg);
   color: var(--light-soft);
   font-size: 0.7rem;
   font-weight: 800;
@@ -235,13 +232,13 @@
 
 .status-live {
   background: var(--accent-olive-soft);
-  color: #F1ECEC;
+  color: var(--light-strong);
   border-color: rgba(75, 70, 70, 0.28);
 }
 
 .status-updating {
   background: var(--accent-sky-soft);
-  color: #F1ECEC;
+  color: var(--light-strong);
   border-color: rgba(101, 99, 99, 0.26);
 }
 
@@ -269,9 +266,8 @@
   padding: 1rem 1.05rem 0.95rem;
   border-radius: var(--radius-lg);
   overflow: hidden;
-  border: 1px solid rgba(241, 236, 236, 0.08);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.022));
+  border: 1px solid var(--control-border-soft);
+  background: var(--panel-bg-soft);
   transition:
     transform var(--transition-fast),
     border-color var(--transition-fast),
@@ -281,8 +277,8 @@
 
 .rate-row:hover {
   transform: translateY(-1px);
-  border-color: rgba(241, 236, 236, 0.14);
-  box-shadow: 0 18px 26px rgba(0, 0, 0, 0.14);
+  border-color: var(--control-border-strong);
+  box-shadow: 0 18px 26px var(--shadow-color);
 }
 
 .rate-row::before {
@@ -293,7 +289,7 @@
   bottom: 0.95rem;
   width: 4px;
   border-radius: 0;
-  background: rgba(241, 236, 236, 0.22);
+  background: var(--control-border-strong);
 }
 
 .rate-row::after {
@@ -302,8 +298,8 @@
   inset: 0;
   pointer-events: none;
   background:
-    radial-gradient(circle at 84% 18%, rgba(255, 255, 255, 0.05), transparent 28%),
-    linear-gradient(135deg, rgba(255, 255, 255, 0.025), transparent 52%);
+    radial-gradient(circle at 84% 18%, var(--glare-soft), transparent 28%),
+    linear-gradient(135deg, var(--glare-faint), transparent 52%);
   opacity: 0.95;
 }
 
@@ -385,8 +381,8 @@
   min-height: 1.65rem;
   padding: 0.16rem 0.55rem;
   border-radius: 0;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(241, 236, 236, 0.08);
+  background: var(--control-bg);
+  border: 1px solid var(--control-border-soft);
   color: var(--light-soft);
   font-size: 0.7rem;
   font-weight: 700;
@@ -415,7 +411,7 @@
 
 .rate-before {
   font-size: 0.78rem;
-  color: rgba(241, 236, 236, 0.46);
+  color: var(--light-soft);
 }
 
 .rate-value-wrap {
@@ -456,8 +452,8 @@
   min-height: 1.75rem;
   padding: 0.2rem 0.62rem;
   border-radius: 0;
-  border: 1px solid rgba(241, 236, 236, 0.08);
-  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--control-border-soft);
+  background: var(--control-bg);
   font-size: 0.72rem;
   font-weight: 800;
   letter-spacing: 0.06em;
