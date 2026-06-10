@@ -164,6 +164,12 @@
   gap: 0;
 }
 
+#vivarium-panel {
+  gap: 0;
+  min-height: 0;
+  background: #030303;
+}
+
 #system-panel {
   gap: 0;
   min-height: 0;

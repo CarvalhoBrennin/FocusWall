@@ -122,6 +122,19 @@
       >
         Sistema
       </button>
+      <!-- Vivarium tab archived — set VIVARIUM_ENABLED in src/lib/features.ts to restore.
+      <button
+        class="panel-tab"
+        class:is-active={$panelTab === 'vivarium'}
+        type="button"
+        role="tab"
+        aria-selected={$panelTab === 'vivarium'}
+        aria-controls="vivarium-panel"
+        onclick={() => setPanelTab('vivarium')}
+      >
+        Vivário
+      </button>
+      -->
     </div>
   </div>
 

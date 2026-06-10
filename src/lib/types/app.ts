@@ -1,6 +1,6 @@
 export type Priority = 'high' | 'medium' | 'low';
 export type RateStatus = 'live' | 'updating' | 'cached' | 'unavailable';
-export type PanelTab = 'execution' | 'opencode' | 'calendar' | 'files';
+export type PanelTab = 'execution' | 'opencode' | 'calendar' | 'files' | 'system' | 'vivarium';
 export type ThemeId = 'dark' | 'light' | 'olive';
 export type LocaleId = 'pt-BR' | 'en-US';
 export type CalendarColor = 'neutral' | 'accent' | 'success' | 'danger';

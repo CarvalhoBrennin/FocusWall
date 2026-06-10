@@ -1,0 +1,11 @@
+# Vivarium (archived)
+
+This feature is **dormant** — UI entry points are disabled via `VIVARIUM_ENABLED` in `src/lib/features.ts`.
+
+Code under `src/lib/components/vivarium/` is kept for later sprite-based work.
+
+## Re-enable
+
+1. Set `VIVARIUM_ENABLED = true` in `src/lib/features.ts`.
+2. Uncomment the Vivarium tab in `TaskHeader.svelte`.
+3. Uncomment the Vivarium panel block in `TaskPanel.svelte`.

@@ -18,6 +18,9 @@
 
   let systemMounted = $state(false);
 
+  // Vivarium archived — see src/lib/features.ts
+  // let vivariumMounted = $state(false);
+
   // let OpenCodePanel = $state(null);
 
   let CalendarPanel = $state(null);
@@ -25,6 +28,8 @@
   let FilesPanel = $state(null);
 
   let SystemPanel = $state(null);
+
+  // let VivariumTab = $state(null);
 
 
 
@@ -86,6 +91,16 @@
       }
 
     }
+
+    // Vivarium archived — set VIVARIUM_ENABLED in src/lib/features.ts to restore.
+    // if ($panelTab === 'vivarium') {
+    //   vivariumMounted = true;
+    //   if (!VivariumTab) {
+    //     import('./vivarium/components/VivariumTab.svelte').then((mod) => {
+    //       VivariumTab = mod.default;
+    //     });
+    //   }
+    // }
 
   });
 
@@ -199,6 +214,23 @@
         </div>
 
       {/if}
+
+      <!-- Vivarium panel archived — see src/lib/features.ts
+      {#if vivariumMounted && VivariumTab}
+        <div
+          id="vivarium-panel"
+          class="panel-view"
+          class:is-active={$panelTab === 'vivarium'}
+          aria-hidden={$panelTab !== 'vivarium'}
+        >
+          <VivariumTab
+            active={$panelTab === 'vivarium'}
+            completedTasksToday={($visibleTasks || []).filter((t) => t.completed).length}
+            totalTasksToday={($visibleTasks || []).length}
+          />
+        </div>
+      {/if}
+      -->
 
     </div>
 
