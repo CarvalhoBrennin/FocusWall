@@ -16,8 +16,10 @@ pub fn visible_window_pids() -> HashSet<u32> {
         if !IsWindowVisible(hwnd).as_bool() {
             return BOOL::from(true);
         }
-        if GetWindow(hwnd, GW_OWNER).0 != 0 {
-            return BOOL::from(true);
+        if let Ok(owner) = GetWindow(hwnd, GW_OWNER) {
+            if !owner.is_invalid() {
+                return BOOL::from(true);
+            }
         }
         let ex_style = GetWindowLongPtrW(hwnd, GWL_EXSTYLE) as u32;
         if ex_style & WS_EX_TOOLWINDOW.0 != 0 {

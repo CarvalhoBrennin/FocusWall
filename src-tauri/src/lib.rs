@@ -444,7 +444,7 @@ fn start_opencode_server(
         port.to_string(),
     ];
     let mut command = opencode_command(&executable, &serve_args);
-    let mut child = command
+    let child = command
         .current_dir(&cwd)
         .env("PATH", enriched_opencode_path())
         .env("OPENCODE_SERVER_USERNAME", "focuswall")
