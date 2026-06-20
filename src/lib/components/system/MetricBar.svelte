@@ -15,7 +15,14 @@
     <span class="metric-bar-label">{label}</span>
     <span class="metric-bar-value">{Math.round(clamped)}%</span>
   </div>
-  <div class="metric-bar-track" role="progressbar" aria-valuenow={clamped} aria-valuemin="0" aria-valuemax="100">
+  <div
+    class="metric-bar-track"
+    role="progressbar"
+    aria-label="{label}"
+    aria-valuenow={clamped}
+    aria-valuemin="0"
+    aria-valuemax="100"
+  >
     <span class="metric-bar-fill" style:width="{clamped}%"></span>
   </div>
   {#if detail}

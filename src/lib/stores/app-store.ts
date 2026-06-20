@@ -112,6 +112,7 @@ export const ratesBaseline = derived(data, ($d) => $d?.ratesBaseline ?? null);
 
 let ratesRequestId = 0;
 let ratesInFlight = false;
+let ratesAbortController: AbortController | null = null;
 let saveDebounceId = null;
 let ratesTickCount = 0;
 
@@ -260,7 +261,14 @@ export function bootstrapApp() {
 
       const $currentDateKey = getLocalDateKey(new Date());
       currentDateKey.set($currentDateKey);
-      viewOffsetDays.set(VIEW.TODAY);
+      const savedBase = loaded.ui?.lastViewedBaseDate ?? '';
+      const savedOffset = loaded.ui?.viewOffsetDays ?? 0;
+      if (savedBase === $currentDateKey && Number.isInteger(savedOffset)) {
+        const min = -(CONFIG.HISTORY_RETENTION_DAYS - 1);
+        viewOffsetDays.set(Math.max(min, Math.min(VIEW.TODAY, savedOffset)));
+      } else {
+        viewOffsetDays.set(VIEW.TODAY);
+      }
       let d = ensureDateBucket(loaded, $currentDateKey);
       d = pruneHistory(d, $currentDateKey);
       data.set(d);
@@ -340,7 +348,9 @@ export async function updateExchangeRates(options: { force?: boolean; silent?: b
   }
 
   ratesInFlight = true;
+  ratesAbortController?.abort();
   const controller = new AbortController();
+  ratesAbortController = controller;
 
   try {
     const fresh = await fetchExchangeRates(controller);
@@ -373,12 +383,17 @@ export async function updateExchangeRates(options: { force?: boolean; silent?: b
       cached ? buildRateMeta(cached.updatedAt, 'Mostrando cache') : 'Cotações indisponíveis no momento.'
     );
   } finally {
+    if (ratesAbortController === controller) {
+      ratesAbortController = null;
+    }
     ratesInFlight = false;
   }
 }
 
 export function abortRatesFetch() {
   ratesRequestId += 1;
+  ratesAbortController?.abort();
+  ratesAbortController = null;
 }
 
 export function onDayChange() {
@@ -592,7 +607,9 @@ export async function clearTodayTasks(onConfirm) {
   const today = getTasksByDate($data, $current);
   if (!today.length) return;
   onConfirm(() => {
-    const nextData = { ...$data, tasksByDate: { ...$data.tasksByDate, [$current]: [] } };
+    const latest = get(data);
+    const current = get(currentDateKey);
+    const nextData = { ...latest, tasksByDate: { ...latest.tasksByDate, [current]: [] } };
     storage.saveState(nextData).then(() => {
       data.set(nextData);
       editingTaskId.set(null);

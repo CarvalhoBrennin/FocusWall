@@ -81,17 +81,17 @@ export function normalizeSystemSnapshot(raw: unknown): SystemSnapshot | null {
       osName: String(hardware.osName ?? '')
     },
     temperature: {
-      cpuCelsius:
-        temperature.cpuCelsius === null || temperature.cpuCelsius === undefined
-          ? null
-          : Number(temperature.cpuCelsius),
-      gpuCelsius:
-        temperature.gpuCelsius === null || temperature.gpuCelsius === undefined
-          ? null
-          : Number(temperature.gpuCelsius)
+      cpuCelsius: parseOptionalCelsius(temperature.cpuCelsius),
+      gpuCelsius: parseOptionalCelsius(temperature.gpuCelsius)
     },
     apps
   };
+}
+
+function parseOptionalCelsius(value: unknown): number | null {
+  if (value === null || value === undefined) return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
 }
 
 export function formatTemp(celsius: number | null | undefined): string {

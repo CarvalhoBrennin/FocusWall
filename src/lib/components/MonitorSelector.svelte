@@ -3,6 +3,8 @@
   import { setPreferredMonitorPreference } from '../stores/app-store.js';
   import { tauriInvoke } from '../utils/tauri.js';
   import { isTauri } from '../utils/tauri.js';
+  import { t } from '../i18n/index.js';
+  import { get } from 'svelte/store';
 
   let monitors = $state([]);
   let currentMonitor = $state(null);
@@ -12,7 +14,7 @@
 
   onMount(async () => {
     if (!isTauri()) {
-      errorMsg = 'API de monitor indisponível no modo navegador.';
+      errorMsg = get(t)('monitor.browserUnavailable');
       loading = false;
       return;
     }
@@ -48,16 +50,16 @@
 
   function getMonitorDisplayName(monitor) {
     const resolution = `${monitor.width ?? '?'}x${monitor.height ?? '?'}`;
-    const type = monitor.isPrimary ? ' (Principal)' : '';
-    return `${monitor.name ?? 'Monitor'} - ${resolution}${type}`;
+    const type = monitor.isPrimary ? get(t)('monitor.primary') : '';
+    return `${monitor.name ?? get(t)('monitor.unknown')} - ${resolution}${type}`;
   }
 </script>
 
 <div class="monitor-selector">
-  <p class="eyebrow monitor-selector-title">Monitor</p>
+  <p class="eyebrow monitor-selector-title">{$t('monitor.title')}</p>
   
   {#if loading}
-    <p class="monitor-loading">Carregando monitores...</p>
+    <p class="monitor-loading">{$t('monitor.loading')}</p>
   {:else if errorMsg}
     <p class="monitor-error">{errorMsg}</p>
   {:else}
@@ -73,7 +75,7 @@
           />
           <span class="monitor-name">{getMonitorDisplayName(monitor)}</span>
           {#if currentMonitor && currentMonitor.index === monitor.index}
-            <span class="monitor-current">Atual</span>
+            <span class="monitor-current">{$t('monitor.current')}</span>
           {/if}
         </label>
       {/each}

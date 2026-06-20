@@ -9,3 +9,7 @@ Code under `src/lib/components/vivarium/` is kept for later sprite-based work.
 1. Set `VIVARIUM_ENABLED = true` in `src/lib/features.ts`.
 2. Uncomment the Vivarium tab in `TaskHeader.svelte`.
 3. Uncomment the Vivarium panel block in `TaskPanel.svelte`.
+
+## OpenCode (separate feature)
+
+OpenCode uses `OPENCODE_TAB_ENABLED` in `src/lib/features.ts`. See `docs/AUDIT-FEATURE-OPENCODE.md`.

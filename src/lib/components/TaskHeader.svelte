@@ -7,10 +7,18 @@
     visibleTasks
   } from '../stores/app-store.js';
   import { panelTab, setPanelTab } from '../stores/ui-store.js';
-  // import { opencodeSessionActive } from '../stores/ui-store.js';
   import { VIEW, CONFIG } from '../config.js';
   import { formatters } from '../config.js';
   import { parseDateKey, parseMonthKey, addDays, normalizeMonthKey } from '../utils/state.js';
+  import { t } from '../i18n/index.js';
+
+  const tabs = [
+    { id: 'execution', labelKey: 'tasks.execution', panelId: 'execution-panel' },
+    { id: 'calendar', labelKey: 'tasks.calendar', panelId: 'calendar-panel' },
+    { id: 'files', labelKey: 'tasks.files', panelId: 'files-panel' },
+    { id: 'system', labelKey: 'tasks.system', panelId: 'system-panel' },
+    { id: 'media', labelKey: 'tasks.media', panelId: 'media-panel' }
+  ];
 
   $: tasks = $visibleTasks || [];
   $: total = tasks.length;
@@ -19,44 +27,65 @@
   $: visibleDate = addDays(parseDateKey($currentDateKey), $viewOffsetDays);
   $: historyLabel =
     $viewOffsetDays === VIEW.TODAY
-      ? 'Hoje'
+      ? $t('tasks.today')
       : $viewOffsetDays === VIEW.YESTERDAY
-        ? 'Ontem'
+        ? $t('tasks.yesterday')
         : formatters.historyDate.format(visibleDate);
   $: executionHeadline =
-    $viewOffsetDays === VIEW.TODAY ? 'Painel de execução' : 'Arquivo de execução';
-  // $: opencodeHeadline = $opencodeSessionActive ? 'OpenCode' : 'Escolher repositório';
-  // $: opencodeKicker = $opencodeSessionActive ? 'Sessão ativa' : 'Workspace';
+    $viewOffsetDays === VIEW.TODAY ? $t('tasks.executionPanel') : $t('tasks.executionArchive');
   $: calendarMonthKey =
     normalizeMonthKey($data.ui?.calendarMonth) || $currentDateKey.slice(0, 7);
   $: calendarKicker = formatters.monthYear.format(parseMonthKey(calendarMonthKey));
-  // opencode: : $panelTab === 'opencode' ? opencodeHeadline :
   $: headline =
     $panelTab === 'calendar'
-      ? 'Calendário'
+      ? $t('tasks.calendar')
       : $panelTab === 'files'
-        ? 'Arquivos'
+        ? $t('tasks.files')
         : $panelTab === 'system'
-          ? 'Sistema'
+          ? $t('tasks.system')
           : $panelTab === 'media'
-            ? 'Mídia'
+            ? $t('tasks.media')
             : executionHeadline;
-  // opencode: : $panelTab === 'opencode' ? opencodeKicker :
   $: kicker =
     $panelTab === 'calendar'
       ? calendarKicker
       : $panelTab === 'files'
-        ? 'Desktop'
+        ? $t('tasks.desktop')
         : $panelTab === 'system'
-          ? 'Desempenho'
+          ? $t('tasks.performance')
           : $panelTab === 'media'
-            ? 'now playing'
+            ? $t('tasks.nowPlaying')
             : historyLabel;
 
   $: historySpanDays =
     $panelTab === 'calendar' ? CONFIG.HISTORY_RETENTION_DAYS : CONFIG.HISTORY_VIEW_DAYS;
   $: canGoPrev = $viewOffsetDays > -(historySpanDays - 1);
   $: canGoNext = $viewOffsetDays < VIEW.TODAY;
+
+  function handleTabKeydown(event, tabId) {
+    const currentIndex = tabs.findIndex((tab) => tab.id === tabId);
+    if (currentIndex < 0) return;
+
+    let nextIndex = currentIndex;
+    if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+      event.preventDefault();
+      nextIndex = (currentIndex + 1) % tabs.length;
+    } else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      nextIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+    } else if (event.key === 'Home') {
+      event.preventDefault();
+      nextIndex = 0;
+    } else if (event.key === 'End') {
+      event.preventDefault();
+      nextIndex = tabs.length - 1;
+    } else {
+      return;
+    }
+
+    setPanelTab(tabs[nextIndex].id);
+    document.getElementById(`${tabs[nextIndex].id}-tab`)?.focus();
+  }
 </script>
 
 <header class="task-header">
@@ -68,101 +97,40 @@
       </div>
     </div>
 
-    <div class="panel-tabs" role="tablist" aria-label="Modo do painel">
-      <button
-        class="panel-tab"
-        class:is-active={$panelTab === 'execution'}
-        type="button"
-        role="tab"
-        aria-selected={$panelTab === 'execution'}
-        aria-controls="execution-panel"
-        onclick={() => setPanelTab('execution')}
-      >
-        Execução
-      </button>
-      <!-- OpenCode tab oculto temporariamente
-      <button
-        class="panel-tab"
-        class:is-active={$panelTab === 'opencode'}
-        type="button"
-        role="tab"
-        aria-selected={$panelTab === 'opencode'}
-        aria-controls="opencode-panel"
-        onclick={() => setPanelTab('opencode')}
-      >
-        OpenCode
-      </button>
-      -->
-      <button
-        class="panel-tab"
-        class:is-active={$panelTab === 'calendar'}
-        type="button"
-        role="tab"
-        aria-selected={$panelTab === 'calendar'}
-        aria-controls="calendar-panel"
-        onclick={() => setPanelTab('calendar')}
-      >
-        Calendário
-      </button>
-      <button
-        class="panel-tab"
-        class:is-active={$panelTab === 'files'}
-        type="button"
-        role="tab"
-        aria-selected={$panelTab === 'files'}
-        aria-controls="files-panel"
-        onclick={() => setPanelTab('files')}
-      >
-        Arquivos
-      </button>
-      <button
-        class="panel-tab"
-        class:is-active={$panelTab === 'system'}
-        type="button"
-        role="tab"
-        aria-selected={$panelTab === 'system'}
-        aria-controls="system-panel"
-        onclick={() => setPanelTab('system')}
-      >
-        Sistema
-      </button>
-      <button
-        class="panel-tab"
-        class:is-active={$panelTab === 'media'}
-        type="button"
-        role="tab"
-        aria-selected={$panelTab === 'media'}
-        aria-controls="media-panel"
-        onclick={() => setPanelTab('media')}
-      >
-        Mídia
-      </button>
-      <!-- Vivarium tab archived — set VIVARIUM_ENABLED in src/lib/features.ts to restore.
-      <button
-        class="panel-tab"
-        class:is-active={$panelTab === 'vivarium'}
-        type="button"
-        role="tab"
-        aria-selected={$panelTab === 'vivarium'}
-        aria-controls="vivarium-panel"
-        onclick={() => setPanelTab('vivarium')}
-      >
-        Vivário
-      </button>
-      -->
+    <div
+      class="panel-tabs"
+      role="tablist"
+      aria-label={$t('tasks.panelMode')}
+    >
+      {#each tabs as tab (tab.id)}
+        <button
+          id="{tab.id}-tab"
+          class="panel-tab"
+          class:is-active={$panelTab === tab.id}
+          type="button"
+          role="tab"
+          aria-selected={$panelTab === tab.id}
+          aria-controls={tab.panelId}
+          tabindex={$panelTab === tab.id ? 0 : -1}
+          onclick={() => setPanelTab(tab.id)}
+          onkeydown={(event) => handleTabKeydown(event, tab.id)}
+        >
+          {$t(tab.labelKey)}
+        </button>
+      {/each}
     </div>
   </div>
 
   <div
     class="history-nav"
     class:is-dormant={$panelTab !== 'execution' && $panelTab !== 'calendar'}
-    aria-label="Histórico rápido"
+    aria-label={$t('tasks.historyNav')}
     aria-hidden={$panelTab !== 'execution' && $panelTab !== 'calendar'}
   >
     <button
       class="nav-button"
       type="button"
-      aria-label="Dia anterior"
+      aria-label={$t('tasks.prevDay')}
       disabled={($panelTab !== 'execution' && $panelTab !== 'calendar') || !canGoPrev}
       tabindex={$panelTab === 'execution' || $panelTab === 'calendar' ? 0 : -1}
       onclick={() =>
@@ -176,7 +144,7 @@
     <button
       class="nav-button"
       type="button"
-      aria-label="Dia seguinte"
+      aria-label={$t('tasks.nextDay')}
       disabled={($panelTab !== 'execution' && $panelTab !== 'calendar') || !canGoNext}
       tabindex={$panelTab === 'execution' || $panelTab === 'calendar' ? 0 : -1}
       onclick={() =>

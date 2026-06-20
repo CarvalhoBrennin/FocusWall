@@ -191,11 +191,13 @@ async function pollOnce(options: MediaSessionPollingOptions) {
     const snapshot = await fetchMediaSnapshot();
     lastSnapshot = snapshot;
     options.onData(snapshot);
-    scheduleNextPoll(options);
   } catch (err) {
     options.onError?.(err instanceof Error ? err.message : String(err));
   } finally {
     pollInFlight = false;
+    if (options.getActive() && !options.getPaused()) {
+      scheduleNextPoll(options);
+    }
   }
 }
 

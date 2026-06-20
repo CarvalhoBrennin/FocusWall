@@ -1,5 +1,6 @@
 <script>
   import { toast, dismissToast, setToastHover } from '../stores/ui-store.js';
+  import { t } from '../i18n/index.js';
 </script>
 
 <div class="toast-container" role="status" aria-live="polite">
@@ -17,13 +18,13 @@
           class="toast-undo"
           onclick={() => $toast.undoCallback?.()}
         >
-          Desfazer
+          {$t('toast.undo')}
         </button>
       {/if}
       <button
         type="button"
         class="toast-close"
-        aria-label="Fechar notificação"
+        aria-label={$t('toast.dismiss')}
         onclick={dismissToast}
       >
         ×

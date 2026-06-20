@@ -3,6 +3,7 @@
   import EmptyState from './EmptyState.svelte';
   import { visibleTasks, lastAddedTaskId, currentDateKey, viewOffsetDays } from '../stores/app-store.js';
   import { CONFIG } from '../config.js';
+  import { t, formatMessage } from '../i18n/index.js';
 
   let currentPage = $state(0);
   const perPage = CONFIG.TASKS_PER_PAGE;
@@ -28,12 +29,12 @@
   }
 </script>
 
-<section class="task-list-wrap" aria-live="polite" aria-label="Área principal de tarefas">
+<section class="task-list-wrap" aria-live="polite" aria-label={$t('tasks.listArea')}>
   <div class="task-list-safe-area">
     <ul
       id="task-list"
       class="task-list"
-      aria-label="Lista de tarefas do dia"
+      aria-label={$t('tasks.listLabel')}
     >
       {#each paginatedTasks as task, i (task.id)}
         {@const globalIndex = page * perPage + i}
@@ -49,20 +50,20 @@
     <nav
       class="task-pagination"
       class:is-hidden={totalPages <= 1}
-      aria-label="Navegação entre páginas"
+      aria-label={$t('tasks.pagination')}
       aria-hidden={totalPages <= 1}
     >
         <div class="pagination-meta">
-          <span class="pagination-kicker">Mostrando</span>
+          <span class="pagination-kicker">{$t('tasks.showing')}</span>
           <span class="pagination-range" aria-live="off">
-            {pageStart}-{pageEnd} de {allTasks.length}
+            {formatMessage($t('tasks.range'), { start: pageStart, end: pageEnd, total: allTasks.length })}
           </span>
         </div>
         <div class="pagination-controls">
           <button
             type="button"
             class="pagination-btn"
-            aria-label="Página anterior"
+            aria-label={$t('tasks.prevPage')}
             disabled={totalPages <= 1 || page <= 0}
             onclick={goPrev}
           >
@@ -74,7 +75,7 @@
           <button
             type="button"
             class="pagination-btn"
-            aria-label="Próxima página"
+            aria-label={$t('tasks.nextPage')}
             disabled={totalPages <= 1 || page >= totalPages - 1}
             onclick={goNext}
           >

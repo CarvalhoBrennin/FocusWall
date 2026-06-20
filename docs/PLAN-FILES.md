@@ -6,10 +6,11 @@ Transformar a aba **Arquivos** em um substituto prático da Área de Trabalho do
 
 ## Estado atual (v1)
 
-- Aba **Arquivos** com navegação na Área de Trabalho
-- Comandos Tauri: `get_desktop_path`, `read_directory`, `open_file`
+- Aba **Arquivos** com navegação na Área de Trabalho e atalhos a pastas conhecidas
+- Comandos Tauri: `get_desktop_path`, `get_well_known_folders`, `read_directory`, `open_file`
 - Breadcrumb, voltar, abrir no Explorer
 - Categorias visuais por tipo de arquivo
+- Persistência de `filesLastPath` no estado local
 
 ## v2 — Atalhos e favoritos
 

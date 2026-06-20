@@ -2,9 +2,10 @@
   import ClockBlock from './ClockBlock.svelte';
   import RatesCard from './RatesCard.svelte';
   import SettingsButton from './SettingsButton.svelte';
+  import { t } from '../i18n/index.js';
 </script>
 
-<aside class="info-rail panel" aria-label="Informações do dia">
+<aside class="info-rail panel" aria-label={$t('infoRail.label')}>
   <ClockBlock />
 
   <RatesCard />

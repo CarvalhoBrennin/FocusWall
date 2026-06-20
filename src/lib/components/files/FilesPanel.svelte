@@ -33,6 +33,7 @@
   /** @type {'name' | 'date' | 'size'} */
   let sortBy = $state('name');
   let showHidden = $state(false);
+  let readDirRequestId = 0;
 
   const displayEntries = $derived(
     sortEntries(filterEntries(rawEntries, searchQuery), sortBy)
@@ -73,18 +74,24 @@
   async function readDir(path) {
     const absolute = ensureAbsolutePath(path);
     if (!absolute) return;
+    const requestId = ++readDirRequestId;
     loading = true;
     errorMsg = null;
     try {
-      rawEntries = await readDirectory(absolute, showHidden);
+      const entries = await readDirectory(absolute, showHidden);
+      if (requestId !== readDirRequestId) return;
+      rawEntries = entries;
       currentPath = absolute;
       rememberFilesPath(absolute);
       recents = loadFilesRecents();
-      await setFilesLastPath(path);
+      await setFilesLastPath(absolute);
     } catch (err) {
+      if (requestId !== readDirRequestId) return;
       reportError(err, 'Não foi possível ler esta pasta.');
     } finally {
-      loading = false;
+      if (requestId === readDirRequestId) {
+        loading = false;
+      }
     }
   }
 

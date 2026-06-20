@@ -1,6 +1,6 @@
 # Focus Dashboard
 
-Dashboard desktop em `Tauri + Svelte` para acompanhar tarefas do dia, relógio local, câmbio BRL, calendário, arquivos e terminal OpenCode — pensado para ficar residente no ambiente do Windows.
+Dashboard desktop em `Tauri + Svelte` para acompanhar tarefas do dia, relógio local, câmbio BRL, calendário, arquivos, métricas do sistema e mídia em reprodução — pensado para ficar residente no ambiente do Windows.
 
 ## Visão geral
 
@@ -12,13 +12,19 @@ O projeto nasceu como um painel pessoal de produtividade e contexto rápido: tar
 - interface em Svelte 5
 - bloco de tarefas do dia com histórico
 - calendário mensal com eventos
-- painel de arquivos locais
-- terminal OpenCode integrado
+- painel de arquivos locais (pastas conhecidas + navegação)
+- aba **Mídia** — now playing via SMTC (Windows), capas e controles
+- aba **Sistema** — CPU, RAM, temperatura e apps com janela visível
 - relógio em tempo real
 - card de câmbio BRL
 - seleção de monitor e autostart com Windows
 - preview web para desenvolvimento
 - bootstrapper opcional para setup automatizado no Windows
+
+### Recursos presentes no código, mas ocultos na UI
+
+- **OpenCode** — cliente visual para `opencode serve`; aba comentada em `TaskHeader.svelte` / `TaskPanel.svelte`. Reativar com `OPENCODE_TAB_ENABLED` em [`src/lib/features.ts`](src/lib/features.ts).
+- **Vivarium** — painel experimental arquivado; desabilitado via `VIVARIUM_ENABLED` em [`src/lib/features.ts`](src/lib/features.ts). Ver [`src/lib/components/vivarium/ARCHIVED.md`](src/lib/components/vivarium/ARCHIVED.md).
 
 ## Stack
 
@@ -63,8 +69,10 @@ npm run tauri:build
 | `npm run build` | Build web |
 | `npm run preview` | Preview do build |
 | `npm run test` | Testes unitários (Vitest) |
+| `npm run typecheck` | Verificação TypeScript |
 | `npm run tauri:dev` | App desktop em modo dev |
-| `npm run tauri:build` | Build nativo do Tauri |
+| `npm run tauri:build` | Build nativo do Tauri (sem instalador) |
+| `npm run tauri:build:installer` | Build nativo + bundle MSI |
 
 ## Requisitos do ambiente desktop
 
@@ -93,6 +101,13 @@ build-bootstrapper.bat
 ## Fonte externa
 
 - AwesomeAPI: `https://economia.awesomeapi.com.br/json/last/USD-BRL,EUR-BRL`
+
+## Documentação adicional
+
+- Métricas do sistema: [`docs/PLAN-METRICS.md`](docs/PLAN-METRICS.md)
+- Mídia / now playing: [`docs/PLAN-MEDIA.md`](docs/PLAN-MEDIA.md)
+- Auto-update (stub): [`docs/UPDATER.md`](docs/UPDATER.md)
+- Deploy: [`docs/DEPLOY.md`](docs/DEPLOY.md)
 
 ## Changelog
 

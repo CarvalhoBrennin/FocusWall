@@ -5,6 +5,8 @@ Auditoria exaustiva de todos os arquivos do projeto com verificação pós-corre
 **Data da auditoria original:** Maio 2026 · **Revisão pós-correção:** Maio 2026  
 **Versão:** 0.1.0 · **npm audit:** 0 vulnerabilidades · **TypeScript:** compila sem erros · **CI:** GitHub Actions passando
 
+> **Nota (Jun/2026):** Foram adicionadas as abas **Mídia** e **Sistema**. A aba **OpenCode** está oculta na UI (`OPENCODE_TAB_ENABLED = false`); **Vivarium** permanece desabilitado (`VIVARIUM_ENABLED = false`). Estado atual: [`README.md`](../README.md), [`src/lib/features.ts`](../src/lib/features.ts).
+
 ---
 
 ## Legenda
@@ -71,7 +73,7 @@ Auditoria exaustiva de todos os arquivos do projeto com verificação pós-corre
 | # | Status | Arquivo | Problema | Correção aplicada |
 |---|--------|---------|----------|-------------------|
 | 29 | ✅ | `state.test.ts` + CI | Zero testes | 3 testes Vitest (normalizeState, normalizeTaskText, getLocalDateKey). CI roda `npm test` em push/PR. |
-| 30 | ✅ | `updater.ts + UpdateSettings.svelte` | Sem auto-updater | `tauri-plugin-updater` integrado. `checkForUpdates()` + `installUpdate()` com download, install e relaunch. UI em UpdateSettings.svelte. Docs em `docs/UPDATER.md`. |
+| 30 | ⚠️ | `updater.ts + UpdateSettings.svelte` | Sem auto-updater | Stub frontend com `@tauri-apps/plugin-updater` (`UPDATER_ENABLED = false`). Plugin Rust e chaves de assinatura ainda não configurados — ver `docs/UPDATER.md`. |
 | 31 | ✅ | `Cargo.toml` | Sem profile.release | `[profile.release]` com `lto = true`, `strip = true`, `codegen-units = 1`, `opt-level = "s"`. |
 | 32 | ✅ | `src/lib/utils/tauri.ts` | window.__TAURI__ duplicado | Utilitário único `src/lib/utils/tauri.ts` exportando `tauriInvoke`, `isTauri()`. Usado por todos os 6 arquivos. |
 | 33 | ✅ | `opencode.ts + OpenCodeChat.svelte` | OpenCode dependia de PTY/TUI embutida | Fluxo principal substituído por cliente visual para `opencode serve`, com proxy Tauri HTTP e polling. Dependências xterm/tauri-pty removidas. |
@@ -131,7 +133,7 @@ Auditoria exaustiva de todos os arquivos do projeto com verificação pós-corre
 | 58 | ✅ | `.gitignore` | Incompleto | `.env`, `.env.*`, `.vscode/`, `.idea/`, `*.log`, `*.pdb` adicionados. |
 | 59 | ✅ | `.github/workflows/ci.yml` | Sem CI/CD | 2 jobs: `web` (typecheck + test + build em ubuntu) e `rust-check` (cargo check em windows). |
 | 60 | ✅ | `docs/DEPLOY.md` | NSIS desatualizado | Atualizado para referenciar WiX/MSI: `bundle/msi/`. |
-| 61 | ✅ | `README.md` | Desatualizado | Menciona calendário, arquivos, OpenCode, multi-monitor, autostart. Stack atualizada. |
+| 61 | ⚠️ | `README.md` | Desatualizado | Atualizado em Jun/2026: Mídia, Sistema, flags OpenCode/Vivarium. Ver nota no topo deste documento. |
 | 62 | ✅ | `CHANGELOG.md` | Sem changelog | Criado no formato Keep a Changelog. v0.1.0 documentado. |
 | 63 | ✅ | `responsive.css:337-363` | prefers-reduced-motion | Universal `* { animation: none !important }` + regras explícitas para `.task-item.is-new`, `.toast`, `.modal-overlay`. |
 | 64 | ✅ | CSS | .sr-only inconsistente | Classes de acessibilidade consolidadas no CSS modular. |

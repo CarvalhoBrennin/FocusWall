@@ -47,9 +47,18 @@ function validatePayload(payload) {
   return { usd, eur, usdObj, eurObj };
 }
 
-async function fetchOnce(controller) {
-  const ctrl = controller ?? new AbortController();
+async function fetchOnce(abortSignal) {
+  const ctrl = new AbortController();
   const timeoutId = setTimeout(() => ctrl.abort(), CONFIG.RATE_REQUEST_TIMEOUT_MS);
+
+  const abortFromOuter = () => ctrl.abort();
+  if (abortSignal) {
+    if (abortSignal.aborted) {
+      ctrl.abort();
+    } else {
+      abortSignal.addEventListener('abort', abortFromOuter, { once: true });
+    }
+  }
 
   try {
     const response = await fetch(CONFIG.EXCHANGE_API_URL, {
@@ -81,17 +90,21 @@ async function fetchOnce(controller) {
     };
   } finally {
     clearTimeout(timeoutId);
+    abortSignal?.removeEventListener('abort', abortFromOuter);
   }
 }
 
 export async function fetchExchangeRates(controller) {
   let lastError = null;
+  const abortSignal = controller?.signal;
 
   for (let attempt = 0; attempt < CONFIG.EXCHANGE_MAX_RETRIES; attempt += 1) {
+    if (abortSignal?.aborted) break;
     try {
-      return await fetchOnce(controller);
+      return await fetchOnce(abortSignal);
     } catch (err) {
       lastError = err;
+      if (abortSignal?.aborted) break;
       if (attempt < CONFIG.EXCHANGE_MAX_RETRIES - 1) {
         await sleep(CONFIG.EXCHANGE_RETRY_BASE_MS * (attempt + 1));
       }

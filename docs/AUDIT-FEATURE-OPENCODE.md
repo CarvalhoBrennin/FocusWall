@@ -1,5 +1,7 @@
 # Auditoria da Feature OpenCode — Terceira Rodada (Deep Audit)
 
+> **Status da UI (Jun/2026):** A aba OpenCode está comentada/oculta em `TaskHeader.svelte` e `TaskPanel.svelte`. Backend, comandos Tauri e componentes permanecem no repositório. Reativar com `OPENCODE_TAB_ENABLED = true` em `src/lib/features.ts`.
+
 > **Data**: 2026-05-24 | **Versao**: 0.1.0 | **Severidade global**: CRITICA — 4 bugs criticos de race condition e validacao
 
 ---

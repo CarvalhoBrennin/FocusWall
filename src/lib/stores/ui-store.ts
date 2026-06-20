@@ -1,6 +1,6 @@
 import { writable } from 'svelte/store';
 import { CONFIG } from '../config.js';
-import { VIVARIUM_ENABLED } from '../features.js';
+import { OPENCODE_TAB_ENABLED, VIVARIUM_ENABLED } from '../features.js';
 
 export const toast = writable(null);
 export const modal = writable(null);
@@ -10,13 +10,17 @@ export const opencodeSessionActive = writable(false);
 
 /** @param {'execution' | 'opencode' | 'calendar' | 'files' | 'system' | 'media' | 'vivarium'} tab */
 export function setPanelTab(tab) {
+  if (tab === 'opencode' && !OPENCODE_TAB_ENABLED) {
+    panelTab.set('execution');
+    return;
+  }
   if (tab === 'vivarium' && !VIVARIUM_ENABLED) {
     panelTab.set('execution');
     return;
   }
   if (
     tab === 'execution' ||
-    tab === 'opencode' ||
+    (tab === 'opencode' && OPENCODE_TAB_ENABLED) ||
     tab === 'calendar' ||
     tab === 'files' ||
     tab === 'system' ||

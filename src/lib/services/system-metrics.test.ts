@@ -42,6 +42,17 @@ describe('normalizeSystemSnapshot', () => {
     expect(normalizeSystemSnapshot(null)).toBeNull();
     expect(normalizeSystemSnapshot({})).toBeNull();
   });
+
+  it('rejects non-finite temperature values', () => {
+    const snap = normalizeSystemSnapshot({
+      metrics: { cpuPercent: 0, memoryUsedMb: 0, memoryTotalMb: 0, memoryPercent: 0 },
+      hardware: { cpuName: 'CPU', totalMemoryMb: 0, osName: 'Windows' },
+      temperature: { cpuCelsius: Number.NaN, gpuCelsius: 'hot' },
+      apps: []
+    });
+    expect(snap?.temperature.cpuCelsius).toBeNull();
+    expect(snap?.temperature.gpuCelsius).toBeNull();
+  });
 });
 
 describe('formatters', () => {

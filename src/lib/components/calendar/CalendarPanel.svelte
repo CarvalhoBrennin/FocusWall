@@ -62,6 +62,7 @@
 
     function handleKeydown(e) {
       if (e.target?.matches?.('input, textarea, select')) return;
+      if (e.target?.closest?.('.calendar-grid')) return;
       if (e.key === 'ArrowLeft' && !e.altKey) {
         e.preventDefault();
         navigateMonth(-1);
@@ -121,6 +122,7 @@
     <button
       class="calendar-today-button ghost-button"
       type="button"
+      aria-label="Ir para hoje"
       onclick={goToToday}
     >
       Hoje

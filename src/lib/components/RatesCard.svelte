@@ -1,4 +1,5 @@
 <script>
+  import { get } from 'svelte/store';
   import {
     ratesCache,
     ratesStatus,
@@ -8,6 +9,7 @@
   } from '../stores/app-store.js';
   import { formatters, RATE_STATUS, CONFIG } from '../config.js';
   import { getBrazilDateKey } from '../utils/state.js';
+  import { t, formatMessage } from '../i18n/index.js';
 
   let pctFmt;
   try {
@@ -28,12 +30,12 @@
 
   $: statusText =
     $ratesStatus === RATE_STATUS.LIVE
-      ? 'ao vivo'
+      ? $t('rates.status.live')
       : $ratesStatus === RATE_STATUS.CACHED
-        ? 'em cache'
+        ? $t('rates.status.cached')
         : $ratesStatus === RATE_STATUS.UNAVAILABLE
-          ? 'indisponível'
-          : 'atualizando';
+          ? $t('rates.status.unavailable')
+          : $t('rates.status.updating');
 
   $: statusClass =
     $ratesStatus === RATE_STATUS.LIVE
@@ -60,7 +62,7 @@
       return {
         delta: rc.usdVarBid,
         pct: rc.usdPctChange,
-        suffix: 'no dia',
+        suffix: 'rates.inDay',
         source: 'api'
       };
     }
@@ -70,7 +72,7 @@
       return {
         delta: d,
         pct: p,
-        suffix: 'desde abertura',
+        suffix: 'rates.sinceOpen',
         source: 'baseline',
         beforeVal: bl.usd
       };
@@ -83,7 +85,7 @@
       return {
         delta: usdRefreshDelta,
         pct: p,
-        suffix: 'desde última atualização',
+        suffix: 'rates.sinceRefresh',
         source: 'refresh',
         beforeVal: $prevRates.usd
       };
@@ -97,7 +99,7 @@
       return {
         delta: rc.eurVarBid,
         pct: rc.eurPctChange,
-        suffix: 'no dia',
+        suffix: 'rates.inDay',
         source: 'api'
       };
     }
@@ -107,7 +109,7 @@
       return {
         delta: d,
         pct: p,
-        suffix: 'desde abertura',
+        suffix: 'rates.sinceOpen',
         source: 'baseline',
         beforeVal: bl.eur
       };
@@ -120,7 +122,7 @@
       return {
         delta: eurRefreshDelta,
         pct: p,
-        suffix: 'desde última atualização',
+        suffix: 'rates.sinceRefresh',
         source: 'refresh',
         beforeVal: $prevRates.eur
       };
@@ -133,11 +135,11 @@
   $: eurGold =
     rc?.eur != null && rc.eur < CONFIG.RATE_GOLD_EUR_BELOW;
 
-  function primaryLabel(p) {
+  function primaryLabel(p, translate = get(t)) {
     if (!p) return '--';
     const eps = 0.0001;
     if (Math.abs(p.delta ?? 0) < eps && (p.pct == null || Math.abs(p.pct) < 0.001)) {
-      return 'estável · ' + p.suffix;
+      return translate('rates.stable') + ' · ' + translate(p.suffix);
     }
     const money =
       p.delta != null && Number.isFinite(p.delta)
@@ -146,7 +148,7 @@
     const pctStr =
       p.pct != null && Number.isFinite(p.pct) ? pctFmt.format(p.pct) + '%' : '';
     const parts = [money, pctStr].filter(Boolean);
-    return (parts.length ? parts.join(' · ') : '--') + ' · ' + p.suffix;
+    return (parts.length ? parts.join(' · ') : '--') + ' · ' + translate(p.suffix);
   }
 
   function isUp(p) {
@@ -164,11 +166,16 @@
     return !isUp(p) && !isDown(p);
   }
 
-  function movementLabel(p) {
-    if (isUp(p)) return 'Subindo';
-    if (isDown(p)) return 'Caindo';
-    return 'Estável';
+  function movementLabel(p, translate = get(t)) {
+    if (isUp(p)) return translate('rates.movement.up');
+    if (isDown(p)) return translate('rates.movement.down');
+    return translate('rates.movement.flat');
   }
+
+  $: usdDeltaText = primaryLabel(usdPrimary, $t);
+  $: eurDeltaText = primaryLabel(eurPrimary, $t);
+  $: usdMovementText = movementLabel(usdPrimary, $t);
+  $: eurMovementText = movementLabel(eurPrimary, $t);
 
   function movementClass(p) {
     return isUp(p) ? 'is-up' : isDown(p) ? 'is-down' : 'is-flat';
@@ -213,16 +220,16 @@
 <section class="rates-card" aria-labelledby="rates-title">
   <div class="section-heading section-heading--rates">
     <div class="rates-heading">
-      <p class="eyebrow">Câmbio</p>
-      <h3 id="rates-title" class="section-title section-title--rates">Câmbio BRL</h3>
-      <p class="rates-subtitle">USD-BRL e EUR-BRL.</p>
+      <p class="eyebrow">{$t('rates.exchange')}</p>
+      <h3 id="rates-title" class="section-title section-title--rates">{$t('rates.title')}</h3>
+      <p class="rates-subtitle">{$t('rates.subtitle')}</p>
     </div>
     <div class="rates-status">
       <span class={`status-pill ${statusClass}`} aria-live="polite">{statusText}</span>
     </div>
   </div>
 
-  <div class="rate-list" role="list" aria-label="Cotações do dia">
+  <div class="rate-list" role="list" aria-label={$t('rates.listLabel')}>
     <div
       class="rate-row"
       class:rate-row--gold={usdGold}
@@ -243,11 +250,11 @@
             class:rate-down={isDown(usdPrimary)}
             class:rate-flat={isFlat(usdPrimary)}
           >
-            {primaryLabel(usdPrimary)}
+            {usdDeltaText}
           </span>
           {#if usdPrimary?.beforeVal != null && usdPrimary?.delta != null && Math.abs(usdPrimary.delta) > 0.0001}
-            <span class="rate-before" aria-label="Cotação anterior em reais">
-              Antes: R$ {formatters.rateNumber.format(usdPrimary.beforeVal)}
+            <span class="rate-before" aria-label={$t('rates.previousQuote')}>
+              {formatMessage($t('rates.before'), { value: formatters.rateNumber.format(usdPrimary.beforeVal) })}
             </span>
           {/if}
         </div>
@@ -258,7 +265,7 @@
               {rc?.usd != null ? formatters.rateNumber.format(rc.usd) : '--'}
             </span>
           </strong>
-          <span class={`rate-pulse ${movementClass(usdPrimary)}`}>{movementLabel(usdPrimary)}</span>
+          <span class={`rate-pulse ${movementClass(usdPrimary)}`}>{usdMovementText}</span>
         </div>
       </div>
       <div class="rate-sparkline" aria-hidden="true">
@@ -291,11 +298,11 @@
             class:rate-down={isDown(eurPrimary)}
             class:rate-flat={isFlat(eurPrimary)}
           >
-            {primaryLabel(eurPrimary)}
+            {eurDeltaText}
           </span>
           {#if eurPrimary?.beforeVal != null && eurPrimary?.delta != null && Math.abs(eurPrimary.delta) > 0.0001}
-            <span class="rate-before" aria-label="Cotação anterior em reais">
-              Antes: R$ {formatters.rateNumber.format(eurPrimary.beforeVal)}
+            <span class="rate-before" aria-label={$t('rates.previousQuote')}>
+              {formatMessage($t('rates.before'), { value: formatters.rateNumber.format(eurPrimary.beforeVal) })}
             </span>
           {/if}
         </div>
@@ -306,7 +313,7 @@
               {rc?.eur != null ? formatters.rateNumber.format(rc.eur) : '--'}
             </span>
           </strong>
-          <span class={`rate-pulse ${movementClass(eurPrimary)}`}>{movementLabel(eurPrimary)}</span>
+          <span class={`rate-pulse ${movementClass(eurPrimary)}`}>{eurMovementText}</span>
         </div>
       </div>
       <div class="rate-sparkline" aria-hidden="true">

@@ -1,4 +1,4 @@
-import { writable, get } from 'svelte/store';
+import { writable } from 'svelte/store';
 import type { ThemeId } from '../types/app.js';
 
 export const theme = writable<ThemeId>('dark');
@@ -27,8 +27,4 @@ export function applyTheme(next: ThemeId) {
   if (meta) {
     meta.content = resolved === 'light' ? 'light dark' : 'dark light';
   }
-}
-
-export function initThemeFromState(saved?: ThemeId) {
-  applyTheme(saved ?? get(theme));
 }

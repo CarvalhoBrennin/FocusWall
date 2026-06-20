@@ -1,10 +1,24 @@
 <script lang="ts">
   import { t } from '../i18n/index.js';
+  import { trapFocus } from '../utils/focus-trap.js';
 
   let { onClose = () => {} } = $props();
+
+  let overlayEl = $state<HTMLElement | null>(null);
+  let closeButtonEl = $state<HTMLButtonElement | null>(null);
+
+  $effect(() => {
+    if (!overlayEl) return;
+    return trapFocus(overlayEl, {
+      initialFocus: closeButtonEl,
+      onEscape: onClose
+    });
+  });
 </script>
 
+<!-- svelte-ignore a11y_no_noninteractive_tabindex a11y_click_events_have_key_events -->
 <div
+  bind:this={overlayEl}
   class="shortcuts-overlay"
   role="dialog"
   aria-modal="true"
@@ -17,19 +31,21 @@
     <div class="shortcuts-header">
       <h2 id="shortcuts-title">{$t('shortcuts.title')}</h2>
       <button
+        bind:this={closeButtonEl}
         type="button"
         class="shortcuts-close"
         aria-label={$t('settings.close')}
         onclick={onClose}
-      >x</button>
+      >×</button>
     </div>
     <table class="shortcuts-table">
       <tbody>
         <tr><td><kbd>Enter</kbd></td><td>{$t('shortcuts.addTask')}</td></tr>
         <tr><td><kbd>Ctrl</kbd> + <kbd>Enter</kbd></td><td>{$t('shortcuts.focusComposer')}</td></tr>
         <tr><td><kbd>Alt</kbd> + <kbd>←</kbd> / <kbd>→</kbd></td><td>{$t('shortcuts.navigateDays')}</td></tr>
-        <tr><td><kbd>←</kbd> / <kbd>→</kbd> (calendario)</td><td>{$t('shortcuts.navigateMonths')}</td></tr>
-        <tr><td><kbd>Escape</kbd></td><td>Fechar modais</td></tr>
+        <tr><td>{$t('shortcuts.calendarNav')}</td><td>{$t('shortcuts.navigateMonths')}</td></tr>
+        <tr><td><kbd>?</kbd></td><td>{$t('shortcuts.showHelp')}</td></tr>
+        <tr><td><kbd>Escape</kbd></td><td>{$t('shortcuts.closeModals')}</td></tr>
       </tbody>
     </table>
     <div class="shortcuts-footer">

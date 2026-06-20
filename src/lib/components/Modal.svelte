@@ -3,6 +3,7 @@
   import { get } from 'svelte/store';
   import { modal } from '../stores/ui-store.js';
   import { trapFocus } from '../utils/focus-trap.js';
+  import { t } from '../i18n/index.js';
 
   let overlayEl = $state(null);
   let confirmButtonEl = $state(null);
@@ -52,9 +53,9 @@
         <button
           type="button"
           class="ghost-button modal-cancel"
-          onclick={() => $modal.onCancel?.()}
+          onclick={closeModal}
         >
-          Cancelar
+          {$t('modal.cancel')}
         </button>
         <button
           bind:this={confirmButtonEl}

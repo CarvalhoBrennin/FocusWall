@@ -233,6 +233,10 @@ fn friendly_app_title(exe: &str, process_name: &str) -> String {
 fn seed_active_exe_keys(sys: &System, visible: &HashSet<u32>) -> HashSet<String> {
     let mut keys = HashSet::new();
 
+    if visible.is_empty() {
+        return keys;
+    }
+
     for (pid, process) in sys.processes() {
         let name = process.name().to_string_lossy();
         if process_denied(&name) || is_system_path(process) {
@@ -248,9 +252,7 @@ fn seed_active_exe_keys(sys: &System, visible: &HashSet<u32>) -> HashSet<String>
         let has_window = visible.contains(&pid_u32);
         let user_background = process.memory() >= MIN_BACKGROUND_SEED_BYTES;
 
-        if visible.is_empty() {
-            keys.insert(key);
-        } else if has_window || user_background {
+        if has_window || user_background {
             keys.insert(key);
         }
     }
@@ -349,6 +351,7 @@ fn collect_apps(sys: &mut System, top_apps: u32) -> Vec<AppProcessRow> {
 
 pub fn build_system_snapshot(top_apps: Option<u32>) -> Result<SystemSnapshot, String> {
     let limit = top_apps.unwrap_or(DEFAULT_TOP_APPS).clamp(1, 50);
+    let temperature = read_temperatures_cached();
 
     let mut sys = SYS
         .lock()
@@ -358,7 +361,6 @@ pub fn build_system_snapshot(top_apps: Option<u32>) -> Result<SystemSnapshot, St
     let hardware = read_hardware(&sys);
     let metrics = collect_metrics(&mut sys);
     let apps = collect_apps(&mut sys, limit);
-    let temperature = read_temperatures_cached();
 
     Ok(SystemSnapshot {
         metrics,

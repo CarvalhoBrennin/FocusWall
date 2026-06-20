@@ -184,11 +184,6 @@ impl DashboardState {
                             Some(self.ui.last_viewed_base_date[..7].to_string());
                     }
                 }
-                2 | 3 | 4 => {
-                    if self.ui.preferred_monitor.is_none() {
-                        self.ui.preferred_monitor = None;
-                    }
-                }
                 _ => {}
             }
             self.version += 1;
@@ -413,7 +408,7 @@ fn start_opencode_server(
         stop_opencode_server_locked(&mut guard);
     }
 
-    let port = reserve_local_port()?;
+    let (port, port_guard) = reserve_local_port()?;
     let base_url = format!("http://127.0.0.1:{}", port);
     let password = generate_opencode_password()?;
     let executable = find_opencode_executable()?;
@@ -434,6 +429,8 @@ fn start_opencode_server(
         .stderr(Stdio::piped())
         .spawn()
         .map_err(|error| format!("Falha ao iniciar servidor OpenCode: {}", error))?;
+    // Libera a porta reservada logo após o spawn para o processo filho fazer bind.
+    drop(port_guard);
 
     let mut version = String::new();
     let mut ready = false;
@@ -526,12 +523,12 @@ fn create_opencode_session(
     title: Option<String>,
     state: tauri::State<'_, RuntimeState>,
 ) -> Result<Value, String> {
-    let _directory = validate_project_directory(path)?;
+    let directory = validate_project_directory(path)?;
     let body = match title.filter(|value| !value.trim().is_empty()) {
         Some(title) => json!({ "title": title }),
         None => json!({}),
     };
-    opencode_post_json_once(state, "/session", &[], &body)
+    opencode_post_json_once(state, "/session", &[("directory", directory)], &body)
 }
 
 #[tauri::command(async)]
@@ -614,15 +611,16 @@ fn get_opencode_file_status(
     opencode_get(state, "/file/status", &[("directory", directory)])
 }
 
-fn reserve_local_port() -> Result<u16, String> {
+fn reserve_local_port() -> Result<(u16, TcpListener), String> {
     let mut last_err = String::new();
     for _ in 0..5 {
         match TcpListener::bind("127.0.0.1:0") {
             Ok(listener) => {
-                return listener
+                let port = listener
                     .local_addr()
                     .map(|addr| addr.port())
-                    .map_err(|e| e.to_string());
+                    .map_err(|e| e.to_string())?;
+                return Ok((port, listener));
             }
             Err(err) => {
                 last_err = err.to_string();
@@ -1150,7 +1148,10 @@ fn load_state(app: AppHandle) -> Result<DashboardState, String> {
 }
 
 #[tauri::command]
-fn save_state(app: AppHandle, state: DashboardState) -> Result<(), String> {
+fn save_state(app: AppHandle, mut state: DashboardState) -> Result<(), String> {
+    if state.version > STATE_VERSION {
+        state.version = STATE_VERSION;
+    }
     write_state_file(&state_file_path(&app)?, &state)
 }
 
@@ -1354,14 +1355,6 @@ fn write_state_file(path: &Path, state: &DashboardState) -> Result<(), String> {
         error.to_string()
     })?;
 
-    if path.exists() {
-        fs::remove_file(path).map_err(|error| {
-            error!("Failed to remove old state file: {}", error);
-            let _ = fs::remove_file(&temp_path);
-            error.to_string()
-        })?;
-    }
-
     fs::rename(&temp_path, path).map_err(|error| {
         error!("Failed to rename state file atomically: {}", error);
         let _ = fs::remove_file(&temp_path);
@@ -1428,11 +1421,15 @@ fn validate_file_path(path: &str) -> Result<PathBuf, String> {
         candidate = cwd.join(candidate);
     }
 
-    if !candidate.exists() {
+    let canonical = std::fs::canonicalize(&candidate).map_err(|e| {
+        format!("Nao foi possivel resolver o caminho \"{}\": {}", path.trim(), e)
+    })?;
+
+    if !canonical.exists() {
         return Err(format!("{} nao existe.", path.trim()));
     }
 
-    Ok(candidate)
+    Ok(canonical)
 }
 
 #[tauri::command]

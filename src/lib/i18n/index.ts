@@ -1,8 +1,8 @@
 import { writable, derived, get } from 'svelte/store';
 import type { LocaleId } from '../types/app.js';
-import { translate, LOCALE_OPTIONS, type MessageKey } from './messages.js';
+import { translate, formatMessage, LOCALE_OPTIONS, type MessageKey } from './messages.js';
 
-export { LOCALE_OPTIONS };
+export { LOCALE_OPTIONS, formatMessage };
 export type { MessageKey };
 
 export const locale = writable<LocaleId>('pt-BR');

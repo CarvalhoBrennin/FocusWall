@@ -18,6 +18,7 @@
   import {
     mediaTrackKey,
     resetAlbumPalette,
+    cancelAlbumPaletteSchedule,
     scheduleAlbumPalette
   } from '../../utils/album-palette.js';
   import {
@@ -145,6 +146,7 @@
     window.clearTimeout(coverDebounceTimer);
     window.clearTimeout(settleTimeoutId);
     window.clearTimeout(settleMinTimeoutId);
+    cancelAlbumPaletteSchedule();
     window.removeEventListener('keydown', handleKeydown);
     resetAlbumPalette(sceneEl);
     clearCoverArtCache();
@@ -217,9 +219,13 @@
   $effect(() => {
     if (!snapshot?.available || !snapshot.isPlaying || !active || get(paused)) {
       cancelAnimationFrame(tickRaf);
+      tickRaf = 0;
       if (snapshot) displayPositionMs = snapshot.positionMs;
       return;
     }
+
+    snapshot.positionMs;
+    syncedAt;
 
     const loop = () => {
       displayPositionMs = interpolateMediaPosition(snapshot, syncedAt);
@@ -243,6 +249,7 @@
 
   $effect(() => {
     if (!snapshot?.available) {
+      window.clearTimeout(coverDebounceTimer);
       displayCoverSrc = null;
       displayCoverWidth = 0;
       displayCoverHeight = 0;
@@ -314,6 +321,10 @@
           tryReveal();
         });
     }, 300);
+
+    return () => {
+      window.clearTimeout(coverDebounceTimer);
+    };
   });
 
   $effect(() => {

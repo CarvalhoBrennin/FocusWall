@@ -9,8 +9,8 @@
     deleteTask
   } from '../stores/app-store.js';
   import { showToast } from '../stores/ui-store.js';
-  import { getPriorityLabel } from '../utils/state.js';
-  import { CONFIG } from '../config.js';
+  import { CONFIG, PRIORITY } from '../config.js';
+  import { t } from '../i18n/index.js';
   import TaskIcons from './icons/TaskIcons.svelte';
 
   export let task;
@@ -56,7 +56,7 @@
 
   function handleDelete() {
     deleteTask(task.id, (undo) => {
-      showToast('Tarefa excluída', undo);
+      showToast(get(t)('tasks.deleted'), undo);
     });
   }
 </script>
@@ -73,7 +73,7 @@
     type="button"
     class="task-toggle"
     aria-pressed={task.completed}
-    aria-label={task.completed ? 'Marcar como pendente' : 'Marcar como concluída'}
+    aria-label={task.completed ? $t('tasks.markPending') : $t('tasks.markComplete')}
     data-action="toggle"
     data-task-id={task.id}
     onclick={() => toggleTask(task.id)}
@@ -85,7 +85,7 @@
         class="task-edit-input"
         type="text"
         maxlength={CONFIG.MAX_TASK_LENGTH}
-        aria-label="Editar tarefa"
+        aria-label={$t('tasks.edit')}
         data-task-id={task.id}
         bind:value={editValue}
         onkeydown={handleKeydown}
@@ -108,20 +108,20 @@
         class:priority-high={task.priority === 'high'}
         class:priority-medium={task.priority === 'medium'}
         class:priority-low={task.priority === 'low'}
-        aria-label="Alterar prioridade"
+        aria-label={$t('tasks.changePriority')}
         data-action="priority"
         data-task-id={task.id}
         onclick={() => cycleTaskPriority(task.id)}
       >
-        {getPriorityLabel(task.priority)}
+        {task.priority === PRIORITY.HIGH ? $t('priority.high') : task.priority === PRIORITY.LOW ? $t('priority.low') : $t('priority.medium')}
       </button>
 
       {#if task.pinned}
-        <span class="task-pill task-pill--ghost">Fixada</span>
+        <span class="task-pill task-pill--ghost">{$t('tasks.pinned')}</span>
       {/if}
 
       <span class="task-state" class:is-complete={task.completed}>
-        {task.completed ? 'Concluída' : 'Em aberto'}
+        {task.completed ? $t('tasks.completed') : $t('tasks.open')}
       </span>
     </div>
   </div>
@@ -130,7 +130,7 @@
     <button
       type="button"
       class="task-action move"
-      aria-label="Subir tarefa"
+      aria-label={$t('tasks.moveUp')}
       disabled={!canMoveUp}
       data-action="move-up"
       data-task-id={task.id}
@@ -141,7 +141,7 @@
     <button
       type="button"
       class="task-action move"
-      aria-label="Descer tarefa"
+      aria-label={$t('tasks.moveDown')}
       disabled={!canMoveDown}
       data-action="move-down"
       data-task-id={task.id}
@@ -152,7 +152,7 @@
     <button
       type="button"
       class="task-action delete"
-      aria-label="Excluir tarefa"
+      aria-label={$t('tasks.delete')}
       data-action="delete"
       data-task-id={task.id}
       onclick={handleDelete}

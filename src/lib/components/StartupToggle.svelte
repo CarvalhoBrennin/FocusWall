@@ -8,7 +8,7 @@
 
   $effect(() => {
     if (storage.mode !== 'tauri') {
-      errorMsg = 'API de autostart indisponível no modo navegador.';
+      errorMsg = $t('startup.browserUnavailable');
       return;
     }
     loading = false;
@@ -28,7 +28,7 @@
   <p class="eyebrow startup-toggle-title">{$t('startup.title')}</p>
 
   {#if loading}
-    <p class="startup-status">Carregando...</p>
+    <p class="startup-status">{$t('startup.loading')}</p>
   {:else if errorMsg}
     <p class="startup-error">{errorMsg}</p>
   {:else}

@@ -112,11 +112,6 @@ function bucketKey(r: number, g: number, b: number): string {
   return `${br},${bg},${bb}`;
 }
 
-function parseBucket(key: string): [number, number, number] {
-  const [r, g, b] = key.split(',').map(Number);
-  return [r, g, b];
-}
-
 function hueDistance(a: number, b: number): number {
   const diff = Math.abs(a - b) % 360;
   return diff > 180 ? 360 - diff : diff;
@@ -296,15 +291,20 @@ export function resetAlbumPalette(element: HTMLElement | null): void {
 let paletteTimer: ReturnType<typeof setTimeout> | null = null;
 let paletteRequestId = 0;
 
+export function cancelAlbumPaletteSchedule(): void {
+  if (paletteTimer) {
+    clearTimeout(paletteTimer);
+    paletteTimer = null;
+  }
+  paletteRequestId += 1;
+}
+
 export function scheduleAlbumPalette(
   element: HTMLElement | null,
   coverSrc: string | null,
   onPalette?: (palette: AlbumPalette) => void
 ): void {
-  if (paletteTimer) {
-    clearTimeout(paletteTimer);
-    paletteTimer = null;
-  }
+  cancelAlbumPaletteSchedule();
 
   if (!element || !coverSrc) {
     resetAlbumPalette(element);

@@ -77,7 +77,7 @@ export function rememberFilesPath(path: string) {
 
 export function toggleFilesFavorite(path: string): string[] {
   if (!path?.trim()) return loadFilesFavorites();
-  const trimmed = path.trim();
+  const trimmed = ensureAbsolutePath(path) || path.trim();
   const current = loadFilesFavorites();
   const next = current.includes(trimmed)
     ? current.filter((item) => item !== trimmed)
@@ -87,7 +87,8 @@ export function toggleFilesFavorite(path: string): string[] {
 }
 
 export function isFilesFavorite(path: string, favorites = loadFilesFavorites()) {
-  return favorites.includes(path);
+  const trimmed = ensureAbsolutePath(path) || path.trim();
+  return favorites.includes(trimmed);
 }
 
 export async function getWellKnownFolders(): Promise<WellKnownFolder[]> {

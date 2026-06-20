@@ -5,6 +5,13 @@
   let contentEl = $state(null);
   let overflow = $state(false);
 
+  function measureOverflow() {
+    const container = containerEl;
+    const content = contentEl;
+    if (!container || !content) return;
+    overflow = content.scrollWidth > container.clientWidth + 2;
+  }
+
   $effect(() => {
     text;
     reducedMotion;
@@ -12,7 +19,11 @@
     const content = contentEl;
     if (!container || !content) return;
 
-    overflow = content.scrollWidth > container.clientWidth + 2;
+    measureOverflow();
+    const observer = new ResizeObserver(measureOverflow);
+    observer.observe(container);
+    observer.observe(content);
+    return () => observer.disconnect();
   });
 </script>
 

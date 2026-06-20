@@ -189,10 +189,10 @@ input:focus-visible,
 textarea:focus-visible,
 select:focus-visible {
   outline: none;
-  border-color: rgba(207, 206, 205, 0.4);
+  border-color: var(--accent-soft);
   box-shadow:
-    0 0 0 4px rgba(207, 206, 205, 0.14),
-    0 16px 28px rgba(0, 0, 0, 0.18);
+    0 0 0 4px var(--focus-ring),
+    var(--shadow-sm);
 }
 
 button:disabled,

@@ -11,6 +11,7 @@ mod web_artwork;
 mod stub;
 
 use serde::Serialize;
+use std::fs;
 use tauri::Manager;
 
 #[derive(Debug, Clone, Serialize)]
@@ -125,6 +126,7 @@ pub async fn get_media_artwork(
         .app_data_dir()
         .map_err(|e| e.to_string())?
         .join("covers");
+    let _ = fs::create_dir_all(&cache_dir);
 
     tauri::async_runtime::spawn_blocking(move || {
         #[cfg(windows)]

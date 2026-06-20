@@ -20,9 +20,7 @@
     if (!isTauri()) {
       errorMsg = 'Métricas do sistema disponíveis apenas no app desktop (Tauri).';
       loading = false;
-      return;
     }
-    syncPolling();
   });
 
   onDestroy(() => {

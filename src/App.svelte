@@ -1,6 +1,7 @@
 <script>
 
   import { onMount, onDestroy } from 'svelte';
+  import { get } from 'svelte/store';
 
   import InfoRail from './lib/components/InfoRail.svelte';
 
@@ -113,19 +114,6 @@
       showShortcuts = true;
       return;
     }
-    if (target?.matches('input, textarea, select')) {
-
-      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-
-        e.preventDefault();
-
-        document.getElementById('task-input')?.focus();
-
-      }
-
-      return;
-
-    }
 
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
 
@@ -161,7 +149,7 @@
 
   function handleGlobalError(event) {
 
-    fatalError = event?.error?.message || event?.message || 'Erro inesperado no aplicativo.';
+    fatalError = event?.error?.message || event?.message || get(t)('app.fatalError');
 
   }
 
@@ -169,7 +157,7 @@
 
   function handleUnhandledRejection(event) {
 
-    fatalError = event?.reason?.message || String(event.reason || 'Promise rejeitada sem tratamento.');
+    fatalError = event?.reason?.message || String(event.reason || get(t)('app.unhandledRejection'));
 
   }
 
@@ -237,7 +225,7 @@
 
     <p>{fatalError}</p>
 
-    <button type="button" class="primary-button" onclick={() => location.reload()}>Recarregar</button>
+    <button type="button" class="primary-button" onclick={() => location.reload()}>{$t('app.reload')}</button>
 
   </div>
 
@@ -261,7 +249,7 @@
 
   >
 
-    <main class="app-shell" aria-label="Painel pessoal de produtividade">
+    <main class="app-shell" aria-label={$t('app.shellLabel')}>
 
       <div class="app-shell-frame">
 

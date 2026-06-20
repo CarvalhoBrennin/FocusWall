@@ -5,6 +5,20 @@ All notable changes to Focus Dashboard are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Aba **Mídia** — sessão SMTC (Windows), capas HD resolvidas no backend Rust, controles de reprodução
+- Aba **Sistema** — CPU, RAM, temperatura (WMI) e apps com janela visível ([`docs/PLAN-METRICS.md`](docs/PLAN-METRICS.md))
+- Comandos Tauri de mídia: `get_media_snapshot`, `get_media_artwork`, `media_toggle_playback`, `media_skip_next`, `media_skip_previous`
+- Feature flags em [`src/lib/features.ts`](src/lib/features.ts): `OPENCODE_TAB_ENABLED`, `VIVARIUM_ENABLED`
+
+### Changed
+
+- Aba **OpenCode** oculta na UI (código e comandos Tauri permanecem; ver [`docs/AUDIT-FEATURE-OPENCODE.md`](docs/AUDIT-FEATURE-OPENCODE.md))
+- Painel **Vivarium** permanece arquivado (`VIVARIUM_ENABLED = false`)
+
 ## [0.1.0] - 2026-05-22
 
 ### Added

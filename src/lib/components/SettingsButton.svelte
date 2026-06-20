@@ -1,6 +1,7 @@
 <script>
   import TaskIcons from './icons/TaskIcons.svelte';
   import { showSettingsModal } from '../stores/ui-store.js';
+  import { t } from '../i18n/index.js';
 
   function handleClick() {
     showSettingsModal();
@@ -10,7 +11,7 @@
 <button
   type="button"
   class="settings-button"
-  aria-label="Configurações"
+  aria-label={$t('settings.open')}
   onclick={handleClick}
 >
   <TaskIcons name="settings" />
