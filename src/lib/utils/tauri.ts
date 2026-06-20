@@ -4,7 +4,7 @@ import { invoke, isTauri as apiIsTauri } from '@tauri-apps/api/core';
 let cachedIsTauri = null;
 
 /**
- * Detect Tauri runtime. Retries once on the next frame when the API may load async.
+ * Detect Tauri runtime (cached after first call).
  * @returns {boolean}
  */
 export function isTauri() {

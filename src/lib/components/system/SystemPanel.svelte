@@ -57,11 +57,11 @@
   }
 </script>
 
-<div class="system-panel" id="system-panel">
+<div class="system-panel">
   {#if errorMsg && !snapshot}
     <p class="system-error" role="alert">{errorMsg}</p>
   {:else if loading && !snapshot}
-    <p class="system-status">Coletando métricas…</p>
+    <p class="system-status" aria-live="polite">Coletando métricas…</p>
   {:else if snapshot}
     <div class="system-panel-stack">
       <SystemOverview {snapshot} />

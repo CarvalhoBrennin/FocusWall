@@ -7,7 +7,7 @@
   import { data, setFilesLastPath } from '../../stores/app-store.js';
   import { showToast } from '../../stores/ui-store.js';
   import { isTauri } from '../../utils/tauri.js';
-  import { ensureAbsolutePath } from '../../utils/path.js';
+  import { ensureAbsolutePath, pathsEqual } from '../../utils/path.js';
   import {
     getWellKnownFolders,
     readDirectory,
@@ -19,7 +19,6 @@
     loadFilesFavorites,
     loadFilesRecents,
     toggleFilesFavorite,
-    isFilesFavorite
   } from '../../services/files.js';
 
   let currentPath = $state('');
@@ -34,19 +33,29 @@
   let sortBy = $state('name');
   let showHidden = $state(false);
   let readDirRequestId = 0;
+  let mounted = false;
 
   const displayEntries = $derived(
     sortEntries(filterEntries(rawEntries, searchQuery), sortBy)
   );
-  const isFavorite = $derived(isFilesFavorite(currentPath, favorites));
+  const isFavorite = $derived(
+    favorites.some((path) => pathsEqual(path, currentPath))
+  );
 
   onMount(() => {
+    mounted = true;
     if (!isTauri()) {
       errorMsg = 'Explorador de arquivos disponível apenas no app desktop (Tauri).';
       loading = false;
-      return;
+      return () => {
+        mounted = false;
+      };
     }
     loadInitial();
+    return () => {
+      mounted = false;
+      readDirRequestId += 1;
+    };
   });
 
   async function loadInitial() {
@@ -88,7 +97,7 @@
     errorMsg = null;
     try {
       const entries = await readDirectory(absolute, showHidden);
-      if (requestId !== readDirRequestId) return false;
+      if (requestId !== readDirRequestId || !mounted) return false;
       rawEntries = entries;
       currentPath = absolute;
       rememberFilesPath(absolute);
@@ -96,11 +105,11 @@
       await setFilesLastPath(absolute);
       return true;
     } catch (err) {
-      if (requestId !== readDirRequestId) return false;
+      if (requestId !== readDirRequestId || !mounted) return false;
       reportError(err, 'Não foi possível ler esta pasta.');
       return false;
     } finally {
-      if (requestId === readDirRequestId) {
+      if (requestId === readDirRequestId && mounted) {
         loading = false;
       }
     }
@@ -138,7 +147,7 @@
 
   function handleToggleFavorite() {
     if (!currentPath) return;
-    const added = !isFilesFavorite(currentPath, favorites);
+    const added = !favorites.some((path) => pathsEqual(path, currentPath));
     favorites = toggleFilesFavorite(currentPath);
     showToast(added ? 'Pasta adicionada aos favoritos.' : 'Pasta removida dos favoritos.');
   }
@@ -192,6 +201,7 @@
         <FilesList
           entries={displayEntries}
           {searchQuery}
+          {loading}
           onNavigate={handleNavigate}
           onOpen={handleOpen}
         />

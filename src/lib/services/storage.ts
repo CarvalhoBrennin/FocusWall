@@ -17,7 +17,7 @@ function createBrowserStorage() {
       try {
         localStorage.setItem(CONFIG.STORAGE_KEY, JSON.stringify(normalizeState(s)));
       } catch (err) {
-        if (err?.name === 'QuotaExceededError') {
+        if ((err as { name?: string })?.name === 'QuotaExceededError') {
           console.warn('[storage] QuotaExceededError — dados não salvos no navegador.');
           return Promise.reject(new Error('Armazenamento local cheio. Libere espaço ou use o app desktop.'));
         }

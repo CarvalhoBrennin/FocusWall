@@ -40,7 +40,7 @@
           <MediaIcons name="note" size={36} />
         </div>
         <h2 class="media-empty-state-title">Erro de mídia</h2>
-        <p class="media-empty-state-copy">{message}</p>
+        <p class="media-empty-state-copy" role="alert">{message}</p>
       {:else}
         <div class="media-empty-state-icon">
           <MediaIcons name="note" size={36} />

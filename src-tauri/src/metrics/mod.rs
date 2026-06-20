@@ -165,11 +165,7 @@ fn bytes_to_mb(bytes: u64) -> f64 {
     (bytes as f64) / (1024.0 * 1024.0)
 }
 
-fn collect_metrics(sys: &mut System) -> SystemMetrics {
-    sys.refresh_cpu_usage();
-    thread::sleep(Duration::from_millis(CPU_SAMPLE_MS));
-    sys.refresh_cpu_usage();
-
+fn metrics_from_sys(sys: &System) -> SystemMetrics {
     let cpu_percent = sys.global_cpu_usage().clamp(0.0, 100.0);
     let total = sys.total_memory();
     let used = sys.used_memory();
@@ -359,7 +355,15 @@ pub fn build_system_snapshot(top_apps: Option<u32>) -> Result<SystemSnapshot, St
 
     sys.refresh_memory();
     let hardware = read_hardware(&sys);
-    let metrics = collect_metrics(&mut sys);
+
+    sys.refresh_cpu_usage();
+    drop(sys);
+    thread::sleep(Duration::from_millis(CPU_SAMPLE_MS));
+    let mut sys = SYS
+        .lock()
+        .map_err(|_| "Estado de métricas indisponível.".to_string())?;
+    sys.refresh_cpu_usage();
+    let metrics = metrics_from_sys(&sys);
     let apps = collect_apps(&mut sys, limit);
 
     Ok(SystemSnapshot {

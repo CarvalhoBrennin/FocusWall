@@ -14,7 +14,7 @@ export function createDefaultState(): AppState {
       calendarMonth: '',
       filesLastPath: '',
       theme: 'dark',
-      locale: 'pt-BR',
+      locale: CONFIG.LOCALE,
       preferredMonitor: null
     }
   };
@@ -47,7 +47,7 @@ export function normalizeState(candidate) {
         candidate.ui?.theme === 'light' || candidate.ui?.theme === 'olive' || candidate.ui?.theme === 'dark'
           ? candidate.ui.theme
           : 'dark',
-      locale: candidate.ui?.locale === 'en-US' ? 'en-US' : 'pt-BR'
+      locale: candidate.ui?.locale === 'en-US' ? 'en-US' : CONFIG.LOCALE
     }
   };
 }
@@ -56,6 +56,7 @@ export function normalizeTasksByDate(tbd) {
   const normalized = {};
   if (!tbd || typeof tbd !== 'object') return normalized;
   for (const dk of Object.keys(tbd)) {
+    if (!normalizeDateKey(dk)) continue;
     const list = Array.isArray(tbd[dk]) ? tbd[dk] : [];
     normalized[dk] = list.map(normalizeTask).filter(Boolean);
   }
@@ -220,10 +221,4 @@ export function getPinnedCount(tasks) {
 export function findTaskIndex(tasks, id) {
   for (let i = 0; i < tasks.length; i++) if (tasks[i].id === id) return i;
   return -1;
-}
-
-export function getPriorityLabel(p) {
-  if (p === PRIORITY.HIGH) return 'Alta';
-  if (p === PRIORITY.LOW) return 'Baixa';
-  return 'Média';
 }

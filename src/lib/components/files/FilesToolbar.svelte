@@ -47,6 +47,7 @@
             <button
               class="files-crumb"
               type="button"
+              aria-label={`Ir para ${seg.name}`}
               onclick={() => onNavigate(seg.path)}
             >
               {seg.name}
@@ -104,6 +105,7 @@
       <span class="files-sort-label">Ordenar</span>
       <select
         class="files-sort"
+        aria-label="Ordenar lista de arquivos"
         value={sortBy}
         onchange={(e) => onSortChange(e.currentTarget.value)}
       >

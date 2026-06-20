@@ -11,6 +11,7 @@ import {
   normalizeMonthKey,
   getLocalDateKey,
   getBrazilDateKey,
+  getMonthKeyFromDateKey,
   parseDateKey,
   addDays,
   createId,
@@ -59,10 +60,40 @@ export function mergePersistedState(state: AppState): AppState {
   };
 }
 
+/** Rejeita payloads brutos claramente inválidos antes da normalização. */
+export function assertLoadableRawState(raw: unknown): void {
+  if (raw == null) return;
+  if (typeof raw !== 'object' || Array.isArray(raw)) {
+    throw new Error('Estado local inválido ou corrompido.');
+  }
+  const candidate = raw as Record<string, unknown>;
+  if (
+    'tasksByDate' in candidate &&
+    (candidate.tasksByDate == null ||
+      typeof candidate.tasksByDate !== 'object' ||
+      Array.isArray(candidate.tasksByDate))
+  ) {
+    throw new Error('Estado local inválido ou corrompido.');
+  }
+}
+
+/** Restaura offset de navegação só quando a data base salva coincide com hoje. */
+export function resolveBootstrapViewOffset(
+  savedBase: string,
+  savedOffset: unknown,
+  todayDateKey: string
+): number {
+  if (savedBase === todayDateKey && Number.isInteger(savedOffset)) {
+    const min = -(CONFIG.HISTORY_RETENTION_DAYS - 1);
+    return Math.max(min, Math.min(VIEW.TODAY, savedOffset as number));
+  }
+  return VIEW.TODAY;
+}
+
 /** Define ui.calendarMonth só quando ainda não há mês salvo (não força mês atual). */
 function syncCalendarMonthIfStale(todayDateKey: string) {
-  const currentMonth = todayDateKey.slice(0, 7);
-  if (!/^\d{4}-\d{2}$/.test(currentMonth)) return;
+  const currentMonth = normalizeMonthKey(getMonthKeyFromDateKey(todayDateKey));
+  if (!currentMonth) return;
 
   const $data = get(data);
   const stored = normalizeMonthKey($data.ui?.calendarMonth) || '';
@@ -125,7 +156,9 @@ export const ratesBaseline = derived(data, ($d) => $d?.ratesBaseline ?? null);
 let ratesRequestId = 0;
 let ratesInFlight = false;
 let ratesAbortController: AbortController | null = null;
-let saveDebounceId = null;
+let saveDebounceId: ReturnType<typeof setTimeout> | null = null;
+let saveGeneration = 0;
+let bootstrapPromise: Promise<void> | null = null;
 let ratesTickCount = 0;
 
 function buildRateMeta(iso, prefix) {
@@ -134,8 +167,10 @@ function buildRateMeta(iso, prefix) {
 }
 
 async function persistStateImmediate() {
+  const generation = ++saveGeneration;
   const updated = mergePersistedState(get(data));
   await storage.saveState(updated);
+  if (generation !== saveGeneration) return;
   data.set(updated);
 }
 
@@ -220,7 +255,7 @@ export function setClockTime(now: Date) {
 }
 
 export function exportStateBackup() {
-  const payload = JSON.stringify(get(data), null, 2);
+  const payload = JSON.stringify(mergePersistedState(get(data)), null, 2);
   const blob = new Blob([payload], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement('a');
@@ -251,26 +286,25 @@ export async function setFilesLastPath(path: string) {
 }
 
 export function bootstrapApp() {
-  return (async () => {
+  if (bootstrapPromise) return bootstrapPromise;
+
+  bootstrapPromise = (async () => {
     bootstrapLoading.set(true);
     bootstrapError.set('');
     try {
       const raw = await storage.loadState();
+      assertLoadableRawState(raw);
       const loaded = normalizeState(raw);
-      if (!loaded || typeof loaded !== 'object' || !loaded.tasksByDate) {
-        throw new Error('Estado local inválido ou corrompido.');
-      }
 
       const $currentDateKey = getLocalDateKey(new Date());
       currentDateKey.set($currentDateKey);
-      const savedBase = loaded.ui?.lastViewedBaseDate ?? '';
-      const savedOffset = loaded.ui?.viewOffsetDays ?? 0;
-      if (savedBase === $currentDateKey && Number.isInteger(savedOffset)) {
-        const min = -(CONFIG.HISTORY_RETENTION_DAYS - 1);
-        viewOffsetDays.set(Math.max(min, Math.min(VIEW.TODAY, savedOffset)));
-      } else {
-        viewOffsetDays.set(VIEW.TODAY);
-      }
+      viewOffsetDays.set(
+        resolveBootstrapViewOffset(
+          loaded.ui?.lastViewedBaseDate ?? '',
+          loaded.ui?.viewOffsetDays ?? 0,
+          $currentDateKey
+        )
+      );
       let d = ensureDateBucket(loaded, $currentDateKey);
       d = pruneHistory(d, $currentDateKey);
       data.set(d);
@@ -316,6 +350,8 @@ export function bootstrapApp() {
       bootstrapLoading.set(false);
     }
   })();
+
+  return bootstrapPromise;
 }
 
 export function startAllTimers(onClockTick, onDayCheck, onRatesTick, onFullscreenCheck, updateRates) {
@@ -468,6 +504,7 @@ export async function addTask(text, priority) {
     setTimeout(() => lastAddedTaskId.update((id) => (id === newTask.id ? null : id)), CONFIG.TASK_HIGHLIGHT_MS);
     return newTask.id;
   } catch {
+    setAppStatus('Não foi possível salvar a tarefa.', 'error', get(appDataPath));
     return null;
   }
 }

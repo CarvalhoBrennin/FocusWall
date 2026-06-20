@@ -41,9 +41,10 @@ fn youtube_video_id(url: &str) -> Option<String> {
 }
 
 fn spotify_track_id(url: &str) -> Option<String> {
-    SPOTIFY_TRACK
-        .captures(url)
-        .map(|caps| caps[1].to_string())
+    SPOTIFY_TRACK.captures(url).and_then(|caps| {
+        let id = caps[1].to_string();
+        if id.len() <= 64 { Some(id) } else { None }
+    })
 }
 
 fn fetch_youtube_artwork(client: &Client, video_id: &str) -> Option<ArtworkBytes> {
@@ -71,6 +72,12 @@ fn fetch_spotify_oembed_artwork(client: &Client, track_id: &str) -> Option<Artwo
     );
     let response = client.get(&oembed_url).send().ok()?;
     if !response.status().is_success() {
+        return None;
+    }
+    if response
+        .content_length()
+        .is_some_and(|len| len > 256_000)
+    {
         return None;
     }
     let payload: SpotifyOembed = response.json().ok()?;

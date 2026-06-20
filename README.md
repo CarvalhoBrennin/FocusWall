@@ -23,8 +23,8 @@ O projeto nasceu como um painel pessoal de produtividade e contexto rápido: tar
 
 ### Recursos presentes no código, mas ocultos na UI
 
-- **OpenCode** — cliente visual para `opencode serve`; aba comentada em `TaskHeader.svelte` / `TaskPanel.svelte`. Reativar com `OPENCODE_TAB_ENABLED` em [`src/lib/features.ts`](src/lib/features.ts).
-- **Vivarium** — painel experimental arquivado; desabilitado via `VIVARIUM_ENABLED` em [`src/lib/features.ts`](src/lib/features.ts). Ver [`src/lib/components/vivarium/ARCHIVED.md`](src/lib/components/vivarium/ARCHIVED.md).
+- **OpenCode** — cliente visual para `opencode serve`; aba removida de `TaskHeader.svelte` e blocos comentados em `TaskPanel.svelte`. Reativar com `OPENCODE_TAB_ENABLED` em [`src/lib/features.ts`](src/lib/features.ts) e restaurar a entrada da aba no header + painel.
+- **Vivarium** — painel experimental arquivado; desabilitado via `VIVARIUM_ENABLED` em [`src/lib/features.ts`](src/lib/features.ts). Blocos comentados apenas em `TaskPanel.svelte`. Ver [`src/lib/components/vivarium/ARCHIVED.md`](src/lib/components/vivarium/ARCHIVED.md).
 
 ## Stack
 

@@ -1,6 +1,6 @@
 import { CONFIG } from '../config.js';
 
-function sleep(ms, abortSignal) {
+function sleep(ms: number, abortSignal?: AbortSignal) {
   if (abortSignal?.aborted) {
     return Promise.reject(new DOMException('Aborted', 'AbortError'));
   }
@@ -60,7 +60,7 @@ function validatePayload(payload) {
   return { usd, eur, usdObj, eurObj };
 }
 
-async function fetchOnce(abortSignal) {
+async function fetchOnce(abortSignal?: AbortSignal) {
   const ctrl = new AbortController();
   const timeoutId = setTimeout(() => ctrl.abort(), CONFIG.RATE_REQUEST_TIMEOUT_MS);
 
@@ -107,9 +107,13 @@ async function fetchOnce(abortSignal) {
   }
 }
 
-export async function fetchExchangeRates(controller) {
-  let lastError = null;
+export async function fetchExchangeRates(controller?: AbortController | null) {
+  let lastError: unknown = null;
   const abortSignal = controller?.signal;
+
+  if (abortSignal?.aborted) {
+    throw new DOMException('Aborted', 'AbortError');
+  }
 
   for (let attempt = 0; attempt < CONFIG.EXCHANGE_MAX_RETRIES; attempt += 1) {
     if (abortSignal?.aborted) break;

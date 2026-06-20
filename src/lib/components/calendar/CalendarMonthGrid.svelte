@@ -63,16 +63,16 @@
 </script>
 
 <div class="calendar-grid-shell" onkeydown={handleGridKeydown}>
-  <div class="calendar-weekdays" aria-hidden="true">
+  <div class="calendar-weekdays" role="row" id="calendar-weekdays">
     {#each weekdays as weekday}
-      <span class="calendar-weekday">{weekday}</span>
+      <span class="calendar-weekday" role="columnheader">{weekday}</span>
     {/each}
   </div>
 
   <div
     class="calendar-grid"
     role="grid"
-    aria-label="Calendário mensal"
+    aria-labelledby="calendar-weekdays"
   >
     {#each cells as cell (cell.dateKey)}
       <CalendarDayCell

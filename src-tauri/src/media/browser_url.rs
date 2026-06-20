@@ -59,8 +59,10 @@ pub fn normalize_media_page_url(raw: &str) -> Option<String> {
         return Some(format!("https://www.youtube.com/watch?v={id}"));
     }
 
-    let candidate = if trimmed.starts_with("http://") || trimmed.starts_with("https://") {
-        trimmed.to_string()
+    let candidate = if let Some(rest) = trimmed.strip_prefix("https://") {
+        format!("https://{rest}")
+    } else if let Some(rest) = trimmed.strip_prefix("http://") {
+        format!("https://{rest}")
     } else if trimmed.starts_with("www.") {
         format!("https://{trimmed}")
     } else {

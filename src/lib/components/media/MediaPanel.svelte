@@ -85,8 +85,13 @@
   let confirmedTrackKey = $state('');
   let rawKeyPrev = '';
   let rawKeyStreak = 0;
+  /** @type {import('../../services/media-session.js').MediaSnapshot | null} */
+  let latestSnapshot = null;
 
   const smtcCoverSrc = $derived(mediaCoverSrc(snapshot));
+  const mediaAvailable = $derived(Boolean(snapshot?.available));
+  const coverArtWidth = $derived(snapshot?.coverArtWidth ?? 0);
+  const coverArtHeight = $derived(snapshot?.coverArtHeight ?? 0);
   const displayPercent = $derived(
     mediaProgressPercent(displayPositionMs, snapshot?.durationMs ?? 0)
   );
@@ -136,7 +141,6 @@
       return;
     }
 
-    syncPolling();
     window.addEventListener('keydown', handleKeydown);
   });
 
@@ -246,13 +250,13 @@
 
     if (settledTrackKey && key !== settledTrackKey) {
       beginSettling(true);
-    } else if (!settledTrackKey && snapshot?.available && settlePhase === 'boot') {
+    } else if (!settledTrackKey && mediaAvailable && settlePhase === 'boot') {
       beginSettling(false);
     }
   });
 
   $effect(() => {
-    if (!snapshot?.available) {
+    if (!mediaAvailable) {
       window.clearTimeout(coverDebounceTimer);
       displayCoverSrc = null;
       displayCoverWidth = 0;
@@ -275,13 +279,15 @@
     const fingerprint = coverFingerprint;
     const thumbSrc = smtcCoverSrc;
     const key = trackKey;
+    const width = coverArtWidth;
+    const height = coverArtHeight;
 
     if (key !== lastDisplayTrackKey) {
       lastDisplayTrackKey = key;
       if (thumbSrc) {
         displayCoverSrc = thumbSrc;
-        displayCoverWidth = snapshot.coverArtWidth ?? 0;
-        displayCoverHeight = snapshot.coverArtHeight ?? 0;
+        displayCoverWidth = width;
+        displayCoverHeight = height;
         coverImageReady = false;
       }
       lastCoverFingerprint = fingerprint;
@@ -289,8 +295,8 @@
       lastCoverFingerprint = fingerprint;
       if (thumbSrc) {
         displayCoverSrc = thumbSrc;
-        displayCoverWidth = snapshot.coverArtWidth ?? 0;
-        displayCoverHeight = snapshot.coverArtHeight ?? 0;
+        displayCoverWidth = width;
+        displayCoverHeight = height;
         coverImageReady = false;
       }
     }
@@ -300,19 +306,20 @@
 
     window.clearTimeout(coverDebounceTimer);
     const requestId = ++coverResolveId;
-    const snapshotAtRequest = snapshot;
 
     coverDebounceTimer = window.setTimeout(() => {
+      const snap = latestSnapshot;
+      if (!snap?.available) return;
       artworkFetchInFlight = true;
-      void fetchMediaArtwork(snapshotAtRequest)
+      void fetchMediaArtwork(snap)
         .then((artwork) => {
           if (requestId !== coverResolveId) return;
           const resolved = artworkToResolvedCover(artwork);
-          rememberResolvedCover(snapshotAtRequest, resolved);
+          rememberResolvedCover(snap, resolved);
           if (resolved.src) {
             displayCoverSrc = resolved.src;
-            displayCoverWidth = resolved.width || snapshotAtRequest.coverArtWidth || 0;
-            displayCoverHeight = resolved.height || snapshotAtRequest.coverArtHeight || 0;
+            displayCoverWidth = resolved.width || snap.coverArtWidth || 0;
+            displayCoverHeight = resolved.height || snap.coverArtHeight || 0;
             coverImageReady = false;
           }
         })
@@ -334,7 +341,7 @@
   });
 
   $effect(() => {
-    if (!active || !snapshot?.available) {
+    if (!active || !mediaAvailable) {
       cancelAlbumPaletteSchedule();
       resetAlbumPalette(sceneEl);
       paletteInk = 'light';
@@ -361,6 +368,7 @@
   });
 
   function applySnapshot(data) {
+    latestSnapshot = data;
     if (
       !data.coverArtBase64 &&
       snapshot?.coverArtBase64 &&
@@ -435,7 +443,13 @@
 
   function handleKeydown(event) {
     if (!active || !snapshot?.available || controlBusy) return;
-    if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
+    const target = event.target;
+    if (
+      target instanceof HTMLInputElement ||
+      target instanceof HTMLTextAreaElement ||
+      target instanceof HTMLSelectElement ||
+      (target instanceof HTMLElement && target.isContentEditable)
+    ) {
       return;
     }
 

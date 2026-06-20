@@ -138,6 +138,12 @@ async function pollOnce(options: SystemMetricsPollingOptions) {
     options.onError?.(err instanceof Error ? err.message : String(err));
   } finally {
     pollInFlight = false;
+    if (!pollingActive || !options.getActive() || options.getPaused()) {
+      if (pollTimer) {
+        clearInterval(pollTimer);
+        pollTimer = null;
+      }
+    }
   }
 }
 

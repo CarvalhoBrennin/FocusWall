@@ -19,7 +19,7 @@
     class="metric-bar-track"
     role="progressbar"
     aria-label="{label}"
-    aria-valuenow={clamped}
+    aria-valuenow={Math.round(clamped)}
     aria-valuemin="0"
     aria-valuemax="100"
   >

@@ -38,6 +38,12 @@ export function trapFocus(container: HTMLElement, options: FocusTrapOptions = {}
     const last = focusable[focusable.length - 1];
     const active = document.activeElement;
 
+    if (!(active instanceof HTMLElement) || !focusable.includes(active)) {
+      e.preventDefault();
+      first.focus();
+      return;
+    }
+
     if (e.shiftKey && active === first) {
       e.preventDefault();
       last.focus();

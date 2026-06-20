@@ -47,9 +47,20 @@
   const label = $derived(
     `${formatters.longDate.format(parseDateKey(dateKey))}${taskTotal > 0 ? `, ${taskTotal} ${taskTotal === 1 ? 'tarefa' : 'tarefas'}` : ''}${taskCompleted > 0 ? `, ${taskCompleted} concluída(s)` : ''}${dayEvents.length > 0 ? `, ${dayEvents.length} ${dayEvents.length === 1 ? 'evento' : 'eventos'}` : ''}`
   );
+
+  let buttonEl = $state(null);
+  let wasSelected = $state(selected);
+
+  $effect(() => {
+    if (selected && !wasSelected && buttonEl) {
+      buttonEl.focus({ preventScroll: true });
+    }
+    wasSelected = selected;
+  });
 </script>
 
 <button
+  bind:this={buttonEl}
   type="button"
   role="gridcell"
   class="calendar-day"

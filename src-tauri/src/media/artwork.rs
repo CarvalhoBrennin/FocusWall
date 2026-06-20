@@ -106,6 +106,7 @@ fn cache_file_stem(key: &str) -> String {
 fn http_client() -> Result<reqwest::blocking::Client, String> {
     reqwest::blocking::Client::builder()
         .timeout(Duration::from_millis(HTTP_TIMEOUT_MS))
+        .redirect(reqwest::redirect::Policy::none())
         .user_agent(USER_AGENT)
         .build()
         .map_err(|e| e.to_string())
@@ -115,6 +116,13 @@ fn image_dimensions(bytes: &[u8]) -> Option<(u32, u32)> {
     image::load_from_memory(bytes)
         .ok()
         .map(|img| img.dimensions())
+}
+
+fn is_valid_image_bytes(bytes: &[u8]) -> bool {
+    bytes.starts_with(&[0x89, 0x50, 0x4E, 0x47])
+        || bytes.starts_with(&[0xFF, 0xD8])
+        || bytes.starts_with(b"GIF")
+        || (bytes.starts_with(b"RIFF") && bytes.len() >= 12 && &bytes[8..12] == b"WEBP")
 }
 
 fn detect_image_mime(bytes: &[u8]) -> &'static str {
@@ -236,7 +244,7 @@ fn artwork_from_smtc(
         return None;
     }
     let bytes = STANDARD.decode(base64).ok()?;
-    if bytes.len() > MAX_DOWNLOAD_BYTES {
+    if bytes.len() > MAX_DOWNLOAD_BYTES || !is_valid_image_bytes(&bytes) {
         return None;
     }
     let (w, h) = match (width, height) {
@@ -296,8 +304,14 @@ pub(super) fn fetch_url_bytes(client: &reqwest::blocking::Client, url: &str) -> 
     if !response.status().is_success() {
         return None;
     }
+    if response
+        .content_length()
+        .is_some_and(|len| len as usize > MAX_DOWNLOAD_BYTES)
+    {
+        return None;
+    }
     let bytes = response.bytes().ok()?;
-    if bytes.len() > MAX_DOWNLOAD_BYTES {
+    if bytes.len() > MAX_DOWNLOAD_BYTES || !is_valid_image_bytes(&bytes) {
         return None;
     }
     Some(bytes.to_vec())

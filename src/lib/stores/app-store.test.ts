@@ -1,7 +1,16 @@
 import { describe, expect, it, beforeEach } from 'vitest';
 import { get } from 'svelte/store';
-import { getVisibleDateKey, currentDateKey, viewOffsetDays, data, mergePersistedState } from './app-store.js';
+import {
+  getVisibleDateKey,
+  currentDateKey,
+  viewOffsetDays,
+  data,
+  mergePersistedState,
+  assertLoadableRawState,
+  resolveBootstrapViewOffset
+} from './app-store.js';
 import { createDefaultState } from '../utils/state.js';
+import { VIEW } from '../config.js';
 
 describe('getVisibleDateKey', () => {
   it('offsets from the current date key', () => {
@@ -22,5 +31,33 @@ describe('mergePersistedState', () => {
     const merged = mergePersistedState(get(data));
     expect(merged.ui.lastViewedBaseDate).toBe('2026-06-20');
     expect(merged.ui.viewOffsetDays).toBe(-2);
+  });
+});
+
+describe('assertLoadableRawState', () => {
+  it('accepts nullish and valid payloads', () => {
+    expect(() => assertLoadableRawState(null)).not.toThrow();
+    expect(() => assertLoadableRawState({ tasksByDate: {} })).not.toThrow();
+  });
+
+  it('rejects non-objects and malformed tasksByDate', () => {
+    expect(() => assertLoadableRawState('bad')).toThrow(/inválido/i);
+    expect(() => assertLoadableRawState([])).toThrow(/inválido/i);
+    expect(() => assertLoadableRawState({ tasksByDate: null })).toThrow(/inválido/i);
+    expect(() => assertLoadableRawState({ tasksByDate: [] })).toThrow(/inválido/i);
+  });
+});
+
+describe('resolveBootstrapViewOffset', () => {
+  it('restores offset when base date matches today', () => {
+    expect(resolveBootstrapViewOffset('2026-06-20', -2, '2026-06-20')).toBe(-2);
+  });
+
+  it('resets offset when base date differs', () => {
+    expect(resolveBootstrapViewOffset('2026-06-19', -2, '2026-06-20')).toBe(VIEW.TODAY);
+  });
+
+  it('ignores non-integer offsets', () => {
+    expect(resolveBootstrapViewOffset('2026-06-20', -1.5, '2026-06-20')).toBe(VIEW.TODAY);
   });
 });

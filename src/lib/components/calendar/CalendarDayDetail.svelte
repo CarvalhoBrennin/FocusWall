@@ -1,5 +1,5 @@
 <script>
-  import { visibleTasks } from '../../stores/app-store.js';
+  import { data, visibleDateKey, visibleTasks } from '../../stores/app-store.js';
   import { setPanelTab } from '../../stores/ui-store.js';
   import { eventsByDate } from '../../stores/calendar-store.js';
   import { formatters } from '../../config.js';
@@ -7,7 +7,12 @@
 
   let { dateKey } = $props();
 
-  const tasks = $derived($visibleTasks || []);
+  const isExecutionDay = $derived(dateKey === $visibleDateKey);
+  const tasks = $derived(
+    isExecutionDay
+      ? ($visibleTasks || [])
+      : (Array.isArray($data.tasksByDate?.[dateKey]) ? $data.tasksByDate[dateKey] : [])
+  );
   const events = $derived($eventsByDate[dateKey] ?? []);
 
   const dateLabel = $derived(formatters.longDate.format(parseDateKey(dateKey)));
@@ -24,7 +29,9 @@
 <aside class="calendar-day-detail" aria-label="Detalhes do dia">
   <div class="calendar-detail-header">
     <div>
-      <p class="calendar-detail-kicker">Mesmo dia do painel de execução</p>
+      <p class="calendar-detail-kicker">
+        {isExecutionDay ? 'Mesmo dia do painel de execução' : 'Tarefas salvas neste dia'}
+      </p>
       <h2>{dateLabel}</h2>
     </div>
   </div>
@@ -48,7 +55,7 @@
           >
             <div class="calendar-event-main">
               <span class="calendar-event-time">{formatEventTime(event)}</span>
-              <h3>{event.title}</h3>
+              <p class="calendar-event-title">{event.title}</p>
               {#if event.notes}
                 <p>{event.notes}</p>
               {/if}
@@ -93,8 +100,24 @@
       </ul>
     {/if}
 
-    <button type="button" class="ghost-button calendar-task-link" onclick={() => setPanelTab('execution')}>
+    <button
+      type="button"
+      class="ghost-button calendar-task-link"
+      aria-label="Editar tarefas no painel de execução"
+      onclick={() => setPanelTab('execution')}
+    >
       Editar tarefas no painel de execução
     </button>
   </section>
 </aside>
+
+<style>
+  .calendar-event-title {
+    margin: 0;
+    color: var(--light-strong);
+    font-family: var(--font-display);
+    font-size: 0.92rem;
+    font-weight: 800;
+    line-height: 1.25;
+  }
+</style>

@@ -38,9 +38,20 @@ export function toWindowsPath(path) {
   return normalizePath(path).replace(/\//g, '\\');
 }
 
+/** Compara caminhos absolutos (case-insensitive no Windows). */
+export function pathsEqual(left, right) {
+  const a = ensureAbsolutePath(left);
+  const b = ensureAbsolutePath(right);
+  if (!a || !b) return a === b;
+  return a.toLowerCase() === b.toLowerCase();
+}
+
 export function splitPathParts(path) {
   const normalized = normalizePath(path);
   if (!normalized) return [];
+  if (normalized.startsWith('\\\\')) {
+    return normalized.slice(2).split(/\\+/).filter(Boolean);
+  }
   return normalized.split('/').filter(Boolean);
 }
 
@@ -93,8 +104,9 @@ export function parentDirectory(fullPath) {
     return ensureAbsolutePath(`${parentParts[0]}\\${parentParts.slice(1).join('\\')}`);
   }
 
-  if (absolute.startsWith('\\\\') && parentParts.length <= 2) {
-    return null;
+  if (absolute.startsWith('\\\\')) {
+    if (parts.length <= 2) return null;
+    return `\\\\${parentParts.join('\\')}`;
   }
 
   return ensureAbsolutePath(parentParts.join('\\'));

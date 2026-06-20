@@ -140,7 +140,7 @@ pub async fn get_media_artwork(
         .app_data_dir()
         .map_err(|e| e.to_string())?
         .join("covers");
-    let _ = fs::create_dir_all(&cache_dir);
+    fs::create_dir_all(&cache_dir).map_err(|e| e.to_string())?;
 
     tauri::async_runtime::spawn_blocking(move || {
         #[cfg(windows)]

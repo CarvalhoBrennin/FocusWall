@@ -1,8 +1,8 @@
 # Auditoria da Feature OpenCode — Terceira Rodada (Deep Audit)
 
-> **Status da UI (Jun/2026):** A aba OpenCode está comentada/oculta em `TaskHeader.svelte` e `TaskPanel.svelte`. Backend, comandos Tauri e componentes permanecem no repositório. Reativar com `OPENCODE_TAB_ENABLED = true` em `src/lib/features.ts`.
+> **Status da UI (Jun/2026):** A aba OpenCode foi removida de `TaskHeader.svelte`; lazy-load e painel estão comentados em `TaskPanel.svelte`. Backend, comandos Tauri e componentes permanecem no repositório. Reativar com `OPENCODE_TAB_ENABLED = true` em `src/lib/features.ts` e restaurar tab + painel.
 
-> **Correções pós-auditoria (Jun/2026):** Parcialmente endereçados — **C2** (`stoppingServer` + await em `destroyServer`), **H1** (`clearTimeout`), **H3** (checagem de campo `error` em `opencode_get_with_retry`), **H4** (early break em `search_project_dirs`), **M1/M2** (`console.warn`). **C1** (mutex durante startup) e **C4** (mutex sob syscalls) permanecem abertos.
+> **Correções pós-auditoria (Jun/2026):** Parcialmente endereçados — **C2** (`stoppingServer` + await em `destroyServer`), **H1** (`clearTimeout`), **H2** (`formatStatus` com parâmetros explícitos), **H3** (checagem de campo `error` em `opencode_get_with_retry`), **H4** (`max_scan` + early break em `search_project_dirs`), **H6** (reset de `strayMessages` quando idle), **M1/M2/M7** (`console.warn`). **C1** (mutex durante startup) e **C4** (mutex sob syscalls em `active_opencode_server`) permanecem abertos.
 
 > **Data**: 2026-05-24 | **Versao**: 0.1.0 | **Severidade global**: CRITICA — race conditions remanescentes no Rust (C1, C4)
 
@@ -106,22 +106,22 @@ export type OpenCodeSessionInfo = { id?: string; ... };
 
 ---
 
-### C4 — `active_opencode_base_url` bloqueia mutex com chamadas OS [CRITICO]
+### C4 — `active_opencode_server` bloqueia mutex com chamadas OS [CRITICO]
 
 | Campo | Valor |
 |---|---|
-| **Arquivo** | `src-tauri/src/lib.rs:657-676` |
+| **Arquivo** | `src-tauri/src/lib.rs` (`active_opencode_server`) |
 | **Severidade** | Critico |
 | **Impacto** | Toda chamada de API bloqueia se o SO demorar para fazer reap do processo |
 
 **Descricao**: Sob o mutex, o codigo chama `child.try_wait()` (syscall bloqueante), e se o processo morreu, chama `child.kill()` + `child.wait()` (mais syscalls bloqueantes):
 
 ```rust
-fn active_opencode_base_url(state: &RuntimeState) -> Result<String, String> {
+fn active_opencode_server(state: &RuntimeState) -> Result<(String, String), String> {
     let mut guard = state.opencode_server.lock()...;  // mutex held
     if let Some(server) = guard.as_mut() {
         if server.child.try_wait()...?.is_none() {     // OS call sob mutex
-            return Ok(server.base_url.clone());
+            return Ok((server.base_url.clone(), server.password.clone()));
         }
     }
     stop_opencode_server_locked(&mut guard);           // kill + wait sob mutex
@@ -203,17 +203,17 @@ E chamada em `initializeWorkspace` (via `finally`), `refreshStatus`, e no templa
 
 ---
 
-### H4 — `search_project_dirs` bloqueia em diretorios grandes [ALTO]
+### H4 — `search_project_dirs` pode ser lento em diretorios grandes [ALTO] — **mitigado**
 
 | Campo | Valor |
 |---|---|
-| **Arquivo** | `src-tauri/src/lib.rs:276-335` |
-| **Severidade** | Alto |
-| **Impacto** | UI congela ao buscar em Desktop/Documents com muitos arquivos |
+| **Arquivo** | `src-tauri/src/lib.rs` (`search_project_dirs`) |
+| **Severidade** | Alto (mitigado) |
+| **Impacto** | Busca ainda pode demorar em roots muito grandes, mas com limites |
 
-**Descricao**: A busca enumera TODAS as subpastas de cada root (Desktop, Documents, OneDrive) sem early termination. O `limit` so trunca o resultado final — nao interrompe a enumeracao.
+**Descricao**: A busca limita a **500 entradas por root** (`max_scan`) e interrompe quando `results.len() >= limit * 2`. Diretorios enormes ainda podem causar pausa perceptivel na UI.
 
-**Correcao**: Adicionar early break quando `results.len() >= limit * 2`, ou limitar entradas por root.
+**Correcao residual**: Considerar cancelamento cooperativo ou busca assincrona com yield.
 
 ---
 
@@ -298,12 +298,12 @@ E chamada em `initializeWorkspace` (via `finally`), `refreshStatus`, e no templa
 
 ## 5. Tabela Resumo
 
-| Severidade | Quantidade | IDs |
-|---|---|---|
-| Critico | 4 | C1, C2, C3, C4 |
-| Alto | 6 | H1, H2, H3, H4, H5, H6 |
-| Medio | 10 | M1–M10 |
-| Baixo | 10 | L1–L10 |
+| Severidade | Quantidade | IDs | Notas Jun/2026 |
+|---|---|---|---|
+| Critico | 4 | C1, C2, C3, C4 | C2 mitigado (`stoppingServer`); C1 e C4 abertos |
+| Alto | 6 | H1, H2, H3, H4, H5, H6 | H1–H4 e H6 corrigidos/mitigados; H5 (teclado) aberto |
+| Medio | 10 | M1–M10 | M1, M2, M7 com `console.warn`; demais abertos |
+| Baixo | 10 | L1–L10 | |
 
 ---
 

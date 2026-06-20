@@ -577,6 +577,7 @@ fn read_cover_art(
 
     let mut bytes = vec![0u8; size as usize];
     if reader.ReadBytes(&mut bytes).is_err() || bytes.is_empty() {
+        forget_sent_cover();
         return (None, None, None, None);
     }
 

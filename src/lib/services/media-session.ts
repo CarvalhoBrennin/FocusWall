@@ -166,6 +166,7 @@ let lastSnapshot: MediaSnapshot | null = null;
 let pollingActive = false;
 let unlistenChanged: UnlistenFn | null = null;
 let changeListenerPending = false;
+let changeListenerGeneration = 0;
 
 function pollIntervalMs(snapshot: MediaSnapshot | null): number {
   if (snapshot?.available && snapshot.isPlaying) return POLL_MS_PLAYING;
@@ -199,6 +200,9 @@ async function pollOnce(options: MediaSessionPollingOptions) {
     pollInFlight = false;
     if (pollingActive && options.getActive() && !options.getPaused()) {
       scheduleNextPoll(options);
+    } else if (pollTimer) {
+      clearInterval(pollTimer);
+      pollTimer = null;
     }
   }
 }
@@ -206,13 +210,14 @@ async function pollOnce(options: MediaSessionPollingOptions) {
 function attachChangeListener(options: MediaSessionPollingOptions) {
   if (unlistenChanged || changeListenerPending || !isTauri()) return;
   changeListenerPending = true;
+  const generation = ++changeListenerGeneration;
   void listen(MEDIA_CHANGED_EVENT, () => {
     if (!pollingActive || !options.getActive() || options.getPaused()) return;
     void pollOnce(options);
   })
     .then((fn) => {
       changeListenerPending = false;
-      if (!pollingActive) {
+      if (!pollingActive || generation !== changeListenerGeneration) {
         fn();
         return;
       }
@@ -233,6 +238,8 @@ export function startMediaSessionPolling(options: MediaSessionPollingOptions) {
 
 export function stopMediaSessionPolling() {
   pollingActive = false;
+  changeListenerGeneration += 1;
+  changeListenerPending = false;
   if (pollTimer) {
     clearInterval(pollTimer);
     pollTimer = null;

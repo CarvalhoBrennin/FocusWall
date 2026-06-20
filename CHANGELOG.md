@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Aba **OpenCode** oculta na UI (código e comandos Tauri permanecem; ver [`docs/AUDIT-FEATURE-OPENCODE.md`](docs/AUDIT-FEATURE-OPENCODE.md))
+- Aba **OpenCode** oculta na UI — tab removida de `TaskHeader.svelte`, blocos comentados em `TaskPanel.svelte` (código e comandos Tauri permanecem; ver [`docs/AUDIT-FEATURE-OPENCODE.md`](docs/AUDIT-FEATURE-OPENCODE.md))
 - Painel **Vivarium** permanece arquivado (`VIVARIUM_ENABLED = false`)
 
 ## [0.1.0] - 2026-05-22

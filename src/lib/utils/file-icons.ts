@@ -190,9 +190,6 @@ const EXT_BY_KIND: Record<string, FileIconKind> = {
   dockerfile: 'docker',
 };
 
-/** Extensões mapeadas para kind `text` via fallback explícito. */
-const EXT_TEXT = new Set(['lua', 'r', 'zig']);
-
 const KIND_META: Record<FileIconKind, { color: string; label: string }> = {
   folder: { color: '#c5c0b8', label: 'Pasta' },
   'folder-git': { color: '#f05032', label: 'Repositório Git' },
@@ -289,8 +286,6 @@ export function resolveFileIcon(
     kind = ext === 'md' || ext === 'mdx' || !ext ? 'markdown' : EXT_BY_KIND[ext] ?? 'markdown';
   } else if (ext && EXT_BY_KIND[ext]) {
     kind = EXT_BY_KIND[ext];
-  } else if (ext && EXT_TEXT.has(ext)) {
-    kind = 'text';
   } else if (!ext && base.includes('.')) {
     kind = 'generic';
   } else if (!ext) {

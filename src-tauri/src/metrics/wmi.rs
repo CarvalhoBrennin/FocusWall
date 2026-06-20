@@ -23,28 +23,16 @@ fn kelvin_tenths_to_celsius(raw: u32) -> Option<f32> {
 fn read_cpu_temp_wmi() -> Option<f32> {
     use wmi::{COMLibrary, WMIConnection};
 
-    let com = COMLibrary::new().ok()?;
-    let wmi = WMIConnection::new(com).ok()?;
-
     #[derive(serde::Deserialize)]
-    struct ThermalZone {
+    #[serde(rename = "MSAcpi_ThermalZoneTemperature")]
+    struct MSAcpiThermalZoneTemperature {
         #[serde(rename = "CurrentTemperature")]
         current_temperature: Option<u32>,
     }
 
-    if let Ok(rows) = wmi.query::<ThermalZone>() {
-        for row in rows {
-            if let Some(raw) = row.current_temperature {
-                if let Some(c) = kelvin_tenths_to_celsius(raw) {
-                    return Some(c);
-                }
-            }
-        }
-    }
-
-    if let Ok(com_wmi) = COMLibrary::new() {
-        if let Ok(wmi_wmi) = WMIConnection::with_namespace_path("ROOT\\WMI", com_wmi) {
-            if let Ok(rows) = wmi_wmi.query::<ThermalZone>() {
+    if let Ok(com) = COMLibrary::new() {
+        if let Ok(wmi_wmi) = WMIConnection::with_namespace_path("ROOT\\WMI", com) {
+            if let Ok(rows) = wmi_wmi.query::<MSAcpiThermalZoneTemperature>() {
                 for row in rows {
                     if let Some(raw) = row.current_temperature {
                         if let Some(c) = kelvin_tenths_to_celsius(raw) {
@@ -56,33 +44,48 @@ fn read_cpu_temp_wmi() -> Option<f32> {
         }
     }
 
+    let com = COMLibrary::new().ok()?;
+    let wmi = WMIConnection::new(com).ok()?;
+
     #[derive(serde::Deserialize)]
-    struct PerfThermal {
+    #[serde(rename = "Win32_PerfFormattedData_Counters_ThermalZoneInformation")]
+    struct Win32PerfThermalZoneInformation {
         #[serde(rename = "Temperature")]
         temperature: Option<u32>,
     }
 
-    if let Ok(rows) = wmi.query::<PerfThermal>() {
+    if let Ok(rows) = wmi.query::<Win32PerfThermalZoneInformation>() {
         for row in rows {
-            if let Some(c) = row.temperature.filter(|t| *t > 0 && *t < 200) {
-                return Some(c as f32);
+            if let Some(raw) = row.temperature.filter(|t| *t > 0) {
+                let c = if raw > 200 {
+                    (raw as f32) - 273.15
+                } else {
+                    raw as f32
+                };
+                if c.is_finite() && (-40.0..=150.0).contains(&c) {
+                    return Some(c);
+                }
             }
         }
     }
 
     #[derive(serde::Deserialize)]
-    struct TemperatureProbe {
+    #[serde(rename = "Win32_TemperatureProbe")]
+    struct Win32TemperatureProbe {
         #[serde(rename = "CurrentReading")]
         current_reading: Option<i32>,
     }
 
-    if let Ok(rows) = wmi.query::<TemperatureProbe>() {
+    if let Ok(rows) = wmi.query::<Win32TemperatureProbe>() {
         for row in rows {
-            if let Some(c) = row
+            if let Some(raw) = row
                 .current_reading
-                .filter(|t| *t > -40 && *t < 150)
+                .filter(|t| *t > -400 && *t < 1500)
             {
-                return Some(c as f32);
+                let c = raw as f32 / 10.0;
+                if c.is_finite() && (-40.0..=150.0).contains(&c) {
+                    return Some(c);
+                }
             }
         }
     }

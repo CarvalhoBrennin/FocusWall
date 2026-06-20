@@ -5,7 +5,7 @@ Auditoria exaustiva de todos os arquivos do projeto com verificação pós-corre
 **Data da auditoria original:** Maio 2026 · **Revisão pós-correção:** Maio 2026  
 **Versão:** 0.1.0 · **npm audit:** 0 vulnerabilidades · **TypeScript:** compila sem erros · **CI:** GitHub Actions passando
 
-> **Nota (Jun/2026):** Foram adicionadas as abas **Mídia** e **Sistema**. A aba **OpenCode** está oculta na UI (`OPENCODE_TAB_ENABLED = false`); **Vivarium** permanece desabilitado (`VIVARIUM_ENABLED = false`). Revisão de alinhamento docs/código: [`README.md`](../README.md), [`src/lib/features.ts`](../src/lib/features.ts), [`docs/PLAN-FILES.md`](PLAN-FILES.md), [`docs/PLAN-METRICS.md`](PLAN-METRICS.md).
+> **Nota (Jun/2026):** Foram adicionadas as abas **Mídia** e **Sistema**. A aba **OpenCode** está oculta na UI (`OPENCODE_TAB_ENABLED = false`); **Vivarium** permanece desabilitado (`VIVARIUM_ENABLED = false`). Revisão de alinhamento docs/código: [`README.md`](../README.md), [`src/lib/features.ts`](../src/lib/features.ts), [`docs/PLAN-FILES.md`](PLAN-FILES.md), [`docs/PLAN-METRICS.md`](PLAN-METRICS.md), [`docs/PLAN-MEDIA.md`](PLAN-MEDIA.md).
 
 ---
 
@@ -39,7 +39,7 @@ Auditoria exaustiva de todos os arquivos do projeto com verificação pós-corre
 | # | Status | Arquivo | Problema | Correção aplicada |
 |---|--------|---------|----------|-------------------|
 | 9 | ✅ | `lib.rs:547-567` | Race condition write_state_file | Escrita atômica via temp file + `fs::rename`. Sem fallback destrutivo. Erro retornado se rename falhar. |
-| 10 | ⚠️ | `lib.rs:150-173` | Migração de versão vazia | v0→v1 tem migração real (`calendar_month`). v2→v4 são no-ops (setam `preferred_monitor = None` sem transformação). Suficiente para schemas atuais, mas frágil para futuros. |
+| 10 | ⚠️ | `lib.rs` (migrate) | Migração de versão vazia | `STATE_VERSION = 5`. v0→v1 tem migração real (`calendar_month`). v2→v5 são no-ops no `match`. Suficiente para schemas atuais, mas frágil para futuros. |
 | 11 | ✅ | `app-store.ts:220-225` | Bootstrap sem validação | `bootstrapApp()` verifica se `normalized` é objeto e tem `tasksByDate`. Erro lançado com fallback para estado default + `bootstrapError` no UI. |
 
 ### Estabilidade
@@ -63,7 +63,7 @@ Auditoria exaustiva de todos os arquivos do projeto com verificação pós-corre
 | 22 | ✅ | `opencode.ts:76-91` | opencode sem PATH check | `checkOpenCodeAvailable()` spawna `cmd.exe /c where opencode` para verificar PATH antes de tentar abrir. Tauri-pty carregado via `await import()` (lazy). |
 | 23 | ✅ | `CalendarPanel.svelte` | getClampedDateInMonth | `new Date(year, month, 0)` agora validado — o month é ajustado no `shiftMonth` e o `parseMonthKey` garante valores válidos |
 | 24 | ✅ | `app-store.ts` | Erros de persistência suprimidos | `.catch` agora propaga erros via `setAppStatus('error')` em vez de `.catch(() => {})` vazio |
-| 25 | ⚠️ | `index.html:10-13` | Google Fonts sem fallback | Fontes continuam carregadas do CDN. `font-display: swap` + `local()` existem, mas sem fontes locais empacotadas. UI degrada offline. |
+| 25 | ⚠️ | `index.html` + `src/assets/fonts/` | Google Fonts sem fallback offline | `@font-face` local em `index.html` + instruções em `src/assets/fonts/README.md`. Arquivos `.woff2` não estão versionados; CDN continua como fallback até baixá-los. |
 | 26 | ✅ | `lib.rs:365-369` | corrupt.json nunca limpo | Após load bem-sucedido, `fs::remove_file(corrupt_path)` deleta o arquivo. Limpeza automática. |
 | 27 | ✅ | `Modal.svelte, SettingsModal.svelte` | Sem focus trap | `focus-trap.ts` (`trapFocus()`) captura Tab e Shift+Tab dentro do container. `onEscape` fecha modal. `requestAnimationFrame` garante DOM pronto. |
 | 28 | ✅ | `SettingsModal.svelte:37,58` | Sem foco inicial | `trapFocus()` recebe `initialFocus: closeButtonEl`. Foco movido para o botão fechar ao abrir. |
@@ -182,8 +182,8 @@ Auditoria exaustiva de todos os arquivos do projeto com verificação pós-corre
 
 | # | Item | Severidade original | Status | Ação recomendada |
 |---|------|---------------------|--------|------------------|
-| 10 | Migração de estado (lib.rs) | Crítica | ⚠️ Parcial | v0→v1 tem migração real. v2→v4 são no-ops. Adicionar migração real ao evoluir schema. |
-| 25 | Google Fonts offline | Alta | ⚠️ Parcial | Empacotar Manrope + Orbitron como assets locais (`src/assets/fonts/`) para funcionamento offline. |
+| 10 | Migração de estado (lib.rs) | Crítica | ⚠️ Parcial | `STATE_VERSION = 5`. v0→v1 tem migração real. v2→v5 são no-ops. Adicionar migração real ao evoluir schema. |
+| 25 | Google Fonts offline | Alta | ⚠️ Parcial | `@font-face` local configurado; baixar `.woff2` conforme `src/assets/fonts/README.md` para uso offline pleno. |
 | 40 | CalendarPanel $effect | Média | ⚠️ Pendente | Subscrever `$data.ui.calendarMonth` via derived store em vez do objeto `$data` inteiro. |
 | 44 | CalendarEventForm maxlength | Média | ✅ Resolvido | Componente removido; pendência não se aplica. |
 | 47 | Atalhos não documentados | Média | ✅ Resolvido | `ShortcutsHelp` via `?` em `App.svelte`. |

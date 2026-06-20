@@ -87,7 +87,7 @@
   {#if ghostCoverSrc}
     <div
       class="media-art-cinematic-ghost"
-      style:background-image={`url("${ghostCoverSrc}")`}
+      style:background-image={`url(${JSON.stringify(ghostCoverSrc)})`}
       aria-hidden="true"
     ></div>
   {/if}
@@ -97,7 +97,7 @@
       <div
         class="media-art-cinematic-fill media-art-cinematic-fill--hd"
         class:media-art-cinematic-fill--visible={imageLoaded}
-        style:background-image={`url("${coverSrc}")`}
+        style:background-image={`url(${JSON.stringify(coverSrc)})`}
         aria-hidden="true"
       ></div>
       <img
@@ -115,7 +115,7 @@
       <div
         class="media-art-cinematic-fill"
         class:media-art-cinematic-fill--visible={imageLoaded}
-        style:background-image={`url("${coverSrc}")`}
+        style:background-image={`url(${JSON.stringify(coverSrc)})`}
         aria-hidden="true"
       ></div>
       <div class="media-art-cinematic-foreground">

@@ -1,5 +1,6 @@
 <script>
   import { toSidebarLabel } from '../../services/files.js';
+  import { pathsEqual } from '../../utils/path.js';
 
   const {
     places = [],
@@ -19,8 +20,8 @@
           <button
             type="button"
             class="files-sidebar-item"
-            class:is-active={currentPath === place.path}
-            aria-current={currentPath === place.path ? 'page' : undefined}
+            class:is-active={pathsEqual(currentPath, place.path)}
+            aria-current={pathsEqual(currentPath, place.path) ? 'page' : undefined}
             title={place.path}
             onclick={() => onNavigate(place.path)}
           >
@@ -41,8 +42,8 @@
             <button
               type="button"
               class="files-sidebar-item"
-              class:is-active={currentPath === path}
-              aria-current={currentPath === path ? 'page' : undefined}
+              class:is-active={pathsEqual(currentPath, path)}
+              aria-current={pathsEqual(currentPath, path) ? 'page' : undefined}
               title={path}
               onclick={() => onNavigate(path)}
             >
@@ -64,8 +65,8 @@
             <button
               type="button"
               class="files-sidebar-item"
-              class:is-active={currentPath === path}
-              aria-current={currentPath === path ? 'page' : undefined}
+              class:is-active={pathsEqual(currentPath, path)}
+              aria-current={pathsEqual(currentPath, path) ? 'page' : undefined}
               title={path}
               onclick={() => onNavigate(path)}
             >

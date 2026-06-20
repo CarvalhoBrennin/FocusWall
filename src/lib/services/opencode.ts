@@ -82,7 +82,11 @@ export function rememberOpencodeDir(path: string): void {
     0,
     MAX_RECENTS
   );
-  localStorage.setItem(RECENTS_KEY, JSON.stringify(next));
+  try {
+    localStorage.setItem(RECENTS_KEY, JSON.stringify(next));
+  } catch (err) {
+    console.warn('OpenCode: falha ao salvar recentes no localStorage', err);
+  }
 }
 
 export async function searchProjectDirs(

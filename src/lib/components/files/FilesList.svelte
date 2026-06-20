@@ -1,10 +1,10 @@
 <script>
   import FileRow from './FileRow.svelte';
 
-  const { entries = [], searchQuery = '', onNavigate, onOpen } = $props();
+  const { entries = [], searchQuery = '', loading = false, onNavigate, onOpen } = $props();
 </script>
 
-<div class="files-list">
+<div class="files-list" aria-busy={loading || undefined} aria-live="polite">
   {#if entries.length === 0}
     <p class="files-empty">
       {searchQuery.trim() ? 'Nenhum item corresponde à busca.' : 'Diretório vazio.'}

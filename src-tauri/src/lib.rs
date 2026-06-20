@@ -456,11 +456,36 @@ fn start_opencode_server(
     // Libera a porta reservada logo após o spawn para o processo filho fazer bind.
     drop(port_guard);
 
+    // Registra o filho antes do health-check para que stop/quit nao deixem processo orfao.
+    {
+        let mut guard = state
+            .opencode_server
+            .lock()
+            .map_err(|_| "Falha ao acessar estado do OpenCode.".to_string())?;
+        *guard = Some(OpencodeServerState {
+            cwd: cwd.clone(),
+            base_url: base_url.clone(),
+            password: password.clone(),
+            child,
+        });
+    }
+
     let mut version = String::new();
     let mut ready = false;
     for _ in 0..40 {
-        if child.try_wait().map_err(|e| e.to_string())?.is_some() {
-            break;
+        {
+            let mut guard = state
+                .opencode_server
+                .lock()
+                .map_err(|_| "Falha ao acessar estado do OpenCode.".to_string())?;
+            let Some(server) = guard.as_mut() else {
+                return Err(
+                    "Servidor OpenCode foi interrompido durante o arranque.".to_string(),
+                );
+            };
+            if server.child.try_wait().map_err(|e| e.to_string())?.is_some() {
+                break;
+            }
         }
         for health_attempt in 0..3 {
             match opencode_health(&client, &base_url, &password) {
@@ -482,37 +507,32 @@ fn start_opencode_server(
     }
 
     if !ready {
-        let exited = child.try_wait().map(|s| s.is_some()).unwrap_or(false);
         let mut diag = String::new();
-        if exited {
-            if let Ok(output) = child.wait_with_output() {
-                let stderr = String::from_utf8_lossy(&output.stderr);
-                if !stderr.is_empty() {
-                    diag = format!(" — stderr: {}", stderr.trim());
+        let mut guard = state
+            .opencode_server
+            .lock()
+            .map_err(|_| "Falha ao acessar estado do OpenCode.".to_string())?;
+        if let Some(mut server) = guard.take() {
+            let exited = server
+                .child
+                .try_wait()
+                .map(|status| status.is_some())
+                .unwrap_or(false);
+            if exited {
+                if let Ok(output) = server.child.wait_with_output() {
+                    let stderr = String::from_utf8_lossy(&output.stderr);
+                    if !stderr.is_empty() {
+                        diag = format!(" — stderr: {}", stderr.trim());
+                    }
                 }
+            } else {
+                cleanup_opencode_child(&mut server.child);
             }
-        } else {
-            let _ = child.kill();
-            let _ = child.wait();
         }
         return Err(format!(
             "Servidor OpenCode nao respondeu ao health-check.{}",
             diag
         ));
-    }
-
-    {
-        let mut guard = state
-            .opencode_server
-            .lock()
-            .map_err(|_| "Falha ao acessar estado do OpenCode.".to_string())?;
-        stop_opencode_server_locked(&mut guard);
-        *guard = Some(OpencodeServerState {
-            cwd: cwd.clone(),
-            base_url: base_url.clone(),
-            password,
-            child,
-        });
     }
 
     Ok(OpencodeServerInfo {
@@ -762,36 +782,50 @@ fn opencode_health(client: &Client, base_url: &str, password: &str) -> Result<St
         .to_string())
 }
 
-fn stop_opencode_server_locked(server: &mut Option<OpencodeServerState>) {
-    if let Some(mut current) = server.take() {
-        if let Err(err) = current.child.kill() {
+fn cleanup_opencode_child(child: &mut Child) {
+    if child.try_wait().ok().flatten().is_none() {
+        if let Err(err) = child.kill() {
             warn!("Failed to kill OpenCode process: {}", err);
         }
-        match current.child.wait() {
-            Ok(_) => {}
-            Err(err) => warn!("Failed to wait on OpenCode process: {}", err),
-        }
+    }
+    match child.wait() {
+        Ok(_) => {}
+        Err(err) => warn!("Failed to wait on OpenCode process: {}", err),
+    }
+}
+
+fn stop_opencode_server_locked(server: &mut Option<OpencodeServerState>) {
+    if let Some(mut current) = server.take() {
+        cleanup_opencode_child(&mut current.child);
     }
 }
 
 fn active_opencode_server(state: &RuntimeState) -> Result<(String, String), String> {
-    let mut guard = state
-        .opencode_server
-        .lock()
-        .map_err(|_| "Falha ao acessar estado do OpenCode.".to_string())?;
+    let stale_server = {
+        let mut guard = state
+            .opencode_server
+            .lock()
+            .map_err(|_| "Falha ao acessar estado do OpenCode.".to_string())?;
 
-    if let Some(server) = guard.as_mut() {
-        if server
-            .child
-            .try_wait()
-            .map_err(|e| e.to_string())?
-            .is_none()
-        {
-            return Ok((server.base_url.clone(), server.password.clone()));
+        let Some(server) = guard.as_mut() else {
+            return Err("Servidor OpenCode nao esta ativo.".to_string());
+        };
+
+        match server.child.try_wait() {
+            Ok(None) => {
+                return Ok((server.base_url.clone(), server.password.clone()));
+            }
+            Ok(Some(_)) => {}
+            Err(err) => return Err(err.to_string()),
         }
+
+        guard.take()
+    };
+
+    if let Some(mut server) = stale_server {
+        cleanup_opencode_child(&mut server.child);
     }
 
-    stop_opencode_server_locked(&mut guard);
     Err("Servidor OpenCode nao esta ativo.".to_string())
 }
 
@@ -863,7 +897,11 @@ fn opencode_post_json(
     body: &Value,
 ) -> Result<Value, String> {
     opencode_post_with_retry(state, path, query, body, |resp| {
-        resp.json().map_err(|e| e.to_string())
+        let value: Value = resp.json().map_err(|e| e.to_string())?;
+        if let Some(err_msg) = value.get("error").and_then(Value::as_str) {
+            return Err(format!("OpenCode retornou erro: {}", err_msg));
+        }
+        Ok(value)
     })
 }
 
@@ -884,7 +922,11 @@ fn opencode_post_json_once(
         .map_err(|error| error.to_string())?;
     let status = response.status();
     if status.is_success() {
-        return response.json().map_err(|error| error.to_string());
+        let value: Value = response.json().map_err(|error| error.to_string())?;
+        if let Some(err_msg) = value.get("error").and_then(Value::as_str) {
+            return Err(format!("OpenCode retornou erro: {}", err_msg));
+        }
+        return Ok(value);
     }
     let body = response.text().unwrap_or_default();
     if body.trim().is_empty() {
@@ -911,6 +953,15 @@ fn opencode_post_no_content_once(
         .map_err(|error| error.to_string())?;
     let status = response.status();
     if status.is_success() {
+        let body = response.text().unwrap_or_default();
+        if body.trim().is_empty() {
+            return Ok(());
+        }
+        if let Ok(value) = serde_json::from_str::<Value>(&body) {
+            if let Some(err_msg) = value.get("error").and_then(Value::as_str) {
+                return Err(format!("OpenCode retornou erro: {}", err_msg));
+            }
+        }
         return Ok(());
     }
     let body = response.text().unwrap_or_default();
@@ -1132,7 +1183,13 @@ async fn pick_project_directory(
     end_folder_dialog(&window, &app, &state);
 
     let picked = picked.map_err(|error| error.to_string())?;
-    Ok(picked.map(|path| path.to_string()))
+    Ok(match picked {
+        Some(path) => {
+            let canonical = validate_directory_path(&path.to_string())?;
+            Some(windows_process_path(&canonical))
+        }
+        None => None,
+    })
 }
 
 #[tauri::command]
@@ -1173,7 +1230,7 @@ fn load_state(app: AppHandle) -> Result<DashboardState, String> {
 
 #[tauri::command]
 fn save_state(app: AppHandle, mut state: DashboardState) -> Result<(), String> {
-    if state.version > STATE_VERSION {
+    if state.version != STATE_VERSION {
         state.version = STATE_VERSION;
     }
     write_state_file(&state_file_path(&app)?, &state)
