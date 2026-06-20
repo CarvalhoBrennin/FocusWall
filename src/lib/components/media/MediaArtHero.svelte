@@ -66,9 +66,9 @@
   });
 
   function handleImageLoad(src) {
-    if (!src || (imageLoaded && loadedSrc === src)) return;
-    imageLoaded = true;
+    if (!src || loadedSrc === src) return;
     loadedSrc = src;
+    imageLoaded = true;
     onCoverLoad();
   }
 </script>

@@ -16,6 +16,7 @@ import {
   visibleTasks,
   appDataPath,
   persistStateDebounced,
+  mergePersistedState,
   setAppStatus,
   setExecutionDateForDateKey
 } from './app-store.js';
@@ -91,14 +92,17 @@ export function getCalendarDayTasks(
   return overlay[dateKey] ?? EMPTY_DAY_TASKS;
 }
 
-export function buildEventsByDate(events: CalendarEvent[]): Record<string, CalendarEvent[]> {
+export function buildEventsByDate(
+  events: CalendarEvent[],
+  locale: string = CONFIG.LOCALE
+): Record<string, CalendarEvent[]> {
   const grouped: Record<string, CalendarEvent[]> = {};
   for (const event of events || []) {
     if (!grouped[event.dateKey]) grouped[event.dateKey] = [];
     grouped[event.dateKey].push(event);
   }
   for (const dateKey of Object.keys(grouped)) {
-    grouped[dateKey] = sortCalendarEvents(grouped[dateKey]);
+    grouped[dateKey] = sortCalendarEvents(grouped[dateKey], locale);
   }
   return grouped;
 }
@@ -118,15 +122,20 @@ export const executionTasksDigest = derived(visibleTasks, ($tasks) =>
     .join('\n')
 );
 
-export const eventsByDate = derived(data, ($d) => buildEventsByDate(getCalendarEvents($d)));
+export const eventsByDate = derived(data, ($d) =>
+  buildEventsByDate(getCalendarEvents($d), $d.ui?.locale ?? CONFIG.LOCALE)
+);
 
-export function sortCalendarEvents(events: CalendarEvent[]): CalendarEvent[] {
+export function sortCalendarEvents(
+  events: CalendarEvent[],
+  locale: string = CONFIG.LOCALE
+): CalendarEvent[] {
   return [...events].sort((left, right) => {
     const leftTime = left.startTime || '';
     const rightTime = right.startTime || '';
     if (!leftTime && rightTime) return -1;
     if (leftTime && !rightTime) return 1;
-    return leftTime.localeCompare(rightTime) || left.title.localeCompare(right.title, CONFIG.LOCALE);
+    return leftTime.localeCompare(rightTime) || left.title.localeCompare(right.title, locale);
   });
 }
 
@@ -135,13 +144,18 @@ export function getCalendarEvents(state: AppState): CalendarEvent[] {
 }
 
 export function getEventsForDateKey(dateKey: string): CalendarEvent[] {
-  const events = getCalendarEvents(get(data)).filter((event) => event.dateKey === dateKey);
-  return sortCalendarEvents(events);
+  const $data = get(data);
+  const events = getCalendarEvents($data).filter((event) => event.dateKey === dateKey);
+  return sortCalendarEvents(events, $data.ui?.locale);
 }
 
 export function getEventsForMonth(year: number, month: number): CalendarEvent[] {
+  const $data = get(data);
   const prefix = `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}`;
-  return sortCalendarEvents(getCalendarEvents(get(data)).filter((event) => event.dateKey?.startsWith(prefix)));
+  return sortCalendarEvents(
+    getCalendarEvents($data).filter((event) => event.dateKey?.startsWith(prefix)),
+    $data.ui?.locale
+  );
 }
 
 export function setCalendarMonth(yearMonth: string) {
@@ -169,9 +183,10 @@ export function ensureCalendarMonthInitialized(todayDateKey: string) {
 }
 
 async function saveCalendarState(nextData: AppState, success: string, failure: string) {
+  const persisted = mergePersistedState(nextData);
   try {
-    await storage.saveState(nextData);
-    data.set(nextData);
+    await storage.saveState(persisted);
+    data.set(persisted);
     setAppStatus(success, 'live', get(appDataPath));
     return true;
   } catch {
@@ -193,7 +208,7 @@ export async function addCalendarEvent(payload: Partial<CalendarEvent>): Promise
   const $data = get(data);
   const nextData: AppState = {
     ...$data,
-    calendarEvents: sortCalendarEvents([...getCalendarEvents($data), event])
+    calendarEvents: sortCalendarEvents([...getCalendarEvents($data), event], $data.ui?.locale)
   };
 
   const ok = await saveCalendarState(nextData, 'Evento salvo localmente.', 'Não foi possível salvar o evento.');
@@ -219,7 +234,7 @@ export async function updateCalendarEvent(id: string, patch: Partial<CalendarEve
   if (!changed) return false;
 
   return saveCalendarState(
-    { ...$data, calendarEvents: sortCalendarEvents(nextEvents) },
+    { ...$data, calendarEvents: sortCalendarEvents(nextEvents, $data.ui?.locale) },
     'Evento atualizado localmente.',
     'Não foi possível atualizar o evento.'
   );

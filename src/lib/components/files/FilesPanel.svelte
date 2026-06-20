@@ -53,12 +53,21 @@
     try {
       places = await getWellKnownFolders();
       const saved = get(data).ui?.filesLastPath;
-      if (saved && ensureAbsolutePath(saved)) {
-        await readDir(saved);
-        return;
-      }
       const desktop = places.find((place) => place.id === 'desktop');
-      await readDir(desktop?.path || places[0]?.path || '');
+      const fallback = desktop?.path || places[0]?.path || '';
+
+      if (saved && ensureAbsolutePath(saved)) {
+        const ok = await readDir(saved);
+        if (ok) return;
+        errorMsg = null;
+      }
+
+      if (fallback) {
+        await readDir(fallback);
+      } else {
+        loading = false;
+        errorMsg = 'Nenhuma pasta inicial disponível.';
+      }
     } catch (err) {
       reportError(err, 'Não foi possível iniciar o explorador.');
       loading = false;
@@ -73,21 +82,23 @@
 
   async function readDir(path) {
     const absolute = ensureAbsolutePath(path);
-    if (!absolute) return;
+    if (!absolute) return false;
     const requestId = ++readDirRequestId;
     loading = true;
     errorMsg = null;
     try {
       const entries = await readDirectory(absolute, showHidden);
-      if (requestId !== readDirRequestId) return;
+      if (requestId !== readDirRequestId) return false;
       rawEntries = entries;
       currentPath = absolute;
       rememberFilesPath(absolute);
       recents = loadFilesRecents();
       await setFilesLastPath(absolute);
+      return true;
     } catch (err) {
-      if (requestId !== readDirRequestId) return;
+      if (requestId !== readDirRequestId) return false;
       reportError(err, 'Não foi possível ler esta pasta.');
+      return false;
     } finally {
       if (requestId === readDirRequestId) {
         loading = false;
@@ -126,12 +137,10 @@
   }
 
   function handleToggleFavorite() {
+    if (!currentPath) return;
+    const added = !isFilesFavorite(currentPath, favorites);
     favorites = toggleFilesFavorite(currentPath);
-    showToast(
-      isFilesFavorite(currentPath, favorites)
-        ? 'Pasta adicionada aos favoritos.'
-        : 'Pasta removida dos favoritos.'
-    );
+    showToast(added ? 'Pasta adicionada aos favoritos.' : 'Pasta removida dos favoritos.');
   }
 
   async function handleToggleHidden(checked) {

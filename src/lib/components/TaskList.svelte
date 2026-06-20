@@ -35,6 +35,7 @@
       id="task-list"
       class="task-list"
       aria-label={$t('tasks.listLabel')}
+      aria-hidden={allTasks.length === 0}
     >
       {#each paginatedTasks as task, i (task.id)}
         {@const globalIndex = page * perPage + i}

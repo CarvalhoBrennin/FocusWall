@@ -4,22 +4,26 @@
 
 Transformar a aba **Arquivos** em um substituto prático da Área de Trabalho do Windows: acesso rápido a pastas frequentes, abertura de arquivos no SO e navegação sem sair do dashboard.
 
-## Estado atual (v1)
+## Estado atual (v1 + parte do v2)
 
 - Aba **Arquivos** com navegação na Área de Trabalho e atalhos a pastas conhecidas
-- Comandos Tauri: `get_desktop_path`, `get_well_known_folders`, `read_directory`, `open_file`
+- Comandos Tauri usados pelo frontend: `get_well_known_folders`, `read_directory`, `open_file`, `pick_project_directory` (via `pickFolder`)
+- Comando legado (sem uso no frontend): `get_desktop_path` — a UI usa `get_well_known_folders` com id `desktop`
 - Breadcrumb, voltar, abrir no Explorer
 - Categorias visuais por tipo de arquivo
-- Persistência de `filesLastPath` no estado local
+- Persistência de `filesLastPath` em `dashboard-state.json` (`ui.filesLastPath`)
+- **Favoritos** e **histórico recente** em `localStorage` (`focuswall-files-favorites`, `focuswall-files-recents`) — ver [`src/lib/services/files.ts`](../src/lib/services/files.ts)
+- **Busca por nome** — filtro client-side na lista atual (`filterEntries`)
 
-## v2 — Atalhos e favoritos
+## v2 — Atalhos e favoritos (pendente)
 
-| Item | Descrição |
-|------|-----------|
-| Pastas fixas | Desktop, Documentos, Downloads, Projetos |
-| Favoritos | Pin de pastas em `ui.fileFavorites` (state v5+) |
-| Histórico recente | Últimas 10 pastas visitadas |
-| Busca por nome | Filtro client-side na lista atual |
+| Item | Descrição | Status |
+|------|-----------|--------|
+| Pastas fixas | Desktop, Documentos, Downloads, Projetos | ✅ via `get_well_known_folders` |
+| Favoritos | Pin de pastas | ✅ `localStorage` (não em `ui.fileFavorites`) |
+| Histórico recente | Últimas 10 pastas visitadas | ✅ `localStorage` |
+| Busca por nome | Filtro client-side na lista atual | ✅ |
+| Migrar favoritos/recents | Para `dashboard-state.json` | ❌ pendente |
 
 ## v3 — Operações básicas
 
@@ -46,13 +50,21 @@ Requer confirmação modal no frontend e permissões ACL explícitas por operaç
 
 ## Persistência
 
+Estado Tauri (`dashboard-state.json`):
+
 ```json
 {
   "ui": {
-    "filesLastPath": "C:\\Users\\...\\Desktop",
-    "fileFavorites": ["C:\\Projects\\FocusWall"]
+    "filesLastPath": "C:\\Users\\...\\Desktop"
   }
 }
+```
+
+Favoritos e recentes (preview web e desktop, `localStorage`):
+
+```json
+// focuswall-files-favorites / focuswall-files-recents
+["C:\\Projects\\FocusWall"]
 ```
 
 ## Ordem de implementação sugerida

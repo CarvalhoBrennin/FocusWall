@@ -55,11 +55,14 @@
     } else if (e.key === 'ArrowDown') {
       e.preventDefault();
       moveSelection(7);
+    } else if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onSelect(selectedDateKey);
     }
   }
 </script>
 
-<div class="calendar-grid-shell">
+<div class="calendar-grid-shell" onkeydown={handleGridKeydown}>
   <div class="calendar-weekdays" aria-hidden="true">
     {#each weekdays as weekday}
       <span class="calendar-weekday">{weekday}</span>
@@ -69,9 +72,7 @@
   <div
     class="calendar-grid"
     role="grid"
-    tabindex="0"
     aria-label="Calendário mensal"
-    onkeydown={handleGridKeydown}
   >
     {#each cells as cell (cell.dateKey)}
       <CalendarDayCell

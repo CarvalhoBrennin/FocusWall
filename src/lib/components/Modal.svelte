@@ -20,6 +20,14 @@
     }
   }
 
+  function handleOverlayKeydown(e) {
+    if (e.target !== e.currentTarget || !$modal) return;
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      closeModal();
+    }
+  }
+
   onMount(() => {
     return () => {};
   });
@@ -45,6 +53,7 @@
     aria-labelledby="modal-title"
     tabindex="-1"
     onclick={handleOverlayClick}
+    onkeydown={handleOverlayKeydown}
   >
     <div class="modal">
       <h2 id="modal-title" class="modal-title">{$modal.title}</h2>

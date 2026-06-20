@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest';
-import { buildCalendarDayTasks, buildDayTasksFromList } from './calendar-store.js';
+import { describe, expect, it, beforeEach } from 'vitest';
+import { get } from 'svelte/store';
+import { buildCalendarDayTasks, buildDayTasksFromList, sortCalendarEvents } from './calendar-store.js';
 
 describe('buildDayTasksFromList', () => {
   it('matches execution panel task list', () => {
@@ -59,5 +60,16 @@ describe('buildCalendarDayTasks', () => {
     expect(day?.markers).toHaveLength(2);
     expect(day?.markers[0]?.completed).toBe(true);
     expect(day?.markers[1]?.completed).toBe(false);
+  });
+});
+
+describe('sortCalendarEvents', () => {
+  it('sorts all-day events before timed events', () => {
+    const sorted = sortCalendarEvents([
+      { id: '1', title: 'Timed', dateKey: '2026-06-01', startTime: '10:00', createdAt: '', updatedAt: '' },
+      { id: '2', title: 'All day', dateKey: '2026-06-01', createdAt: '', updatedAt: '' }
+    ]);
+    expect(sorted[0]?.title).toBe('All day');
+    expect(sorted[1]?.title).toBe('Timed');
   });
 });

@@ -271,7 +271,15 @@ pub fn start_event_bridge(app: AppHandle) {
             log::warn!("Falha ao subscrever eventos SMTC: {err}");
         }
     });
-    let _ = worker_sender().try_send(job);
+    match worker_sender().try_send(job) {
+        Ok(()) => {}
+        Err(TrySendError::Full(_)) => {
+            log::warn!("Fila do worker SMTC cheia; eventos de mídia podem atrasar.");
+        }
+        Err(TrySendError::Disconnected(_)) => {
+            log::error!("Worker SMTC indisponível; eventos de mídia não serão subscritos.");
+        }
+    }
 }
 
 fn register_session_events() -> Result<(), String> {

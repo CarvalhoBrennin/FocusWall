@@ -5,7 +5,7 @@ Auditoria exaustiva de todos os arquivos do projeto com verificação pós-corre
 **Data da auditoria original:** Maio 2026 · **Revisão pós-correção:** Maio 2026  
 **Versão:** 0.1.0 · **npm audit:** 0 vulnerabilidades · **TypeScript:** compila sem erros · **CI:** GitHub Actions passando
 
-> **Nota (Jun/2026):** Foram adicionadas as abas **Mídia** e **Sistema**. A aba **OpenCode** está oculta na UI (`OPENCODE_TAB_ENABLED = false`); **Vivarium** permanece desabilitado (`VIVARIUM_ENABLED = false`). Estado atual: [`README.md`](../README.md), [`src/lib/features.ts`](../src/lib/features.ts).
+> **Nota (Jun/2026):** Foram adicionadas as abas **Mídia** e **Sistema**. A aba **OpenCode** está oculta na UI (`OPENCODE_TAB_ENABLED = false`); **Vivarium** permanece desabilitado (`VIVARIUM_ENABLED = false`). Revisão de alinhamento docs/código: [`README.md`](../README.md), [`src/lib/features.ts`](../src/lib/features.ts), [`docs/PLAN-FILES.md`](PLAN-FILES.md), [`docs/PLAN-METRICS.md`](PLAN-METRICS.md).
 
 ---
 
@@ -101,7 +101,7 @@ Auditoria exaustiva de todos os arquivos do projeto com verificação pós-corre
 | 41 | ✅ | `src/styles/` | CSS monolítico | Modularizado em 8 arquivos: `tokens.css`, `base.css`, `layout.css`, `components.css`, `tasks.css`, `calendar.css`, `files-opencode.css`, `responsive.css`, `themes.css`. |
 | 42 | ✅ | `timer.ts` | Web Worker falha silenciosa | `console.warn('[timer] Web Worker indisponível, usando setInterval.')` ao cair para fallback. |
 | 43 | ✅ | `opencode.ts:55-62` | cmd.exe hardcoded | Validação de cwd + PATH check mitigam riscos. Shell permanece `cmd.exe` (Windows). |
-| 44 | ⚠️ | `CalendarEventForm.svelte:87,112` | maxlength string vs number | Título: `maxlength={120}` ✅ (número). Textarea: `maxlength="500"` ❌ ainda como string. |
+| 44 | ✅ | *(removido)* | maxlength string vs number | `CalendarEventForm.svelte` não existe mais; inputs usam `maxlength={CONFIG.MAX_TASK_LENGTH}` numérico. |
 | 45 | ✅ | `lib.rs:569-605` | read_directory oculta .files | Path validation adicionado. Comportamento de ocultar dotfiles documentado como intencional. |
 | 46 | ✅ | `lib.rs:663-664` | open_file sem validação | `validate_file_path()` verifica string vazia, null bytes, path absoluto e existência do arquivo. |
 
@@ -109,7 +109,7 @@ Auditoria exaustiva de todos os arquivos do projeto com verificação pós-corre
 
 | # | Status | Arquivo | Problema | Correção aplicada |
 |---|--------|---------|----------|-------------------|
-| 47 | ⚠️ | `Composer.svelte` | Atalhos não documentados | Ctrl+Enter e Alt+Arrow continuam sem overlay de ajuda. Pode ser adicionado via tooltip ou modal de atalhos. |
+| 47 | ✅ | `App.svelte` + `ShortcutsHelp.svelte` | Atalhos não documentados | Modal de atalhos via tecla `?` (`ShortcutsHelp.svelte`). |
 | 48 | ✅ | `ClockBlock.svelte:8-9` | Relógio/data dessincronizado | Ambos derivam de `$clockNow` (store único atualizado atomicamente com `$clockTime`). |
 | 49 | ✅ | **Global** | color-scheme sem light theme | Temas dark/light/olive implementados via `theme-store.ts` + CSS variables em `themes.css`. Seletor em `AppearanceSettings.svelte`. |
 | 50 | ✅ | `FilesPanel.svelte:25,49` | Não persiste último path | `filesLastPath` salvo via `setFilesLastPath()` no `app-store.ts`. Lido no mount. |
@@ -133,7 +133,7 @@ Auditoria exaustiva de todos os arquivos do projeto com verificação pós-corre
 | 58 | ✅ | `.gitignore` | Incompleto | `.env`, `.env.*`, `.vscode/`, `.idea/`, `*.log`, `*.pdb` adicionados. |
 | 59 | ✅ | `.github/workflows/ci.yml` | Sem CI/CD | 2 jobs: `web` (typecheck + test + build em ubuntu) e `rust-check` (cargo check em windows). |
 | 60 | ✅ | `docs/DEPLOY.md` | NSIS desatualizado | Atualizado para referenciar WiX/MSI: `bundle/msi/`. |
-| 61 | ⚠️ | `README.md` | Desatualizado | Atualizado em Jun/2026: Mídia, Sistema, flags OpenCode/Vivarium. Ver nota no topo deste documento. |
+| 61 | ✅ | `README.md` | Desatualizado | Atualizado em Jun/2026: Mídia, Sistema, flags OpenCode/Vivarium, link para `PLAN-FILES.md`. |
 | 62 | ✅ | `CHANGELOG.md` | Sem changelog | Criado no formato Keep a Changelog. v0.1.0 documentado. |
 | 63 | ✅ | `responsive.css:337-363` | prefers-reduced-motion | Universal `* { animation: none !important }` + regras explícitas para `.task-item.is-new`, `.toast`, `.modal-overlay`. |
 | 64 | ✅ | CSS | .sr-only inconsistente | Classes de acessibilidade consolidadas no CSS modular. |
@@ -144,7 +144,7 @@ Auditoria exaustiva de todos os arquivos do projeto com verificação pós-corre
 |---|--------|---------|----------|-------------------|
 | 65 | ✅ | `lib.rs:681` | unwrap() perigoso | Substituído por `let Some(target) = target else { return Ok(()) }`. Todos os monitors usam padrão seguro. |
 | 66 | ✅ | `lib.rs` | cfg(not(desktop)) silencioso | Mantido intencionalmente para compatibilidade cross-platform. Não é bug. |
-| 67 | ⚠️ | `lib.rs:787` | Sem logging | `env_logger::try_init()` chamado, mas **zero** macros `log::info!/warn!/error!` usadas no código Rust. Log sink existe, nunca alimentado. |
+| 67 | ✅ | `lib.rs` | Sem logging | `log::info!/warn!/error!` em `load_state`, `save_state`, `write_state_file`, `open_file`, etc. |
 | 68 | ✅ | `lib.rs:300,308,833,837` | Ordering::Relaxed | Todos os `AtomicBool` alterados para `Ordering::SeqCst`. Zero `Relaxed` no código. |
 | 69 | ✅ | `Cargo.toml` | open crate v5 | Mantido em v5 — v6 não existe no crates.io. |
 | 70 | ✅ | `lib.rs:569-605` | read_directory sem ACL | `validate_directory_path()` adicionado. Permissões gerenciadas via Tauri capabilities. |
@@ -174,20 +174,20 @@ Auditoria exaustiva de todos os arquivos do projeto com verificação pós-corre
 | Alta | 22 | 20 | 2 | 0 |
 | Média | 34 | 28 | 5 | 1 |
 | Baixa | 8 | 8 | 0 | 0 |
-| **Total** | **78** | **69** | **8** | **1** |
+| **Total** | **78** | **72** | **5** | **1** |
 
 ---
 
-## ⚠️ Pendências residuais (8 itens com ressalvas)
+## ⚠️ Pendências residuais (5 itens com ressalvas)
 
 | # | Item | Severidade original | Status | Ação recomendada |
 |---|------|---------------------|--------|------------------|
 | 10 | Migração de estado (lib.rs) | Crítica | ⚠️ Parcial | v0→v1 tem migração real. v2→v4 são no-ops. Adicionar migração real ao evoluir schema. |
 | 25 | Google Fonts offline | Alta | ⚠️ Parcial | Empacotar Manrope + Orbitron como assets locais (`src/assets/fonts/`) para funcionamento offline. |
 | 40 | CalendarPanel $effect | Média | ⚠️ Pendente | Subscrever `$data.ui.calendarMonth` via derived store em vez do objeto `$data` inteiro. |
-| 44 | CalendarEventForm maxlength | Média | ⚠️ Parcial | Título corrigido (`{120}`). Textarea ainda usa `maxlength="500"` (string). Trocar para `{500}`. |
-| 47 | Atalhos não documentados | Média | ⚠️ Pendente | Criar modal/overlay "Atalhos" acessível via `?` ou botão. |
-| 67 | Logging Rust sem uso | Média | ⚠️ Pendente | Adicionar `log::info!`/`log::error!` em `load_state`, `save_state`, `write_state_file`, e pontos de erro. |
+| 44 | CalendarEventForm maxlength | Média | ✅ Resolvido | Componente removido; pendência não se aplica. |
+| 47 | Atalhos não documentados | Média | ✅ Resolvido | `ShortcutsHelp` via `?` em `App.svelte`. |
+| 67 | Logging Rust sem uso | Média | ✅ Resolvido | Macros `log` em pontos críticos de `lib.rs`. |
 | 72 | i18n parcial | Baixa | ⚠️ Parcial | Strings de UI em tarefas, calendário e arquivos ainda hardcoded em pt-BR. Migrar incrementalmente. |
 | — | UpdateSettings.svelte:43 | Nova | ⚠️ Novo | String "Instalar atualização" hardcoded em pt-BR. Deveria usar `$t('updates.install')`. |
 
@@ -196,9 +196,9 @@ Auditoria exaustiva de todos os arquivos do projeto com verificação pós-corre
 ## 🎯 Verificação final
 
 ```
-npm audit          ✅ 0 vulnerabilities
+npm audit          ✅ 0 vulnerabilities (última verificação Maio/2026)
 npm run typecheck  ✅ passes
-npm test           ✅ 3/3 passing
+npm test           ✅ múltiplos arquivos Vitest (state, stores, media, metrics, …)
 npm run build      ✅ successful
 cargo check        ✅ Tauri compiles
 ```

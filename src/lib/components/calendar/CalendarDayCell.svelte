@@ -5,10 +5,12 @@
   import {
     calendarDayTasks,
     buildDayTasksFromList,
-    getCalendarDayTasks
+    getCalendarDayTasks,
+    eventsByDate
   } from '../../stores/calendar-store.js';
 
   const MAX_TASK_MARKERS = 4;
+  const MAX_EVENT_MARKERS = 3;
 
   let {
     dateKey,
@@ -28,6 +30,11 @@
   const taskStats = $derived(dayTasks.stats);
   const taskMarkers = $derived(dayTasks.markers);
 
+  const dayEvents = $derived($eventsByDate[dateKey] ?? []);
+  const visibleEventMarkers = $derived(dayEvents.slice(0, MAX_EVENT_MARKERS));
+  const eventMarkersExtra = $derived(Math.max(0, dayEvents.length - visibleEventMarkers.length));
+  const hasEventMarkers = $derived(dayEvents.length > 0);
+
   const taskTotal = $derived(taskStats.total ?? 0);
   const taskPending = $derived(taskStats.pending ?? 0);
   const taskCompleted = $derived(taskStats.completed ?? 0);
@@ -38,7 +45,7 @@
   const hasTaskMarkers = $derived(taskTotal > 0 && visibleTaskMarkers.length > 0);
 
   const label = $derived(
-    `${formatters.longDate.format(parseDateKey(dateKey))}${taskTotal > 0 ? `, ${taskTotal} ${taskTotal === 1 ? 'tarefa' : 'tarefas'}` : ''}${taskCompleted > 0 ? `, ${taskCompleted} concluída(s)` : ''}`
+    `${formatters.longDate.format(parseDateKey(dateKey))}${taskTotal > 0 ? `, ${taskTotal} ${taskTotal === 1 ? 'tarefa' : 'tarefas'}` : ''}${taskCompleted > 0 ? `, ${taskCompleted} concluída(s)` : ''}${dayEvents.length > 0 ? `, ${dayEvents.length} ${dayEvents.length === 1 ? 'evento' : 'eventos'}` : ''}`
   );
 </script>
 
@@ -70,17 +77,34 @@
     </span>
   {/if}
 
-  {#if hasTaskMarkers}
+  {#if hasTaskMarkers || hasEventMarkers}
     <span class="calendar-day-markers" aria-hidden="true">
-      {#each visibleTaskMarkers as marker (marker.id)}
-        <span
-          class="calendar-task-dot"
-          data-completed={marker.completed ? 'true' : 'false'}
-          data-priority={marker.priority}
-        ></span>
-      {/each}
-      {#if taskMarkersExtra > 0}
-        <span class="calendar-marker-extra">+{taskMarkersExtra}</span>
+      {#if hasTaskMarkers}
+        <span class="calendar-marker-group">
+          {#each visibleTaskMarkers as marker (marker.id)}
+            <span
+              class="calendar-task-dot"
+              data-completed={marker.completed ? 'true' : 'false'}
+              data-priority={marker.priority}
+            ></span>
+          {/each}
+          {#if taskMarkersExtra > 0}
+            <span class="calendar-marker-extra">+{taskMarkersExtra}</span>
+          {/if}
+        </span>
+      {/if}
+      {#if hasEventMarkers}
+        <span class="calendar-marker-group calendar-marker-group--events">
+          {#each visibleEventMarkers as event (event.id)}
+            <span
+              class="calendar-event-dot"
+              data-color={event.color === 'neutral' ? undefined : event.color}
+            ></span>
+          {/each}
+          {#if eventMarkersExtra > 0}
+            <span class="calendar-event-extra">+{eventMarkersExtra}</span>
+          {/if}
+        </span>
       {/if}
     </span>
   {/if}

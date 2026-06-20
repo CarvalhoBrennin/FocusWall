@@ -17,6 +17,7 @@ export type ResolvedCover = {
   source: string;
 };
 
+const MAX_RESOLVED_COVER_CACHE = 32;
 const resolvedCoverCache = new Map<string, ResolvedCover>();
 
 export function classifyCover(
@@ -82,7 +83,17 @@ export function artworkToResolvedCover(artwork: {
 }
 
 export function rememberResolvedCover(snapshot: MediaSnapshot, cover: ResolvedCover): void {
-  resolvedCoverCache.set(mediaTrackKey(snapshot), cover);
+  const key = mediaTrackKey(snapshot);
+  if (resolvedCoverCache.has(key)) {
+    resolvedCoverCache.delete(key);
+  }
+  resolvedCoverCache.set(key, cover);
+  if (resolvedCoverCache.size > MAX_RESOLVED_COVER_CACHE) {
+    const oldest = resolvedCoverCache.keys().next().value;
+    if (oldest !== undefined) {
+      resolvedCoverCache.delete(oldest);
+    }
+  }
 }
 
 export function getCachedResolvedCover(snapshot: MediaSnapshot | null | undefined): ResolvedCover | null {

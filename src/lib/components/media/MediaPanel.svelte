@@ -218,22 +218,26 @@
 
   $effect(() => {
     if (!snapshot?.available || !snapshot.isPlaying || !active || get(paused)) {
-      cancelAnimationFrame(tickRaf);
-      tickRaf = 0;
       if (snapshot) displayPositionMs = snapshot.positionMs;
       return;
     }
 
     snapshot.positionMs;
     syncedAt;
+    let running = true;
 
     const loop = () => {
+      if (!running) return;
       displayPositionMs = interpolateMediaPosition(snapshot, syncedAt);
       tickRaf = requestAnimationFrame(loop);
     };
 
     tickRaf = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(tickRaf);
+    return () => {
+      running = false;
+      cancelAnimationFrame(tickRaf);
+      tickRaf = 0;
+    };
   });
 
   $effect(() => {
@@ -297,9 +301,9 @@
     window.clearTimeout(coverDebounceTimer);
     const requestId = ++coverResolveId;
     const snapshotAtRequest = snapshot;
-    artworkFetchInFlight = true;
 
     coverDebounceTimer = window.setTimeout(() => {
+      artworkFetchInFlight = true;
       void fetchMediaArtwork(snapshotAtRequest)
         .then((artwork) => {
           if (requestId !== coverResolveId) return;
@@ -324,11 +328,14 @@
 
     return () => {
       window.clearTimeout(coverDebounceTimer);
+      coverResolveId += 1;
+      artworkFetchInFlight = false;
     };
   });
 
   $effect(() => {
     if (!active || !snapshot?.available) {
+      cancelAlbumPaletteSchedule();
       resetAlbumPalette(sceneEl);
       paletteInk = 'light';
       return;
@@ -337,11 +344,20 @@
     if (isSettling) return;
 
     const paletteSrc = displayCoverSrc ?? ghostCoverSrc;
-    if (!paletteSrc) return;
+    if (!paletteSrc) {
+      cancelAlbumPaletteSchedule();
+      resetAlbumPalette(sceneEl);
+      paletteInk = 'light';
+      return;
+    }
 
     scheduleAlbumPalette(sceneEl, paletteSrc, (palette) => {
       paletteInk = palette.ink;
     });
+
+    return () => {
+      cancelAlbumPaletteSchedule();
+    };
   });
 
   function applySnapshot(data) {

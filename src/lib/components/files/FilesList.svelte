@@ -13,12 +13,11 @@
     {#each entries as entry (entry.path)}
       <FileRow
         {entry}
-        ondblclick={(e) => {
-          e.preventDefault();
+        onclick={(e) => {
+          if (e.detail > 1) return;
           if (entry.isDir) onNavigate(entry.path);
           else onOpen(entry.path);
         }}
-        onclick={() => (entry.isDir ? onNavigate(entry.path) : onOpen(entry.path))}
       />
     {/each}
   {/if}

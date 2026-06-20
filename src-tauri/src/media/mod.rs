@@ -109,6 +109,13 @@ pub fn get_media_snapshot() -> Result<MediaSnapshot, String> {
     build_media_snapshot()
 }
 
+fn truncate_media_field(value: String, max_chars: usize) -> String {
+    if value.chars().count() <= max_chars {
+        return value;
+    }
+    value.chars().take(max_chars).collect()
+}
+
 #[tauri::command(async)]
 pub async fn get_media_artwork(
     app: tauri::AppHandle,
@@ -121,6 +128,13 @@ pub async fn get_media_artwork(
     smtc_width: Option<u32>,
     smtc_height: Option<u32>,
 ) -> Result<MediaArtwork, String> {
+    let artist = truncate_media_field(artist, 512);
+    let album = truncate_media_field(album, 512);
+    let title = truncate_media_field(title, 512);
+    let source_app_id = truncate_media_field(source_app_id, 256);
+    let smtc_base64 = smtc_base64.filter(|value| value.len() <= 16_000_000);
+    let smtc_mime = smtc_mime.filter(|value| value.len() <= 128);
+
     let cache_dir = app
         .path()
         .app_data_dir()

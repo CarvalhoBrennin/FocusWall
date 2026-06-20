@@ -61,6 +61,7 @@
         class="files-icon-btn"
         type="button"
         class:is-active={isFavorite}
+        disabled={!currentPath}
         aria-label={isFavorite ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
         title={isFavorite ? 'Remover favorito' : 'Favoritar pasta'}
         onclick={onToggleFavorite}

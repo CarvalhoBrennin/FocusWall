@@ -8,6 +8,7 @@
   $: seconds = timeParts[2] ?? '00';
   $: dateLine = formatters.longDate.format($clockNow);
   $: dateIso = $clockNow.toISOString();
+  $: clockAriaLabel = `${mainTime}:${seconds}, ${dateLine}`;
 </script>
 
 <section class="clock-block" aria-labelledby="clock-title">
@@ -16,7 +17,7 @@
   </div>
 
   <div class="clock-face">
-    <time class="clock" datetime={dateIso}>{mainTime}</time>
+    <time class="clock" datetime={dateIso} aria-label={clockAriaLabel}>{mainTime}</time>
     <span class="clock-seconds" aria-hidden="true">{seconds}</span>
   </div>
 

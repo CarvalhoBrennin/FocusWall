@@ -105,6 +105,7 @@ build-bootstrapper.bat
 ## Documentação adicional
 
 - Métricas do sistema: [`docs/PLAN-METRICS.md`](docs/PLAN-METRICS.md)
+- Painel de arquivos: [`docs/PLAN-FILES.md`](docs/PLAN-FILES.md)
 - Mídia / now playing: [`docs/PLAN-MEDIA.md`](docs/PLAN-MEDIA.md)
 - Auto-update (stub): [`docs/UPDATER.md`](docs/UPDATER.md)
 - Deploy: [`docs/DEPLOY.md`](docs/DEPLOY.md)

@@ -159,12 +159,12 @@
 
   .monitor-option:hover {
     transform: translateY(-1px);
-    border-color: rgba(207, 206, 205, 0.22);
+    border-color: var(--control-border-strong);
     box-shadow: 0 18px 26px var(--shadow-color);
   }
 
   .monitor-option.selected {
-    border-color: rgba(207, 206, 205, 0.28);
+    border-color: var(--control-border-strong);
     background:
       linear-gradient(135deg, var(--accent-soft), var(--field-bg));
   }
@@ -197,8 +197,8 @@
     min-height: 1.75rem;
     padding: 0.2rem 0.62rem;
     border-radius: 0;
-    border: 1px solid rgba(91, 140, 91, 0.2);
-    background: rgba(91, 140, 91, 0.12);
+    border: 1px solid var(--success-soft);
+    background: var(--success-soft);
     color: var(--success);
     font-size: 0.72rem;
     font-weight: 800;

@@ -15,6 +15,7 @@ const MIN_HD_SIDE: u32 = 600;
 const MEMORY_CACHE_MAX: usize = 128;
 const HTTP_TIMEOUT_MS: u64 = 800;
 const MAX_DOWNLOAD_BYTES: usize = 12_000_000;
+const MAX_SMTC_BASE64_LEN: usize = 16_000_000;
 const USER_AGENT: &str = "FocusWall/0.1 (desktop-media-player; +https://github.com/focuswall)";
 
 #[derive(Debug, Clone)]
@@ -231,7 +232,13 @@ fn artwork_from_smtc(
     width: Option<u32>,
     height: Option<u32>,
 ) -> Option<ArtworkBytes> {
+    if base64.len() > MAX_SMTC_BASE64_LEN {
+        return None;
+    }
     let bytes = STANDARD.decode(base64).ok()?;
+    if bytes.len() > MAX_DOWNLOAD_BYTES {
+        return None;
+    }
     let (w, h) = match (width, height) {
         (Some(w), Some(h)) if w > 0 && h > 0 => (w, h),
         _ => image_dimensions(&bytes)?,
@@ -261,7 +268,30 @@ fn to_media_artwork(artwork: ArtworkBytes) -> MediaArtwork {
     }
 }
 
+fn https_host(url: &str) -> Option<String> {
+    let trimmed = url.trim();
+    let rest = trimmed.strip_prefix("https://")?;
+    let host = rest.split(&['/', '?', '#'][..]).next()?;
+    if host.is_empty() || host.contains('@') || host.contains(':') {
+        return None;
+    }
+    Some(host.to_ascii_lowercase())
+}
+
+pub(super) fn is_allowed_remote_image_url(url: &str) -> bool {
+    let host = match https_host(url) {
+        Some(host) => host,
+        None => return false,
+    };
+    host == "i.ytimg.com"
+        || host.ends_with(".scdn.co")
+        || host.ends_with(".spotifycdn.com")
+}
+
 pub(super) fn fetch_url_bytes(client: &reqwest::blocking::Client, url: &str) -> Option<Vec<u8>> {
+    if !is_allowed_remote_image_url(url) {
+        return None;
+    }
     let response = client.get(url).send().ok()?;
     if !response.status().is_success() {
         return None;

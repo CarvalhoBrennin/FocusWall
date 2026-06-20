@@ -9,7 +9,7 @@ Aba **Sistema** no painel principal (`TaskPanel`) com CPU, RAM, temperatura (WMI
 ### Backend (Rust)
 
 - Módulo [`src-tauri/src/metrics/`](../src-tauri/src/metrics/)
-- Comando Tauri: `get_system_snapshot(top_apps?)`
+- Comando Tauri: `get_system_snapshot({ topApps? })` — parâmetro camelCase no invoke; default **15** no frontend ([`system-metrics.ts`](../src/lib/services/system-metrics.ts))
 - `sysinfo` — CPU/RAM/processos
 - `wmi` (Windows) — temperatura CPU (cache 30s no Rust)
 - `EnumWindows` — filtrar apps com janela visível

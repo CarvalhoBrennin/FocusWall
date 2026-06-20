@@ -2,7 +2,7 @@
   import FileIcon from './FileIcon.svelte';
   import { resolveFileIcon } from '../../utils/file-icons.js';
 
-  const { entry, onclick, ondblclick } = $props();
+  const { entry, onclick } = $props();
 
   const extension = $derived(entry.extension ?? '');
   const isDir = $derived(!!entry.isDir);
@@ -35,7 +35,6 @@
   type="button"
   aria-label={isDir ? `Abrir pasta ${name}, ${icon.label}` : `Abrir arquivo ${name}, ${icon.label}`}
   {onclick}
-  {ondblclick}
 >
   <span class="file-row-icon">
     <FileIcon kind={icon.kind} color={icon.color} size={22} />

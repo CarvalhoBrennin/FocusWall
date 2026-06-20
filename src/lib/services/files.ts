@@ -54,7 +54,11 @@ function readPathList(key: string): string[] {
 }
 
 function writePathList(key: string, paths: string[]) {
-  localStorage.setItem(key, JSON.stringify(paths));
+  try {
+    localStorage.setItem(key, JSON.stringify(paths));
+  } catch (err) {
+    console.warn('[files] Falha ao salvar lista de caminhos:', err);
+  }
 }
 
 export function loadFilesFavorites(): string[] {

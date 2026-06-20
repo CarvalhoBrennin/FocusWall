@@ -278,14 +278,12 @@ export function applyAlbumPalette(
   element.style.setProperty('--media-glow', palette.glow);
   element.style.setProperty('--media-ink', ink);
   element.style.setProperty('--media-ink-soft', inkSoft);
-  element.style.setProperty('--media-ambient-image', `url("${coverSrc}")`);
-  element.dataset.mediaInk = palette.ink;
+  element.style.setProperty('--media-ambient-image', `url("${coverSrc.replace(/"/g, '\\"')}")`);
 }
 
 export function resetAlbumPalette(element: HTMLElement | null): void {
   if (!element) return;
   clearMediaCssVars(element);
-  delete element.dataset.mediaInk;
 }
 
 let paletteTimer: ReturnType<typeof setTimeout> | null = null;
@@ -317,6 +315,7 @@ export function scheduleAlbumPalette(
   paletteTimer = setTimeout(() => {
     void extractAlbumPalette(coverSrc).then((palette) => {
       if (requestId !== paletteRequestId) return;
+      if (!element?.isConnected) return;
       applyAlbumPalette(element, palette, coverSrc);
       onPalette?.(palette);
     });

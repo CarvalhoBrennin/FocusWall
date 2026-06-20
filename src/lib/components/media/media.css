@@ -29,6 +29,20 @@
   color: var(--media-ink, var(--light-strong));
 }
 
+.media-scene::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: var(--media-ambient-image);
+  background-size: cover;
+  background-position: center;
+  filter: blur(48px) saturate(1.35) brightness(0.48);
+  opacity: 0.82;
+  transform: scale(1.08);
+}
+
 .media-scene.is-active {
   animation: mediaSceneEnter 480ms ease-out both;
 }
@@ -89,6 +103,7 @@
 
 .media-art-panel {
   position: relative;
+  z-index: 1;
   min-height: 0;
   min-width: 0;
   overflow: hidden;
@@ -1114,6 +1129,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .media-scene.is-active,
+  .media-scene::before,
   .media-art-panel,
   .media-info-panel,
   .media-info-content,

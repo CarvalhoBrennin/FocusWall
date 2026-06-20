@@ -41,12 +41,12 @@
             <button
               type="button"
               class="files-sidebar-item"
-            class:is-active={currentPath === path}
-            aria-current={currentPath === path ? 'page' : undefined}
-            title={path}
-            onclick={() => onNavigate(path)}
-          >
-            <span class="files-sidebar-icon files-sidebar-icon--star" aria-hidden="true">★</span>
+              class:is-active={currentPath === path}
+              aria-current={currentPath === path ? 'page' : undefined}
+              title={path}
+              onclick={() => onNavigate(path)}
+            >
+              <span class="files-sidebar-icon files-sidebar-icon--star" aria-hidden="true">★</span>
               <span class="files-sidebar-label">{toSidebarLabel(path)}</span>
             </button>
           </li>
@@ -64,12 +64,12 @@
             <button
               type="button"
               class="files-sidebar-item"
-            class:is-active={currentPath === path}
-            aria-current={currentPath === path ? 'page' : undefined}
-            title={path}
-            onclick={() => onNavigate(path)}
-          >
-            <span class="files-sidebar-icon" aria-hidden="true">↩</span>
+              class:is-active={currentPath === path}
+              aria-current={currentPath === path ? 'page' : undefined}
+              title={path}
+              onclick={() => onNavigate(path)}
+            >
+              <span class="files-sidebar-icon" aria-hidden="true">↩</span>
               <span class="files-sidebar-label">{toSidebarLabel(path)}</span>
             </button>
           </li>

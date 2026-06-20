@@ -145,6 +145,13 @@
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   line-clamp: 2;
+  cursor: pointer;
+}
+
+.task-text:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px var(--focus-ring);
+  border-radius: 0;
 }
 
 .task-item.is-complete .task-text {
@@ -309,9 +316,17 @@
 }
 
 .empty-state:hover:not(.is-hidden) {
-  border-color: rgba(207, 206, 205, 0.32);
+  border-color: var(--accent-soft);
   background:
     linear-gradient(180deg, var(--control-bg-hover), var(--glare-soft));
+}
+
+.empty-state:focus-visible {
+  outline: none;
+  border-color: var(--accent-soft);
+  box-shadow:
+    0 0 0 4px var(--focus-ring),
+    var(--shadow-sm);
 }
 
 .empty-state.is-hidden {

@@ -1,7 +1,20 @@
 import { CONFIG } from '../config.js';
 
-function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+function sleep(ms, abortSignal) {
+  if (abortSignal?.aborted) {
+    return Promise.reject(new DOMException('Aborted', 'AbortError'));
+  }
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      abortSignal?.removeEventListener('abort', onAbort);
+      resolve(undefined);
+    }, ms);
+    const onAbort = () => {
+      clearTimeout(timer);
+      reject(new DOMException('Aborted', 'AbortError'));
+    };
+    abortSignal?.addEventListener('abort', onAbort, { once: true });
+  });
 }
 
 function parseRateTimestamp(payload) {
@@ -106,7 +119,11 @@ export async function fetchExchangeRates(controller) {
       lastError = err;
       if (abortSignal?.aborted) break;
       if (attempt < CONFIG.EXCHANGE_MAX_RETRIES - 1) {
-        await sleep(CONFIG.EXCHANGE_RETRY_BASE_MS * (attempt + 1));
+        try {
+          await sleep(CONFIG.EXCHANGE_RETRY_BASE_MS * (attempt + 1), abortSignal);
+        } catch {
+          break;
+        }
       }
     }
   }

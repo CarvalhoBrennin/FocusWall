@@ -43,8 +43,20 @@ export function getVisibleDateKey(currentDateKey, viewOffsetDays) {
   return getLocalDateKey(addDays(parseDateKey(currentDateKey), viewOffsetDays));
 }
 
-function getTasksByDate(data: import('../types/app.js').AppState, dk: string) {
+function getTasksByDate(data: AppState, dk: string) {
   return Array.isArray(data.tasksByDate?.[dk]) ? data.tasksByDate[dk] : [];
+}
+
+/** Garante que ui persista o offset/data visíveis dos stores (evita race com debounce). */
+export function mergePersistedState(state: AppState): AppState {
+  return {
+    ...state,
+    ui: {
+      ...state.ui,
+      lastViewedBaseDate: get(currentDateKey),
+      viewOffsetDays: get(viewOffsetDays)
+    }
+  };
 }
 
 /** Define ui.calendarMonth só quando ainda não há mês salvo (não força mês atual). */
@@ -122,17 +134,7 @@ function buildRateMeta(iso, prefix) {
 }
 
 async function persistStateImmediate() {
-  const $data = get(data);
-  const $currentDateKey = get(currentDateKey);
-  const $viewOffsetDays = get(viewOffsetDays);
-  const updated = {
-    ...$data,
-    ui: {
-      ...$data.ui,
-      lastViewedBaseDate: $currentDateKey,
-      viewOffsetDays: $viewOffsetDays
-    }
-  };
+  const updated = mergePersistedState(get(data));
   await storage.saveState(updated);
   data.set(updated);
 }
@@ -165,13 +167,13 @@ export function setViewOffset(offset: number, options: { maxHistoryDays?: number
 export async function setPreferredMonitorPreference(preferredMonitor: number) {
   if (!Number.isInteger(preferredMonitor) || preferredMonitor < 0) return false;
   const $data = get(data);
-  const nextData = {
+  const nextData = mergePersistedState({
     ...$data,
     ui: {
       ...$data.ui,
       preferredMonitor
     }
-  };
+  });
 
   try {
     await storage.saveState(nextData);
@@ -186,7 +188,7 @@ export async function setPreferredMonitorPreference(preferredMonitor: number) {
 export async function setThemePreference(nextTheme: ThemeId) {
   applyTheme(nextTheme);
   const $data = get(data);
-  const nextData = { ...$data, ui: { ...$data.ui, theme: nextTheme } };
+  const nextData = mergePersistedState({ ...$data, ui: { ...$data.ui, theme: nextTheme } });
   try {
     await storage.saveState(nextData);
     data.set(nextData);
@@ -201,7 +203,7 @@ export async function setLocalePreference(nextLocale: LocaleId) {
   setLocale(nextLocale);
   rebuildFormatters(nextLocale);
   const $data = get(data);
-  const nextData = { ...$data, ui: { ...$data.ui, locale: nextLocale } };
+  const nextData = mergePersistedState({ ...$data, ui: { ...$data.ui, locale: nextLocale } });
   try {
     await storage.saveState(nextData);
     data.set(nextData);
@@ -233,13 +235,13 @@ export async function setFilesLastPath(path: string) {
   if (typeof path !== 'string' || !path.trim()) return;
   const absolute = ensureAbsolutePath(path) || path.trim();
   const $data = get(data);
-  const nextData = {
+  const nextData = mergePersistedState({
     ...$data,
     ui: {
       ...$data.ui,
       filesLastPath: absolute
     }
-  };
+  });
   try {
     await storage.saveState(nextData);
     data.set(nextData);
@@ -298,11 +300,16 @@ export function bootstrapApp() {
         setAppStatus('Modo navegador: usando armazenamento local para pré-visualização.', 'warning');
       }
     } catch (err) {
-      const def = createDefaultState();
       const $currentDateKey = getLocalDateKey(new Date());
-      const d = ensureDateBucket(def, $currentDateKey);
+      currentDateKey.set($currentDateKey);
+      viewOffsetDays.set(VIEW.TODAY);
+      const d = ensureDateBucket(createDefaultState(), $currentDateKey);
       data.set(d);
+      syncCalendarMonthIfStale($currentDateKey);
       applyTheme(d.ui.theme);
+      const bootLocale = d.ui.locale ?? 'pt-BR';
+      setLocale(bootLocale);
+      rebuildFormatters(bootLocale);
       bootstrapError.set(String(err?.message || err));
       setAppStatus('Falha ao carregar o estado local. Um estado vazio foi restaurado.', 'error');
     } finally {
@@ -359,17 +366,18 @@ export async function updateExchangeRates(options: { force?: boolean; silent?: b
     if (before && Number.isFinite(before.usd) && Number.isFinite(before.eur)) {
       prevRates.set({ usd: before.usd, eur: before.eur });
     }
+    const latest = get(data);
     const todayBR = getBrazilDateKey(new Date());
-    const currentBaseline = $data.ratesBaseline;
+    const currentBaseline = latest.ratesBaseline;
     const shouldSetBaseline =
       !currentBaseline || currentBaseline.dayKey !== todayBR;
-    const nextData = {
-      ...$data,
+    const nextData = mergePersistedState({
+      ...latest,
       ratesCache: fresh,
       ratesBaseline: shouldSetBaseline
         ? { dayKey: todayBR, usd: fresh.usd, eur: fresh.eur }
         : currentBaseline
-    };
+    });
     data.set(nextData);
     await storage.saveState(nextData);
     ratesCache.set(fresh);
@@ -447,10 +455,10 @@ export async function addTask(text, priority) {
 
   tasks.splice(getPinnedCount(tasks), 0, newTask);
   const tbd = { ...$data.tasksByDate, [dk]: tasks };
-  const nextData = {
+  const nextData = mergePersistedState({
     ...$data,
     tasksByDate: tbd
-  };
+  });
 
   try {
     await storage.saveState(nextData);
@@ -482,7 +490,7 @@ export async function updateTask(taskId, updater) {
   });
 
   if (!changed) return;
-  const nextData = { ...$data, tasksByDate: { ...$data.tasksByDate, [dk]: next } };
+  const nextData = mergePersistedState({ ...$data, tasksByDate: { ...$data.tasksByDate, [dk]: next } });
   try {
     await storage.saveState(nextData);
     data.set(nextData);
@@ -501,7 +509,7 @@ export async function updateVisibleTaskList(mutator) {
   if (!mutator(next)) return;
 
   const prev = [...tasks];
-  const nextData = { ...$data, tasksByDate: { ...$data.tasksByDate, [dk]: next } };
+  const nextData = mergePersistedState({ ...$data, tasksByDate: { ...$data.tasksByDate, [dk]: next } });
   try {
     await storage.saveState(nextData);
     data.set(nextData);
@@ -578,7 +586,7 @@ export async function deleteTask(id, onUndo) {
   next.splice(i, 1);
 
   editingTaskId.update((ed) => (ed === id ? null : ed));
-  const nextData = { ...$data, tasksByDate: { ...$data.tasksByDate, [dk]: next } };
+  const nextData = mergePersistedState({ ...$data, tasksByDate: { ...$data.tasksByDate, [dk]: next } });
 
   try {
     await storage.saveState(nextData);
@@ -592,8 +600,10 @@ export async function deleteTask(id, onUndo) {
           ? Math.min(deletedIndex, pc)
           : pc + Math.min(Math.max(0, deletedIndex - pinnedCountBefore), current.length - pc);
         current.splice(insertAt, 0, deletedTask);
-        const restored = { ...$d, tasksByDate: { ...$d.tasksByDate, [dk]: current } };
-        storage.saveState(restored).then(() => data.set(restored));
+        const restored = mergePersistedState({ ...$d, tasksByDate: { ...$d.tasksByDate, [dk]: current } });
+        storage.saveState(restored).then(() => data.set(restored)).catch(() => {
+          setAppStatus('Não foi possível restaurar a tarefa.', 'error', get(appDataPath));
+        });
       });
     }
   } catch {
@@ -609,10 +619,12 @@ export async function clearTodayTasks(onConfirm) {
   onConfirm(() => {
     const latest = get(data);
     const current = get(currentDateKey);
-    const nextData = { ...latest, tasksByDate: { ...latest.tasksByDate, [current]: [] } };
+    const nextData = mergePersistedState({ ...latest, tasksByDate: { ...latest.tasksByDate, [current]: [] } });
     storage.saveState(nextData).then(() => {
       data.set(nextData);
       editingTaskId.set(null);
+    }).catch(() => {
+      setAppStatus('Não foi possível limpar as tarefas de hoje.', 'error', get(appDataPath));
     });
   });
 }

@@ -13,7 +13,7 @@ use std::{
     process::{Child, Command, Stdio},
     sync::{
         atomic::{AtomicBool, Ordering},
-        Mutex,
+        LazyLock, Mutex,
     },
     thread,
     time::Duration,
@@ -37,8 +37,21 @@ const CREATE_NO_WINDOW: u32 = 0x08000000;
 struct RuntimeState {
     quitting: AtomicBool,
     dialog_open: AtomicBool,
+    opencode_starting: AtomicBool,
     opencode_server: Mutex<Option<OpencodeServerState>>,
     opencode_client: Mutex<Option<Client>>,
+}
+
+static STATE_WRITE_LOCK: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
+
+struct OpencodeStartingGuard<'a> {
+    state: &'a RuntimeState,
+}
+
+impl Drop for OpencodeStartingGuard<'_> {
+    fn drop(&mut self) {
+        self.state.opencode_starting.store(false, Ordering::SeqCst);
+    }
 }
 
 struct OpencodeServerState {
@@ -378,6 +391,17 @@ fn start_opencode_server(
     path: String,
     state: tauri::State<'_, RuntimeState>,
 ) -> Result<OpencodeServerInfo, String> {
+    if state
+        .opencode_starting
+        .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
+        .is_err()
+    {
+        return Err("Outro arranque do OpenCode ja esta em andamento.".to_string());
+    }
+    let _starting_guard = OpencodeStartingGuard {
+        state: state.inner(),
+    };
+
     let cwd = validate_project_directory(path)?;
     let client = opencode_http_client(&state)?;
 
@@ -1341,6 +1365,10 @@ fn ensure_state_file(path: &Path) -> Result<(), String> {
 }
 
 fn write_state_file(path: &Path, state: &DashboardState) -> Result<(), String> {
+    let _write_guard = STATE_WRITE_LOCK
+        .lock()
+        .map_err(|_| "Falha ao serializar escrita do estado.".to_string())?;
+
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent).map_err(|error| error.to_string())?;
     }

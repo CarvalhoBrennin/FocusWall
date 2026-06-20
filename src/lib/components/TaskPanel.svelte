@@ -127,15 +127,13 @@
     <div class="task-panel-body">
 
       <div
-
         id="execution-panel"
-
         class="panel-view"
-
         class:is-active={$panelTab === 'execution'}
-
+        role="tabpanel"
+        aria-labelledby="execution-tab"
+        tabindex={$panelTab === 'execution' ? 0 : -1}
         aria-hidden={$panelTab !== 'execution'}
-
       >
 
         <Composer />
@@ -162,15 +160,13 @@
       {#if calendarMounted && CalendarPanel}
 
         <div
-
           id="calendar-panel"
-
           class="panel-view"
-
           class:is-active={$panelTab === 'calendar'}
-
+          role="tabpanel"
+          aria-labelledby="calendar-tab"
+          tabindex={$panelTab === 'calendar' ? 0 : -1}
           aria-hidden={$panelTab !== 'calendar'}
-
         >
 
           <CalendarPanel active={$panelTab === 'calendar'} />
@@ -184,15 +180,13 @@
       {#if filesMounted && FilesPanel}
 
         <div
-
           id="files-panel"
-
           class="panel-view"
-
           class:is-active={$panelTab === 'files'}
-
+          role="tabpanel"
+          aria-labelledby="files-tab"
+          tabindex={$panelTab === 'files' ? 0 : -1}
           aria-hidden={$panelTab !== 'files'}
-
         >
 
           <FilesPanel />
@@ -206,15 +200,13 @@
       {#if systemMounted && SystemPanel}
 
         <div
-
           id="system-panel"
-
           class="panel-view"
-
           class:is-active={$panelTab === 'system'}
-
+          role="tabpanel"
+          aria-labelledby="system-tab"
+          tabindex={$panelTab === 'system' ? 0 : -1}
           aria-hidden={$panelTab !== 'system'}
-
         >
 
           <SystemPanel active={$panelTab === 'system'} />
@@ -228,6 +220,9 @@
           id="media-panel"
           class="panel-view"
           class:is-active={$panelTab === 'media'}
+          role="tabpanel"
+          aria-labelledby="media-tab"
+          tabindex={$panelTab === 'media' ? 0 : -1}
           aria-hidden={$panelTab !== 'media'}
         >
           <MediaPanel active={$panelTab === 'media'} />

@@ -20,9 +20,9 @@
 
 <section class="settings-section settings-section--appearance">
   <p class="eyebrow">{$t('settings.theme')}</p>
-  <label class="settings-field">
+  <label class="settings-field" for="settings-theme">
     <span class="sr-only">{$t('settings.theme')}</span>
-    <select value={$data.ui.theme} onchange={handleThemeChange}>
+    <select id="settings-theme" value={$data.ui.theme} onchange={handleThemeChange}>
       {#each THEME_OPTIONS as option}
         <option value={option.id}>{$t(option.labelKey)}</option>
       {/each}
@@ -30,9 +30,9 @@
   </label>
 
   <p class="eyebrow">{$t('settings.locale')}</p>
-  <label class="settings-field">
+  <label class="settings-field" for="settings-locale">
     <span class="sr-only">{$t('settings.locale')}</span>
-    <select value={$data.ui.locale} onchange={handleLocaleChange}>
+    <select id="settings-locale" value={$data.ui.locale} onchange={handleLocaleChange}>
       {#each LOCALE_OPTIONS as option}
         <option value={option.id}>{option.label}</option>
       {/each}

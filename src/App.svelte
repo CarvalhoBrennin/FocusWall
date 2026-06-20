@@ -307,9 +307,9 @@
 
     padding: 0.65rem 0.85rem;
 
-    border: 1px solid rgba(181, 92, 80, 0.24);
+    border: 1px solid var(--danger-soft);
 
-    background: rgba(181, 92, 80, 0.08);
+    background: var(--danger-soft);
 
     color: var(--danger);
 

@@ -16,7 +16,7 @@ static HARDWARE_CACHE: LazyLock<Mutex<Option<HardwareInfo>>> = LazyLock::new(|| 
 const CPU_SAMPLE_MS: u64 = 200;
 const MIN_AGGREGATED_MEMORY_BYTES: u64 = 20 * 1024 * 1024;
 const MIN_BACKGROUND_SEED_BYTES: u64 = 10 * 1024 * 1024;
-const DEFAULT_TOP_APPS: u32 = 20;
+const DEFAULT_TOP_APPS: u32 = 15;
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]

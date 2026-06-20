@@ -75,6 +75,9 @@ fn fetch_spotify_oembed_artwork(client: &Client, track_id: &str) -> Option<Artwo
     }
     let payload: SpotifyOembed = response.json().ok()?;
     let thumb_url = payload.thumbnail_url?;
+    if !super::artwork::is_allowed_remote_image_url(&thumb_url) {
+        return None;
+    }
     let bytes = fetch_url_bytes(client, &thumb_url)?;
     artwork_from_bytes(bytes, None, "spotify-web", false)
 }

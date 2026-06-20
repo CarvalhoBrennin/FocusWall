@@ -1,4 +1,5 @@
 <script>
+  import { tick } from 'svelte';
   import { get } from 'svelte/store';
   import {
     editingTaskId,
@@ -19,15 +20,25 @@
   export let isNew = false;
 
   let editValue = task.text;
+  let editInputEl = $state(null);
 
   $: isEditing = $editingTaskId === task.id;
   $: if (task?.text != null && !isEditing) editValue = task.text;
   $: canMoveUp = index > 0;
   $: canMoveDown = index < tasks.length - 1;
 
-  function startEditing() {
+  async function startEditing() {
     editingTaskId.set(task.id);
     editValue = task.text;
+    await tick();
+    editInputEl?.focus();
+  }
+
+  function handleTextKeydown(e) {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      startEditing();
+    }
   }
 
   function handleCommit() {
@@ -82,6 +93,7 @@
   <div class="task-content">
     {#if isEditing}
       <input
+        bind:this={editInputEl}
         class="task-edit-input"
         type="text"
         maxlength={CONFIG.MAX_TASK_LENGTH}
@@ -92,10 +104,13 @@
         onfocusout={handleEditFocusOut}
       />
     {:else}
-      <!-- svelte-ignore a11y_no_static_element_interactions -->
       <p
         class="task-text"
+        role="button"
+        tabindex="0"
+        aria-label={$t('tasks.edit')}
         ondblclick={(e) => { e.stopPropagation(); startEditing(); }}
+        onkeydown={handleTextKeydown}
       >
         {task.text}
       </p>

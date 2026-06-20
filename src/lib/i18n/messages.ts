@@ -72,6 +72,9 @@ export type MessageKey =
   | 'tasks.delete'
   | 'tasks.deleted'
   | 'tasks.added'
+  | 'tasks.emptyTitle'
+  | 'tasks.emptyCopy'
+  | 'tasks.emptyAction'
   | 'priority.high'
   | 'priority.medium'
   | 'priority.low'
@@ -196,6 +199,9 @@ const messages: Record<LocaleId, Record<MessageKey, string>> = {
     'tasks.delete': 'Excluir tarefa',
     'tasks.deleted': 'Tarefa excluída',
     'tasks.added': 'Tarefa adicionada',
+    'tasks.emptyTitle': 'Quadro aberto.',
+    'tasks.emptyCopy': 'Clique aqui ou registre a primeira tarefa.',
+    'tasks.emptyAction': 'Adicionar primeira tarefa',
     'priority.high': 'Alta',
     'priority.medium': 'Média',
     'priority.low': 'Baixa',
@@ -319,6 +325,9 @@ const messages: Record<LocaleId, Record<MessageKey, string>> = {
     'tasks.delete': 'Delete task',
     'tasks.deleted': 'Task deleted',
     'tasks.added': 'Task added',
+    'tasks.emptyTitle': 'Board is open.',
+    'tasks.emptyCopy': 'Click here or add the first task.',
+    'tasks.emptyAction': 'Add first task',
     'priority.high': 'High',
     'priority.medium': 'Medium',
     'priority.low': 'Low',

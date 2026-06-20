@@ -124,14 +124,17 @@ export type SystemMetricsPollingOptions = {
 
 let pollTimer: ReturnType<typeof setInterval> | null = null;
 let pollInFlight = false;
+let pollingActive = false;
 
 async function pollOnce(options: SystemMetricsPollingOptions) {
-  if (!options.getActive() || options.getPaused() || pollInFlight) return;
+  if (!pollingActive || !options.getActive() || options.getPaused() || pollInFlight) return;
   pollInFlight = true;
   try {
     const snapshot = await fetchSystemSnapshot(options.topApps ?? DEFAULT_TOP_APPS);
+    if (!pollingActive || !options.getActive() || options.getPaused()) return;
     options.onData(snapshot);
   } catch (err) {
+    if (!pollingActive || !options.getActive() || options.getPaused()) return;
     options.onError?.(err instanceof Error ? err.message : String(err));
   } finally {
     pollInFlight = false;
@@ -140,6 +143,7 @@ async function pollOnce(options: SystemMetricsPollingOptions) {
 
 export function startSystemMetricsPolling(options: SystemMetricsPollingOptions) {
   stopSystemMetricsPolling();
+  pollingActive = true;
   void pollOnce(options);
   pollTimer = setInterval(() => {
     void pollOnce(options);
@@ -147,6 +151,7 @@ export function startSystemMetricsPolling(options: SystemMetricsPollingOptions) 
 }
 
 export function stopSystemMetricsPolling() {
+  pollingActive = false;
   if (pollTimer) {
     clearInterval(pollTimer);
     pollTimer = null;

@@ -1,4 +1,6 @@
 <script>
+  import { t } from '../i18n/index.js';
+
   export let hidden = false;
 
   function handleClick() {
@@ -17,15 +19,14 @@
   class="empty-state"
   class:is-hidden={hidden}
   role="button"
-  tabindex="0"
-  aria-label="Adicionar primeira tarefa"
+  tabindex={hidden ? -1 : 0}
+  aria-hidden={hidden}
+  aria-label={$t('tasks.emptyAction')}
   onclick={handleClick}
   onkeydown={handleKeydown}
 >
   <div>
-    <p class="empty-title">Quadro aberto.</p>
-    <p class="empty-copy">
-      Clique aqui ou registre a primeira tarefa.
-    </p>
+    <p class="empty-title">{$t('tasks.emptyTitle')}</p>
+    <p class="empty-copy">{$t('tasks.emptyCopy')}</p>
   </div>
 </div>

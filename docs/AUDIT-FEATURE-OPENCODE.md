@@ -2,7 +2,9 @@
 
 > **Status da UI (Jun/2026):** A aba OpenCode está comentada/oculta em `TaskHeader.svelte` e `TaskPanel.svelte`. Backend, comandos Tauri e componentes permanecem no repositório. Reativar com `OPENCODE_TAB_ENABLED = true` em `src/lib/features.ts`.
 
-> **Data**: 2026-05-24 | **Versao**: 0.1.0 | **Severidade global**: CRITICA — 4 bugs criticos de race condition e validacao
+> **Correções pós-auditoria (Jun/2026):** Parcialmente endereçados — **C2** (`stoppingServer` + await em `destroyServer`), **H1** (`clearTimeout`), **H3** (checagem de campo `error` em `opencode_get_with_retry`), **H4** (early break em `search_project_dirs`), **M1/M2** (`console.warn`). **C1** (mutex durante startup) e **C4** (mutex sob syscalls) permanecem abertos.
+
+> **Data**: 2026-05-24 | **Versao**: 0.1.0 | **Severidade global**: CRITICA — race conditions remanescentes no Rust (C1, C4)
 
 ---
 

@@ -185,17 +185,19 @@ function scheduleNextPoll(options: MediaSessionPollingOptions) {
 }
 
 async function pollOnce(options: MediaSessionPollingOptions) {
-  if (!options.getActive() || options.getPaused() || pollInFlight) return;
+  if (!pollingActive || !options.getActive() || options.getPaused() || pollInFlight) return;
   pollInFlight = true;
   try {
     const snapshot = await fetchMediaSnapshot();
+    if (!pollingActive || !options.getActive() || options.getPaused()) return;
     lastSnapshot = snapshot;
     options.onData(snapshot);
   } catch (err) {
+    if (!pollingActive || !options.getActive() || options.getPaused()) return;
     options.onError?.(err instanceof Error ? err.message : String(err));
   } finally {
     pollInFlight = false;
-    if (options.getActive() && !options.getPaused()) {
+    if (pollingActive && options.getActive() && !options.getPaused()) {
       scheduleNextPoll(options);
     }
   }
