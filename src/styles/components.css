@@ -146,6 +146,12 @@
   -webkit-line-clamp: 2;
   line-clamp: 2;
   cursor: pointer;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  width: 100%;
 }
 
 .task-text:focus-visible {

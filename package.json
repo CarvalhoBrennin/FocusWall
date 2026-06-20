@@ -8,8 +8,10 @@
     "check:setup": "node tools/check-setup.mjs",
     "dev": "vite",
     "build": "vite build",
+    "build:wsl": "wsl npm run build",
     "preview": "vite preview",
     "test": "vitest run",
+    "test:wsl": "wsl npm run test",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "tauri:dev": "tauri dev",
@@ -26,6 +28,10 @@
     "typescript": "^5.9.2",
     "vite": "^8.0.14",
     "vitest": "^3.2.4"
+  },
+  "optionalDependencies": {
+    "@rolldown/binding-win32-x64-msvc": "^1.0.0",
+    "@rollup/rollup-win32-x64-msvc": "^4.46.2"
   },
   "dependencies": {
     "@tauri-apps/api": "~2.10.1",

@@ -62,7 +62,7 @@
   }
 </script>
 
-<div class="calendar-grid-shell" onkeydown={handleGridKeydown}>
+<div class="calendar-grid-shell">
   <div class="calendar-weekdays" role="row" id="calendar-weekdays">
     {#each weekdays as weekday}
       <span class="calendar-weekday" role="columnheader">{weekday}</span>
@@ -73,6 +73,8 @@
     class="calendar-grid"
     role="grid"
     aria-labelledby="calendar-weekdays"
+    tabindex="0"
+    onkeydown={handleGridKeydown}
   >
     {#each cells as cell (cell.dateKey)}
       <CalendarDayCell

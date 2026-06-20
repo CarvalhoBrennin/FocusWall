@@ -53,6 +53,26 @@ for (const check of checks) {
 console.log("");
 
 if (process.platform === "win32") {
+  const nativeProbe = spawnSync(
+    process.execPath,
+    ["-e", "require('@rollup/rollup-win32-x64-msvc')"],
+    { encoding: "utf8", cwd: process.cwd() },
+  );
+
+  if (nativeProbe.status !== 0) {
+    console.log("AVISO Modulos nativos (rollup/rolldown): bloqueados ou ausentes.");
+    console.log("     Se build/test falhar com 'Controle de Aplicativo', use WSL:");
+    console.log("       npm run build:wsl");
+    console.log("       npm run test:wsl");
+    console.log("     Ou desative Smart App Control / allowlist node.exe e cargo.exe.");
+  } else {
+    console.log("OK  Modulos nativos npm (rollup): carregaveis");
+  }
+}
+
+console.log("");
+
+if (process.platform === "win32") {
   const vswherePath = `${process.env["ProgramFiles(x86)"]}\\Microsoft Visual Studio\\Installer\\vswhere.exe`;
   const buildTools = spawnSync(
     vswherePath,

@@ -49,7 +49,7 @@
   );
 
   let buttonEl = $state(null);
-  let wasSelected = $state(selected);
+  let wasSelected = $state(false);
 
   $effect(() => {
     if (selected && !wasSelected && buttonEl) {

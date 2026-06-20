@@ -14,18 +14,18 @@
   import { t } from '../i18n/index.js';
   import TaskIcons from './icons/TaskIcons.svelte';
 
-  export let task;
-  export let index;
-  export let tasks;
-  export let isNew = false;
+  let { task, index, tasks, isNew = false } = $props();
 
-  let editValue = task.text;
+  let editValue = $state('');
   let editInputEl = $state(null);
 
-  $: isEditing = $editingTaskId === task.id;
-  $: if (task?.text != null && !isEditing) editValue = task.text;
-  $: canMoveUp = index > 0;
-  $: canMoveDown = index < tasks.length - 1;
+  let isEditing = $derived($editingTaskId === task.id);
+  let canMoveUp = $derived(index > 0);
+  let canMoveDown = $derived(index < tasks.length - 1);
+
+  $effect(() => {
+    if (task?.text != null && !isEditing) editValue = task.text;
+  });
 
   async function startEditing() {
     editingTaskId.set(task.id);
@@ -104,16 +104,15 @@
         onfocusout={handleEditFocusOut}
       />
     {:else}
-      <p
+      <button
+        type="button"
         class="task-text"
-        role="button"
-        tabindex="0"
         aria-label={$t('tasks.edit')}
         ondblclick={(e) => { e.stopPropagation(); startEditing(); }}
         onkeydown={handleTextKeydown}
       >
         {task.text}
-      </p>
+      </button>
     {/if}
 
     <div class="task-meta">

@@ -1,7 +1,7 @@
 <script>
   import { t } from '../i18n/index.js';
 
-  export let hidden = false;
+  let { hidden = false } = $props();
 
   function handleClick() {
     if (!hidden) document.getElementById('task-input')?.focus();
