@@ -38,7 +38,9 @@
         ? 'Arquivos'
         : $panelTab === 'system'
           ? 'Sistema'
-          : executionHeadline;
+          : $panelTab === 'media'
+            ? 'Mídia'
+            : executionHeadline;
   // opencode: : $panelTab === 'opencode' ? opencodeKicker :
   $: kicker =
     $panelTab === 'calendar'
@@ -47,7 +49,9 @@
         ? 'Desktop'
         : $panelTab === 'system'
           ? 'Desempenho'
-          : historyLabel;
+          : $panelTab === 'media'
+            ? 'now playing'
+            : historyLabel;
 
   $: historySpanDays =
     $panelTab === 'calendar' ? CONFIG.HISTORY_RETENTION_DAYS : CONFIG.HISTORY_VIEW_DAYS;
@@ -121,6 +125,17 @@
         onclick={() => setPanelTab('system')}
       >
         Sistema
+      </button>
+      <button
+        class="panel-tab"
+        class:is-active={$panelTab === 'media'}
+        type="button"
+        role="tab"
+        aria-selected={$panelTab === 'media'}
+        aria-controls="media-panel"
+        onclick={() => setPanelTab('media')}
+      >
+        Mídia
       </button>
       <!-- Vivarium tab archived — set VIVARIUM_ENABLED in src/lib/features.ts to restore.
       <button

@@ -8,7 +8,7 @@ export const settingsModal = writable(null);
 export const panelTab = writable('execution');
 export const opencodeSessionActive = writable(false);
 
-/** @param {'execution' | 'opencode' | 'calendar' | 'files' | 'system' | 'vivarium'} tab */
+/** @param {'execution' | 'opencode' | 'calendar' | 'files' | 'system' | 'media' | 'vivarium'} tab */
 export function setPanelTab(tab) {
   if (tab === 'vivarium' && !VIVARIUM_ENABLED) {
     panelTab.set('execution');
@@ -20,6 +20,7 @@ export function setPanelTab(tab) {
     tab === 'calendar' ||
     tab === 'files' ||
     tab === 'system' ||
+    tab === 'media' ||
     (tab === 'vivarium' && VIVARIUM_ENABLED)
   ) {
     panelTab.set(tab);

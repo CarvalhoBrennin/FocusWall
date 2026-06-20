@@ -18,8 +18,7 @@
 
   let systemMounted = $state(false);
 
-  // Vivarium archived — see src/lib/features.ts
-  // let vivariumMounted = $state(false);
+  let mediaMounted = $state(false);
 
   // let OpenCodePanel = $state(null);
 
@@ -29,7 +28,7 @@
 
   let SystemPanel = $state(null);
 
-  // let VivariumTab = $state(null);
+  let MediaPanel = $state(null);
 
 
 
@@ -90,6 +89,15 @@
 
       }
 
+    }
+
+    if ($panelTab === 'media') {
+      mediaMounted = true;
+      if (!MediaPanel) {
+        import('./media/MediaPanel.svelte').then((mod) => {
+          MediaPanel = mod.default;
+        });
+      }
     }
 
     // Vivarium archived — set VIVARIUM_ENABLED in src/lib/features.ts to restore.
@@ -213,6 +221,17 @@
 
         </div>
 
+      {/if}
+
+      {#if mediaMounted && MediaPanel}
+        <div
+          id="media-panel"
+          class="panel-view"
+          class:is-active={$panelTab === 'media'}
+          aria-hidden={$panelTab !== 'media'}
+        >
+          <MediaPanel active={$panelTab === 'media'} />
+        </div>
       {/if}
 
       <!-- Vivarium panel archived — see src/lib/features.ts

@@ -76,6 +76,30 @@
     overflow: auto;
     max-height: min(42vh, 420px);
     border: 1px solid var(--control-border-soft);
+    scrollbar-width: thin;
+    scrollbar-color: var(--control-border) transparent;
+  }
+
+  .system-apps-table-wrap::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .system-apps-table-wrap::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .system-apps-table-wrap::-webkit-scrollbar-thumb {
+    background: var(--control-border);
+    border-radius: 0;
+  }
+
+  .system-apps-table-wrap::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-soft, var(--control-border));
+  }
+
+  .system-apps-table-wrap::-webkit-scrollbar-corner {
+    background: transparent;
   }
 
   .system-apps-table {

@@ -1,3 +1,4 @@
+mod media;
 mod metrics;
 
 use log::{error, info, warn};
@@ -1772,6 +1773,8 @@ pub fn run() {
                 let _ = window.show();
             }
 
+            media::start_media_events(app.handle().clone());
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -1803,7 +1806,12 @@ pub fn run() {
             open_file,
             get_desktop_path,
             get_well_known_folders,
-            metrics::get_system_snapshot
+            metrics::get_system_snapshot,
+            media::get_media_snapshot,
+            media::get_media_artwork,
+            media::media_toggle_playback,
+            media::media_skip_next,
+            media::media_skip_previous
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application");
