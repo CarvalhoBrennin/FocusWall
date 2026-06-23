@@ -29,7 +29,7 @@ use tauri::{
 const STATE_FILE_NAME: &str = "dashboard-state.json";
 const CORRUPT_FILE_NAME: &str = "dashboard-state.corrupt.json";
 const MAIN_WINDOW_LABEL: &str = "main";
-const STATE_VERSION: u8 = 5;
+const STATE_VERSION: u8 = 6;
 #[cfg(windows)]
 const CREATE_NO_WINDOW: u32 = 0x08000000;
 
@@ -70,6 +70,8 @@ struct DashboardState {
     #[serde(default)]
     calendar_events: Vec<CalendarEvent>,
     #[serde(default)]
+    neural_notes: Vec<NeuralNote>,
+    #[serde(default)]
     rates_cache: Option<RatesCache>,
     #[serde(default)]
     rates_baseline: Option<RatesBaseline>,
@@ -104,6 +106,21 @@ struct CalendarEvent {
     #[serde(default)]
     color: Option<String>,
     created_at: String,
+    updated_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct NeuralNote {
+    #[serde(default)]
+    id: String,
+    #[serde(default)]
+    title: String,
+    #[serde(default)]
+    content: String,
+    #[serde(default)]
+    created_at: String,
+    #[serde(default)]
     updated_at: String,
 }
 
@@ -147,6 +164,8 @@ struct UiState {
     theme: Option<String>,
     #[serde(default)]
     locale: Option<String>,
+    #[serde(default)]
+    last_neural_note_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -165,6 +184,7 @@ impl Default for DashboardState {
             version: STATE_VERSION,
             tasks_by_date: BTreeMap::new(),
             calendar_events: Vec::new(),
+            neural_notes: Vec::new(),
             rates_cache: None,
             rates_baseline: None,
             ui: UiState::default(),
@@ -182,6 +202,7 @@ impl Default for UiState {
             files_last_path: None,
             theme: None,
             locale: None,
+            last_neural_note_id: None,
         }
     }
 }

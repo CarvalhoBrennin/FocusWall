@@ -1,5 +1,19 @@
 # Changelog
 
+### Revisão Neural — terceira passada
+- Corrigida a renomeação de notas para também reescrever wikilinks dentro da própria nota renomeada, evitando que self-links virem links pendentes.
+- Melhorada a inserção de links pelo editor: seleção de texto diferente do alvo agora vira alias Obsidian-style (`[[Alvo|texto selecionado]]`).
+- Ajustado o posicionamento do cursor após inserir links com alias.
+- Adicionados testes de store para renomeação com self-links e testes de inserção de wikilinks com alias.
+
+### Revisão Neural — segunda passada
+- Corrigido o schema nativo Tauri/Rust para persistir `neuralNotes` no app desktop (`STATE_VERSION = 6`).
+- Corrigido `stripWikiLinks()` para respeitar alias como texto visível, mantendo busca por alvo oculto.
+- Corrigida a conversão de menções para não alterar texto dentro de wikilinks ou aliases existentes.
+- Menções soltas agora aparecem mesmo quando a mesma nota também contém um link explícito para o alvo.
+- Adicionados testes de persistência do estado neural e casos de wikilink/alias/menção mista.
+
+
 All notable changes to Focus Dashboard are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
@@ -8,6 +22,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
+- Aba **Neural** — notas conectadas por `[[links]]`, backlinks, menções não vinculadas, busca rápida e grafo local persistido em `neuralNotes`.
+- Revisão da aba **Neural** com preservação de alias/headings em rename, criação de notas a partir de links pendentes, nós pendentes no grafo local e sincronização mais segura do editor.
 
 - Aba **Mídia** — sessão SMTC (Windows), capas HD resolvidas no backend Rust, controles de reprodução
 - Aba **Sistema** — CPU, RAM, temperatura (WMI) e apps com janela visível ([`docs/PLAN-METRICS.md`](docs/PLAN-METRICS.md))

@@ -19,6 +19,7 @@
   let systemMounted = $state(false);
 
   let mediaMounted = $state(false);
+  let neuralMounted = $state(false);
 
   // let OpenCodePanel = $state(null);
 
@@ -29,6 +30,7 @@
   let SystemPanel = $state(null);
 
   let MediaPanel = $state(null);
+  let NeuralPanel = $state(null);
 
 
 
@@ -96,6 +98,15 @@
       if (!MediaPanel) {
         import('./media/MediaPanel.svelte').then((mod) => {
           MediaPanel = mod.default;
+        });
+      }
+    }
+
+    if ($panelTab === 'neural') {
+      neuralMounted = true;
+      if (!NeuralPanel) {
+        import('./neural/NeuralPanel.svelte').then((mod) => {
+          NeuralPanel = mod.default;
         });
       }
     }
@@ -226,6 +237,20 @@
           aria-hidden={$panelTab !== 'media'}
         >
           <MediaPanel active={$panelTab === 'media'} />
+        </div>
+      {/if}
+
+      {#if neuralMounted && NeuralPanel}
+        <div
+          id="neural-panel"
+          class="panel-view"
+          class:is-active={$panelTab === 'neural'}
+          role="tabpanel"
+          aria-labelledby="neural-tab"
+          tabindex={$panelTab === 'neural' ? 0 : -1}
+          aria-hidden={$panelTab !== 'neural'}
+        >
+          <NeuralPanel active={$panelTab === 'neural'} />
         </div>
       {/if}
 

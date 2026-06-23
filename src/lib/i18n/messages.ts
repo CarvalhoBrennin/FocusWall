@@ -45,6 +45,7 @@ export type MessageKey =
   | 'tasks.files'
   | 'tasks.system'
   | 'tasks.media'
+  | 'tasks.neural'
   | 'tasks.panelMode'
   | 'tasks.execution'
   | 'tasks.historyNav'
@@ -53,6 +54,7 @@ export type MessageKey =
   | 'tasks.desktop'
   | 'tasks.performance'
   | 'tasks.nowPlaying'
+  | 'tasks.knowledge'
   | 'tasks.listArea'
   | 'tasks.listLabel'
   | 'tasks.pagination'
@@ -124,7 +126,67 @@ export type MessageKey =
   | 'opencode.spawnFailed'
   | 'opencode.exitedUnexpectedly'
   | 'opencode.starting'
-  | 'opencode.desktopOnly';
+  | 'opencode.desktopOnly'
+  | 'neural.panelLabel'
+  | 'neural.sidebarLabel'
+  | 'neural.editorLabel'
+  | 'neural.relationsLabel'
+  | 'neural.eyebrow'
+  | 'neural.newNote'
+  | 'neural.search'
+  | 'neural.searchPlaceholder'
+  | 'neural.statsNotes'
+  | 'neural.statsLinks'
+  | 'neural.statsOrphans'
+  | 'neural.noNotesFound'
+  | 'neural.emptyEyebrow'
+  | 'neural.emptyTitle'
+  | 'neural.emptyBody'
+  | 'neural.emptyAction'
+  | 'neural.linkTarget'
+  | 'neural.insertLink'
+  | 'neural.saving'
+  | 'neural.noNoteSelected'
+  | 'neural.savedLocally'
+  | 'neural.updatedAt'
+  | 'neural.noteTitle'
+  | 'neural.content'
+  | 'neural.contentPlaceholder'
+  | 'neural.outgoingLinks'
+  | 'neural.localGraph'
+  | 'neural.nodes'
+  | 'neural.noOutgoingLinks'
+  | 'neural.createLink'
+  | 'neural.backlinks'
+  | 'neural.noBacklinks'
+  | 'neural.unlinkedMentions'
+  | 'neural.noUnlinkedMentions'
+  | 'neural.suggestions'
+  | 'neural.noSuggestions'
+  | 'neural.linkMention'
+  | 'neural.deleteNote'
+  | 'neural.deleteConfirmTitle'
+  | 'neural.deleteConfirmBody'
+  | 'neural.deleteConfirmLabel'
+  | 'neural.toastDeleted'
+  | 'neural.toastMentionLinked'
+  | 'neural.toastNoteCreated'
+  | 'neural.toastTitleRequired'
+  | 'neural.noteEmpty'
+  | 'neural.defaultNoteTitle'
+  | 'neural.defaultNoteContent'
+  | 'neural.status.saved'
+  | 'neural.status.updated'
+  | 'neural.status.deleted'
+  | 'neural.status.saveFailedAdd'
+  | 'neural.status.saveFailedUpdate'
+  | 'neural.status.saveFailedDelete'
+  | 'neural.graph.label'
+  | 'neural.graph.empty'
+  | 'neural.graph.noConnections'
+  | 'neural.graph.createNote'
+  | 'neural.graph.openNote'
+  | 'neural.graph.untitled';
 
 const messages: Record<LocaleId, Record<MessageKey, string>> = {
   'pt-BR': {
@@ -172,6 +234,7 @@ const messages: Record<LocaleId, Record<MessageKey, string>> = {
     'tasks.files': 'Arquivos',
     'tasks.system': 'Sistema',
     'tasks.media': 'Mídia',
+    'tasks.neural': 'Neural',
     'tasks.panelMode': 'Modo do painel',
     'tasks.execution': 'Execução',
     'tasks.historyNav': 'Histórico rápido',
@@ -180,6 +243,7 @@ const messages: Record<LocaleId, Record<MessageKey, string>> = {
     'tasks.desktop': 'Desktop',
     'tasks.performance': 'Desempenho',
     'tasks.nowPlaying': 'Tocando agora',
+    'tasks.knowledge': 'Conhecimento conectado',
     'tasks.listArea': 'Área principal de tarefas',
     'tasks.listLabel': 'Lista de tarefas do dia',
     'tasks.pagination': 'Navegação entre páginas',
@@ -251,7 +315,70 @@ const messages: Record<LocaleId, Record<MessageKey, string>> = {
     'opencode.spawnFailed': 'Falha ao iniciar OpenCode.',
     'opencode.exitedUnexpectedly': 'OpenCode encerrou inesperadamente.',
     'opencode.starting': 'Iniciando...',
-    'opencode.desktopOnly': 'OpenCode CLI só está disponível no desktop (Tauri).'
+    'opencode.desktopOnly': 'OpenCode CLI só está disponível no desktop (Tauri).',
+    'neural.panelLabel': 'Neural — notas conectadas',
+    'neural.sidebarLabel': 'Notas neurais',
+    'neural.editorLabel': 'Editor da nota neural',
+    'neural.relationsLabel': 'Backlinks e menções',
+    'neural.eyebrow': 'Knowledge graph',
+    'neural.newNote': 'Nova',
+    'neural.search': 'Busca rápida',
+    'neural.searchPlaceholder': 'Título, texto ou relação...',
+    'neural.statsNotes': 'notas',
+    'neural.statsLinks': 'links',
+    'neural.statsOrphans': 'soltas',
+    'neural.noNotesFound': 'Nenhuma nota encontrada.',
+    'neural.emptyEyebrow': 'Segundo cérebro',
+    'neural.emptyTitle': 'Comece com uma nota e conecte ideias.',
+    'neural.emptyBody':
+      'Use links no formato [[Nome da nota]]. A aba Neural mostra backlinks, menções ainda não vinculadas e um grafo local das relações.',
+    'neural.emptyAction': 'Criar primeira nota',
+    'neural.linkTarget': 'Nota para inserir como link',
+    'neural.insertLink': 'Inserir [[link]]',
+    'neural.saving': 'Salvando…',
+    'neural.noNoteSelected': 'Nenhuma nota selecionada.',
+    'neural.savedLocally': 'Salva localmente.',
+    'neural.updatedAt': 'Atualizada {date}.',
+    'neural.noteTitle': 'Título da nota',
+    'neural.content': 'Conteúdo',
+    'neural.contentPlaceholder':
+      'Escreva notas, projetos, ideias e referências. Exemplo: relacione com [[Outra nota]].',
+    'neural.outgoingLinks': 'Links de saída',
+    'neural.localGraph': 'Grafo local',
+    'neural.nodes': 'nós',
+    'neural.noOutgoingLinks': 'Nenhum link interno no texto.',
+    'neural.createLink': 'Criar {title}',
+    'neural.backlinks': 'Backlinks',
+    'neural.noBacklinks': 'Nenhuma nota aponta para esta.',
+    'neural.unlinkedMentions': 'Menções não vinculadas',
+    'neural.noUnlinkedMentions': 'Nenhuma menção solta ao título atual.',
+    'neural.suggestions': 'Sugestões nesta nota',
+    'neural.noSuggestions': 'Nenhuma nota existente foi citada sem link.',
+    'neural.linkMention': 'Linkar {title}',
+    'neural.deleteNote': 'Excluir nota',
+    'neural.deleteConfirmTitle': 'Excluir nota neural',
+    'neural.deleteConfirmBody':
+      'A nota "{title}" será removida. Links apontando para ela permanecerão como texto no conteúdo das outras notas.',
+    'neural.deleteConfirmLabel': 'Excluir',
+    'neural.toastDeleted': 'Nota neural excluída.',
+    'neural.toastMentionLinked': 'Menção convertida em link interno.',
+    'neural.toastNoteCreated': 'Nota criada a partir do link interno.',
+    'neural.toastTitleRequired': 'O título da nota não pode ficar vazio.',
+    'neural.noteEmpty': 'Nota vazia',
+    'neural.defaultNoteTitle': 'Nova nota',
+    'neural.defaultNoteContent': 'Use [[Nome da nota]] para criar conexões internas.\n\n',
+    'neural.status.saved': 'Nota neural salva localmente.',
+    'neural.status.updated': 'Nota neural atualizada localmente.',
+    'neural.status.deleted': 'Nota neural excluída.',
+    'neural.status.saveFailedAdd': 'Não foi possível salvar a nota neural.',
+    'neural.status.saveFailedUpdate': 'Não foi possível atualizar a nota neural.',
+    'neural.status.saveFailedDelete': 'Não foi possível excluir a nota neural.',
+    'neural.graph.label': 'Grafo local da nota atual',
+    'neural.graph.empty': 'Crie uma nota para iniciar o grafo.',
+    'neural.graph.noConnections': 'Sem conexões ainda. Use [[Nome da nota]] no texto.',
+    'neural.graph.createNote': 'Criar nota {title}',
+    'neural.graph.openNote': 'Abrir {title}',
+    'neural.graph.untitled': 'Sem título'
   },
   'en-US': {
     'app.loading': 'Loading Focus Dashboard...',
@@ -298,6 +425,7 @@ const messages: Record<LocaleId, Record<MessageKey, string>> = {
     'tasks.files': 'Files',
     'tasks.system': 'System',
     'tasks.media': 'Media',
+    'tasks.neural': 'Neural',
     'tasks.panelMode': 'Panel mode',
     'tasks.execution': 'Execution',
     'tasks.historyNav': 'Quick history',
@@ -306,6 +434,7 @@ const messages: Record<LocaleId, Record<MessageKey, string>> = {
     'tasks.desktop': 'Desktop',
     'tasks.performance': 'Performance',
     'tasks.nowPlaying': 'Now playing',
+    'tasks.knowledge': 'Connected knowledge',
     'tasks.listArea': 'Main task area',
     'tasks.listLabel': 'Today\'s task list',
     'tasks.pagination': 'Page navigation',
@@ -377,7 +506,70 @@ const messages: Record<LocaleId, Record<MessageKey, string>> = {
     'opencode.spawnFailed': 'Failed to start OpenCode.',
     'opencode.exitedUnexpectedly': 'OpenCode exited unexpectedly.',
     'opencode.starting': 'Starting...',
-    'opencode.desktopOnly': 'OpenCode CLI is only available on desktop (Tauri).'
+    'opencode.desktopOnly': 'OpenCode CLI is only available on desktop (Tauri).',
+    'neural.panelLabel': 'Neural — connected notes',
+    'neural.sidebarLabel': 'Neural notes',
+    'neural.editorLabel': 'Neural note editor',
+    'neural.relationsLabel': 'Backlinks and mentions',
+    'neural.eyebrow': 'Knowledge graph',
+    'neural.newNote': 'New',
+    'neural.search': 'Quick search',
+    'neural.searchPlaceholder': 'Title, body, or relation...',
+    'neural.statsNotes': 'notes',
+    'neural.statsLinks': 'links',
+    'neural.statsOrphans': 'orphan',
+    'neural.noNotesFound': 'No notes found.',
+    'neural.emptyEyebrow': 'Second brain',
+    'neural.emptyTitle': 'Start with one note and connect ideas.',
+    'neural.emptyBody':
+      'Use links like [[Note name]]. The Neural tab shows backlinks, unlinked mentions, and a local graph of relations.',
+    'neural.emptyAction': 'Create first note',
+    'neural.linkTarget': 'Note to insert as link',
+    'neural.insertLink': 'Insert [[link]]',
+    'neural.saving': 'Saving…',
+    'neural.noNoteSelected': 'No note selected.',
+    'neural.savedLocally': 'Saved locally.',
+    'neural.updatedAt': 'Updated {date}.',
+    'neural.noteTitle': 'Note title',
+    'neural.content': 'Content',
+    'neural.contentPlaceholder':
+      'Write notes, projects, ideas, and references. Example: link to [[Another note]].',
+    'neural.outgoingLinks': 'Outgoing links',
+    'neural.localGraph': 'Local graph',
+    'neural.nodes': 'nodes',
+    'neural.noOutgoingLinks': 'No internal links in the text.',
+    'neural.createLink': 'Create {title}',
+    'neural.backlinks': 'Backlinks',
+    'neural.noBacklinks': 'No note links to this one.',
+    'neural.unlinkedMentions': 'Unlinked mentions',
+    'neural.noUnlinkedMentions': 'No loose mention of the current title.',
+    'neural.suggestions': 'Suggestions in this note',
+    'neural.noSuggestions': 'No existing note was cited without a link.',
+    'neural.linkMention': 'Link {title}',
+    'neural.deleteNote': 'Delete note',
+    'neural.deleteConfirmTitle': 'Delete neural note',
+    'neural.deleteConfirmBody':
+      'The note "{title}" will be removed. Links pointing to it will remain as text in other notes.',
+    'neural.deleteConfirmLabel': 'Delete',
+    'neural.toastDeleted': 'Neural note deleted.',
+    'neural.toastMentionLinked': 'Mention converted to an internal link.',
+    'neural.toastNoteCreated': 'Note created from the internal link.',
+    'neural.toastTitleRequired': 'The note title cannot be empty.',
+    'neural.noteEmpty': 'Empty note',
+    'neural.defaultNoteTitle': 'New note',
+    'neural.defaultNoteContent': 'Use [[Note name]] to create internal connections.\n\n',
+    'neural.status.saved': 'Neural note saved locally.',
+    'neural.status.updated': 'Neural note updated locally.',
+    'neural.status.deleted': 'Neural note deleted.',
+    'neural.status.saveFailedAdd': 'Could not save the neural note.',
+    'neural.status.saveFailedUpdate': 'Could not update the neural note.',
+    'neural.status.saveFailedDelete': 'Could not delete the neural note.',
+    'neural.graph.label': 'Local graph for the current note',
+    'neural.graph.empty': 'Create a note to start the graph.',
+    'neural.graph.noConnections': 'No connections yet. Use [[Note name]] in the text.',
+    'neural.graph.createNote': 'Create note {title}',
+    'neural.graph.openNote': 'Open {title}',
+    'neural.graph.untitled': 'Untitled'
   }
 };
 

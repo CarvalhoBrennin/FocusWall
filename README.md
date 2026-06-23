@@ -11,6 +11,7 @@ O projeto nasceu como um painel pessoal de produtividade e contexto rápido: tar
 - app desktop em Tauri 2
 - interface em Svelte 5
 - bloco de tarefas do dia com histórico
+- aba **Neural** — notas interligadas por `[[links]]`, backlinks, menções não vinculadas e grafo local
 - calendário mensal com eventos
 - painel de arquivos locais (pastas conhecidas + navegação)
 - aba **Mídia** — now playing via SMTC (Windows), capas e controles
@@ -96,6 +97,7 @@ build-bootstrapper.bat
 
 - preview web: `localStorage`
 - app desktop: `dashboard-state.json` no AppData do usuário
+- notas neurais: campo `neuralNotes` no mesmo estado persistido
 - backup manual: exportação JSON nas configurações
 
 ## Fonte externa
@@ -106,6 +108,7 @@ build-bootstrapper.bat
 
 - Métricas do sistema: [`docs/PLAN-METRICS.md`](docs/PLAN-METRICS.md)
 - Painel de arquivos: [`docs/PLAN-FILES.md`](docs/PLAN-FILES.md)
+- Aba Neural: [`docs/PLAN-NEURAL.md`](docs/PLAN-NEURAL.md)
 - Mídia / now playing: [`docs/PLAN-MEDIA.md`](docs/PLAN-MEDIA.md)
 - Auto-update (stub): [`docs/UPDATER.md`](docs/UPDATER.md)
 - Deploy: [`docs/DEPLOY.md`](docs/DEPLOY.md)

@@ -1,0 +1,577 @@
+.neural-panel {
+  display: grid;
+  grid-template-columns: minmax(13rem, 0.72fr) minmax(0, 1.6fr) minmax(14rem, 0.86fr);
+  gap: 0.75rem;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.neural-sidebar,
+.neural-editor-shell,
+.neural-relations {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.neural-sidebar,
+.neural-relations {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.neural-sidebar {
+  padding: 0.75rem;
+  border: 1px solid var(--control-border-soft);
+  background: var(--card-bg-muted);
+}
+
+.neural-sidebar-head,
+.neural-card-head,
+.neural-editor-toolbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.neural-sidebar-head h2,
+.neural-empty-state h2 {
+  margin: 0.15rem 0 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.45rem, 1.6vw, 2rem);
+  line-height: 1;
+  color: var(--light-strong);
+}
+
+.neural-eyebrow {
+  margin: 0;
+  color: var(--light-soft);
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.neural-new-button {
+  min-width: 4.5rem;
+  padding-inline: 0.75rem;
+}
+
+.neural-search {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.neural-search span,
+.neural-title-field span,
+.neural-content-field span {
+  color: var(--light-soft);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.neural-search input,
+.neural-title-field input,
+.neural-content-field textarea,
+.neural-link-tools select {
+  width: 100%;
+  border: 1px solid var(--control-border-soft);
+  border-radius: 0;
+  background: var(--field-bg);
+  color: var(--light-main);
+  font: inherit;
+  outline: none;
+}
+
+.neural-search input,
+.neural-title-field input,
+.neural-link-tools select {
+  min-height: 2.45rem;
+  padding: 0.55rem 0.65rem;
+}
+
+.neural-search input::placeholder,
+.neural-content-field textarea::placeholder {
+  color: var(--field-placeholder);
+}
+
+.neural-search input:focus,
+.neural-title-field input:focus,
+.neural-content-field textarea:focus,
+.neural-link-tools select:focus {
+  border-color: var(--control-border-strong);
+  box-shadow: 0 0 0 4px var(--focus-ring);
+}
+
+.neural-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.35rem;
+}
+
+.neural-stat-grid span {
+  display: grid;
+  gap: 0.14rem;
+  min-width: 0;
+  padding: 0.45rem;
+  border: 1px solid var(--control-border-soft);
+  background: var(--control-bg);
+  color: var(--light-soft);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.neural-stat-grid strong {
+  color: var(--light-strong);
+  font-family: var(--font-display);
+  font-size: 1rem;
+  letter-spacing: 0;
+}
+
+.neural-note-list {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+  gap: 0.4rem;
+  overflow: auto;
+  padding-right: 0.1rem;
+  outline: none;
+}
+
+.neural-note-list:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--focus-ring);
+}
+
+.neural-note-row {
+  display: grid;
+  gap: 0.24rem;
+  width: 100%;
+  padding: 0.6rem;
+  border: 1px solid var(--control-border-soft);
+  background: var(--control-bg);
+  color: var(--light-main);
+  text-align: left;
+  cursor: pointer;
+}
+
+.neural-note-row:hover,
+.neural-note-row.is-active {
+  border-color: var(--control-border-strong);
+  background: var(--control-bg-active);
+}
+
+.neural-note-row strong {
+  overflow: hidden;
+  color: var(--light-strong);
+  font-size: 0.84rem;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.neural-note-row span {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--light-soft);
+  font-size: 0.72rem;
+  line-height: 1.35;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.neural-editor-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.neural-empty-state {
+  display: grid;
+  align-content: center;
+  justify-items: start;
+  gap: 0.8rem;
+  height: 100%;
+  padding: 1.35rem;
+  border: 1px solid var(--control-border-soft);
+  background: var(--card-bg);
+}
+
+.neural-empty-state p {
+  max-width: 52ch;
+  margin: 0;
+  color: var(--light-muted);
+  font-size: 0.92rem;
+  line-height: 1.55;
+}
+
+.neural-empty-state code,
+.neural-empty-graph code {
+  color: var(--light-strong);
+  font-family: var(--font-mono);
+}
+
+.neural-editor-toolbar {
+  align-items: center;
+  min-height: 2.6rem;
+}
+
+.neural-link-tools {
+  display: flex;
+  align-items: stretch;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.neural-link-tools select {
+  width: min(18rem, 38vw);
+}
+
+.neural-save-state {
+  color: var(--light-soft);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-align: right;
+  text-transform: uppercase;
+}
+
+.neural-editor-card {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.8rem;
+  border: 1px solid var(--control-border-soft);
+  background: var(--card-bg-muted);
+}
+
+.neural-title-field,
+.neural-content-field {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.neural-title-field input {
+  min-height: 3rem;
+  color: var(--light-strong);
+  font-family: var(--font-display);
+  font-size: clamp(1.45rem, 1.7vw, 2.05rem);
+  font-weight: 700;
+}
+
+.neural-content-field {
+  flex: 1;
+  min-height: 0;
+}
+
+.neural-content-field textarea {
+  min-height: 12rem;
+  height: 100%;
+  resize: none;
+  padding: 0.75rem;
+  font-family: var(--font-mono);
+  font-size: 0.86rem;
+  line-height: 1.62;
+}
+
+.neural-lower-grid {
+  display: grid;
+  grid-template-columns: minmax(14rem, 0.7fr) minmax(0, 1.3fr);
+  gap: 0.75rem;
+  min-height: 15rem;
+}
+
+.neural-card {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 0.75rem;
+  border: 1px solid var(--control-border-soft);
+  background: var(--card-bg-muted);
+}
+
+.neural-card h3 {
+  margin: 0;
+  color: var(--light-strong);
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.neural-card-head span {
+  display: inline-flex;
+  min-width: 2rem;
+  justify-content: center;
+  padding: 0.2rem 0.45rem;
+  border: 1px solid var(--control-border-soft);
+  background: var(--control-bg);
+  color: var(--light-soft);
+  font-size: 0.66rem;
+  font-weight: 900;
+}
+
+.neural-muted {
+  margin: 0;
+  color: var(--light-soft);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.neural-chip-list,
+.neural-reference-list {
+  display: flex;
+  min-height: 0;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  overflow: auto;
+}
+
+.neural-chip-list--stacked,
+.neural-reference-list {
+  flex-direction: column;
+  flex-wrap: nowrap;
+}
+
+.neural-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 100%;
+  min-height: 1.8rem;
+  padding: 0.32rem 0.55rem;
+  border: 1px solid var(--control-border-soft);
+  background: var(--control-bg);
+  color: var(--light-main);
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.neural-chip:hover {
+  border-color: var(--control-border-strong);
+  background: var(--control-bg-hover);
+}
+
+.neural-chip.is-missing {
+  color: var(--danger);
+  background: var(--danger-soft);
+  border-color: rgba(181, 92, 80, 0.2);
+}
+
+.neural-chip.is-missing:hover {
+  border-color: rgba(181, 92, 80, 0.46);
+  background: rgba(181, 92, 80, 0.16);
+}
+
+.neural-reference {
+  display: grid;
+  gap: 0.24rem;
+  width: 100%;
+  padding: 0.55rem;
+  border: 1px solid var(--control-border-soft);
+  background: var(--control-bg);
+  color: var(--light-main);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.neural-reference:hover {
+  border-color: var(--control-border-strong);
+  background: var(--control-bg-hover);
+}
+
+.neural-reference strong {
+  color: var(--light-strong);
+  font-size: 0.78rem;
+}
+
+.neural-reference span {
+  color: var(--light-soft);
+  font-size: 0.72rem;
+  line-height: 1.35;
+}
+
+.neural-relations-card {
+  flex: 1;
+  min-height: 0;
+}
+
+.neural-delete-button {
+  flex: 0 0 auto;
+  color: var(--danger);
+}
+
+.neural-graph-card {
+  display: grid;
+  place-items: center;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--control-border-soft);
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    rgba(0, 0, 0, 0.18);
+  background-size: 28px 28px;
+}
+
+.neural-graph {
+  width: 100%;
+  height: 100%;
+  min-height: 11rem;
+}
+
+.neural-edge {
+  stroke: rgba(207, 206, 205, 0.28);
+  stroke-width: 1.5;
+}
+
+.neural-edge.is-missing {
+  stroke: rgba(181, 92, 80, 0.42);
+  stroke-dasharray: 5 5;
+}
+
+.neural-node {
+  color: var(--light-main);
+  cursor: pointer;
+  outline: none;
+}
+
+.neural-node circle {
+  fill: rgba(207, 206, 205, 0.12);
+  stroke: rgba(207, 206, 205, 0.36);
+  stroke-width: 1.5;
+}
+
+.neural-node.is-active circle {
+  fill: rgba(207, 206, 205, 0.22);
+  stroke: rgba(241, 236, 236, 0.72);
+  stroke-width: 2;
+}
+
+.neural-node.is-missing circle {
+  fill: rgba(181, 92, 80, 0.12);
+  stroke: rgba(181, 92, 80, 0.58);
+  stroke-dasharray: 4 3;
+}
+
+.neural-node text {
+  fill: rgba(241, 236, 236, 0.72);
+  font-family: var(--font-ui);
+  font-size: 0.74rem;
+  font-weight: 800;
+  paint-order: stroke;
+  stroke: rgba(0, 0, 0, 0.72);
+  stroke-width: 3px;
+}
+
+.neural-node:hover circle,
+.neural-node:focus-visible circle {
+  stroke: rgba(241, 236, 236, 0.95);
+}
+
+.neural-empty-graph {
+  display: grid;
+  justify-items: center;
+  gap: 0.55rem;
+  color: var(--light-muted);
+  text-align: center;
+}
+
+.neural-empty-graph span {
+  display: inline-flex;
+  min-width: 8rem;
+  min-height: 2.4rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0.35rem 0.75rem;
+  border: 1px solid var(--control-border-strong);
+  background: var(--control-bg-active);
+  color: var(--light-strong);
+  font-weight: 900;
+}
+
+.neural-empty-graph p {
+  margin: 0;
+  max-width: 30ch;
+  color: var(--light-soft);
+  font-size: 0.76rem;
+  line-height: 1.4;
+}
+
+.neural-note-list::-webkit-scrollbar,
+.neural-reference-list::-webkit-scrollbar,
+.neural-chip-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.neural-note-list::-webkit-scrollbar-thumb,
+.neural-reference-list::-webkit-scrollbar-thumb,
+.neural-chip-list::-webkit-scrollbar-thumb {
+  background: var(--control-border);
+}
+
+@media (max-width: 1400px) {
+  .neural-panel {
+    grid-template-columns: minmax(12rem, 0.7fr) minmax(0, 1.35fr);
+  }
+
+  .neural-relations {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    min-height: 12rem;
+  }
+
+  .neural-delete-button {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 920px) {
+  .neural-panel,
+  .neural-lower-grid,
+  .neural-relations {
+    grid-template-columns: 1fr;
+    overflow: auto;
+  }
+
+  .neural-sidebar,
+  .neural-editor-shell,
+  .neural-relations {
+    overflow: visible;
+  }
+
+  .neural-note-list,
+  .neural-reference-list,
+  .neural-chip-list {
+    max-height: 16rem;
+  }
+
+  .neural-editor-toolbar,
+  .neural-link-tools {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .neural-link-tools select {
+    width: 100%;
+  }
+
+  .neural-save-state {
+    text-align: left;
+  }
+}

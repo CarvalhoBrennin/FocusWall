@@ -1,7 +1,7 @@
 export const CONFIG = {
   LOCALE: 'pt-BR' as const,
   STORAGE_KEY: 'focus-dashboard-browser-preview',
-  STATE_VERSION: 5,
+  STATE_VERSION: 6,
   MAX_TASK_LENGTH: 180,
   TASKS_PER_PAGE: 6,
   EXCHANGE_API_URL: 'https://economia.awesomeapi.com.br/json/last/USD-BRL,EUR-BRL',

@@ -1,11 +1,13 @@
 import { CONFIG, PRIORITY } from '../config.js';
 import type { AppState } from '../types/app.js';
+import { normalizeNeuralNotes } from './neural.js';
 
 export function createDefaultState(): AppState {
   return {
     version: CONFIG.STATE_VERSION,
     tasksByDate: {},
     calendarEvents: [],
+    neuralNotes: [],
     ratesCache: null,
     ratesBaseline: null,
     ui: {
@@ -13,6 +15,7 @@ export function createDefaultState(): AppState {
       viewOffsetDays: 0,
       calendarMonth: '',
       filesLastPath: '',
+      lastNeuralNoteId: null,
       theme: 'dark',
       locale: CONFIG.LOCALE,
       preferredMonitor: null
@@ -35,6 +38,7 @@ export function normalizeState(candidate) {
     version: CONFIG.STATE_VERSION,
     tasksByDate: normalizeTasksByDate(candidate.tasksByDate),
     calendarEvents: normalizeCalendarEvents(candidate.calendarEvents),
+    neuralNotes: normalizeNeuralNotes(candidate.neuralNotes),
     ratesCache: normalizeRatesCache(candidate.ratesCache),
     ratesBaseline: normalizeRatesBaseline(candidate.ratesBaseline),
     ui: {
@@ -43,6 +47,10 @@ export function normalizeState(candidate) {
       calendarMonth: normalizeMonthKey(candidate.ui?.calendarMonth) || '',
       preferredMonitor: Number.isInteger(candidate.ui?.preferredMonitor) ? candidate.ui.preferredMonitor : null,
       filesLastPath: typeof candidate.ui?.filesLastPath === 'string' ? candidate.ui.filesLastPath : '',
+      lastNeuralNoteId:
+        typeof candidate.ui?.lastNeuralNoteId === 'string' && candidate.ui.lastNeuralNoteId
+          ? candidate.ui.lastNeuralNoteId
+          : null,
       theme:
         candidate.ui?.theme === 'light' || candidate.ui?.theme === 'olive' || candidate.ui?.theme === 'dark'
           ? candidate.ui.theme

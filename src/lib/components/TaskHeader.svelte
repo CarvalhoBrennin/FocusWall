@@ -17,7 +17,8 @@
     { id: 'calendar', labelKey: 'tasks.calendar', panelId: 'calendar-panel' },
     { id: 'files', labelKey: 'tasks.files', panelId: 'files-panel' },
     { id: 'system', labelKey: 'tasks.system', panelId: 'system-panel' },
-    { id: 'media', labelKey: 'tasks.media', panelId: 'media-panel' }
+    { id: 'media', labelKey: 'tasks.media', panelId: 'media-panel' },
+    { id: 'neural', labelKey: 'tasks.neural', panelId: 'neural-panel' }
   ];
 
   $: tasks = $visibleTasks || [];
@@ -45,7 +46,9 @@
           ? $t('tasks.system')
           : $panelTab === 'media'
             ? $t('tasks.media')
-            : executionHeadline;
+            : $panelTab === 'neural'
+              ? $t('tasks.neural')
+              : executionHeadline;
   $: kicker =
     $panelTab === 'calendar'
       ? calendarKicker
@@ -55,7 +58,9 @@
           ? $t('tasks.performance')
           : $panelTab === 'media'
             ? $t('tasks.nowPlaying')
-            : historyLabel;
+            : $panelTab === 'neural'
+              ? $t('tasks.knowledge')
+              : historyLabel;
 
   $: historySpanDays =
     $panelTab === 'calendar' ? CONFIG.HISTORY_RETENTION_DAYS : CONFIG.HISTORY_VIEW_DAYS;
