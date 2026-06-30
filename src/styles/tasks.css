@@ -1,5 +1,5 @@
 .task-panel {
-  padding: clamp(1rem, 1.4vw, 1.3rem);
+  padding: var(--panel-padding);
   border: 1px solid var(--surface-dark-border);
   background: var(--panel-bg);
   animation: panelEnter 620ms ease-out 40ms both;
@@ -16,7 +16,7 @@
   z-index: 1;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: var(--panel-inner-gap);
   height: 100%;
   min-height: 0;
 }
@@ -29,17 +29,17 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 1.2rem;
+  gap: clamp(0.75rem, 1vw, 1.2rem);
   flex-shrink: 0;
-  min-height: 7.35rem;
-  padding: 0.35rem 0 1.05rem;
+  min-height: 0;
+  padding: 0.18rem 0 clamp(0.65rem, 0.9vw, 1rem);
   border-bottom: 1px solid var(--divider);
 }
 
 .task-header h1 {
   margin: 0;
   font-family: var(--font-display);
-  font-size: clamp(2.8rem, 3vw, 4.1rem);
+  font-size: clamp(2.15rem, 2.55vw, 3.55rem);
   font-weight: 700;
   line-height: 0.95;
   letter-spacing: 0;
@@ -47,13 +47,14 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  height: clamp(2.65rem, 2.85vw, 3.9rem);
+  height: auto;
+  max-width: 100%;
 }
 
 .task-header-copy {
   display: flex;
   flex-direction: column;
-  gap: 0.65rem;
+  gap: clamp(0.42rem, 0.6vw, 0.65rem);
   min-width: 0;
   flex: 1;
 }
@@ -63,13 +64,13 @@
 }
 
 .task-kicker {
-  margin: 0 0 0.35rem;
-  font-size: 0.88rem;
+  margin: 0 0 0.28rem;
+  font-size: clamp(0.74rem, 0.76vw, 0.88rem);
   font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--accent-strong);
-  min-height: 1.1rem;
+  min-height: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -79,8 +80,8 @@
   display: inline-flex;
   align-items: stretch;
   flex-wrap: nowrap;
-  gap: 0.28rem;
-  padding: 0.24rem;
+  gap: clamp(0.18rem, 0.28vw, 0.28rem);
+  padding: clamp(0.16rem, 0.22vw, 0.24rem);
   margin-top: 0;
   border: 1px solid var(--control-border-soft);
   background: var(--control-bg);
@@ -95,14 +96,14 @@
 }
 
 .panel-tab {
-  min-width: 6.4rem;
-  padding: 0.48rem 0.72rem;
+  min-width: clamp(4.85rem, 6.05vw, 6.4rem);
+  padding: clamp(0.36rem, 0.46vw, 0.48rem) clamp(0.48rem, 0.64vw, 0.72rem);
   border: 1px solid transparent;
   border-radius: 0;
   background: transparent;
   color: var(--light-muted);
   font: inherit;
-  font-size: 0.82rem;
+  font-size: clamp(0.7rem, 0.72vw, 0.82rem);
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -152,7 +153,7 @@
 }
 
 #execution-panel {
-  gap: 0.75rem;
+  gap: clamp(0.5rem, 0.75vw, 0.75rem);
 }
 
 #execution-panel .task-list-wrap {
@@ -213,7 +214,7 @@
 .opencode-launcher-title {
   margin: 0;
   font-family: var(--font-display);
-  font-size: clamp(1.45rem, 1.8vw, 2rem);
+  font-size: clamp(1.18rem, 1.45vw, 1.8rem);
   font-weight: 700;
   letter-spacing: 0;
   color: var(--light-strong);

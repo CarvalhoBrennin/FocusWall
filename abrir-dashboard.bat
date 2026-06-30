@@ -4,6 +4,13 @@ setlocal
 set "ROOT=%~dp0"
 cd /d "%ROOT%"
 
+if exist "%USERPROFILE%\.cargo\bin" (
+    set "PATH=%USERPROFILE%\.cargo\bin;%PATH%"
+)
+
+call :ENSURE_NPM_DEPS
+if errorlevel 1 exit /b %ERRORLEVEL%
+
 set "INSTALLED=%LOCALAPPDATA%\FocusWall\focus-desktop-dashboard.exe"
 set "RELEASE=%ROOT%src-tauri\target\release\focus-desktop-dashboard.exe"
 set "DIST=%ROOT%dist\index.html"
@@ -42,6 +49,32 @@ goto NOT_FOUND
 echo Modo desenvolvimento: iniciando Vite + Tauri...
 call npm run tauri:dev
 exit /b %ERRORLEVEL%
+
+:ENSURE_NPM_DEPS
+if exist "%ROOT%node_modules\.bin\tauri.cmd" exit /b 0
+echo Dependencias npm nao encontradas. Instalando...
+if exist "%ROOT%package-lock.json" (
+    call npm ci
+) else (
+    call npm install
+)
+if errorlevel 1 (
+    echo.
+    echo Falha ao instalar dependencias npm.
+    echo Verifique se Node.js 20+ esta instalado: node --version
+    echo.
+    pause
+    exit /b 1
+)
+if not exist "%ROOT%node_modules\.bin\tauri.cmd" (
+    echo.
+    echo Tauri CLI nao encontrado apos npm install.
+    echo Execute manualmente na pasta do projeto: npm install
+    echo.
+    pause
+    exit /b 1
+)
+exit /b 0
 
 :BUILD_RELEASE
 if "%SKIP_FOCUSWALL_BUILD%"=="1" exit /b 0

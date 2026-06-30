@@ -176,7 +176,19 @@
   }
 
   .history-nav.is-dormant {
+    width: 0;
+    min-width: 0;
+    max-width: 0;
+    padding-inline: 0;
+    gap: 0;
+    border-width: 0;
+    overflow: hidden;
     visibility: hidden;
     pointer-events: none;
+  }
+
+  .history-nav.is-dormant .history-label,
+  .history-nav.is-dormant .nav-button {
+    display: none;
   }
 </style>

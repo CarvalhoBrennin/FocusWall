@@ -1,8 +1,9 @@
 .calendar-panel {
+  position: relative;
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 0.85rem;
+  gap: clamp(0.55rem, 0.72vw, 0.85rem);
   min-height: 0;
   overflow: hidden;
 }
@@ -10,8 +11,9 @@
 .calendar-toolbar {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  padding: 0.8rem 0.9rem 0;
+  gap: clamp(0.55rem, 0.75vw, 1rem);
+  min-width: 0;
+  padding: clamp(0.55rem, 0.7vw, 0.8rem) clamp(0.62rem, 0.78vw, 0.9rem) 0;
 }
 
 .calendar-toolbar-copy {
@@ -40,9 +42,9 @@
 .calendar-toolbar-actions {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  height: 3.1rem;
-  padding: 0.3rem;
+  gap: clamp(0.28rem, 0.36vw, 0.4rem);
+  height: clamp(2.45rem, 2.8vw, 3.1rem);
+  padding: clamp(0.2rem, 0.28vw, 0.3rem);
   border: 1px solid var(--control-border-soft);
   background: var(--control-bg);
   box-shadow: inset 0 1px 0 var(--glare-soft);
@@ -51,23 +53,23 @@
 .calendar-today-button,
 .calendar-compact-button {
   min-width: auto;
-  min-height: 2.5rem;
-  padding: 0.62rem 0.95rem;
+  min-height: clamp(2.1rem, 2.25vw, 2.5rem);
+  padding: clamp(0.5rem, 0.58vw, 0.62rem) clamp(0.72rem, 0.82vw, 0.95rem);
 }
 
 .calendar-toolbar-actions .nav-button {
-  width: 2.5rem;
-  height: 2.5rem;
-  flex: 0 0 2.5rem;
+  width: clamp(2.1rem, 2.25vw, 2.5rem);
+  height: clamp(2.1rem, 2.25vw, 2.5rem);
+  flex: 0 0 clamp(2.1rem, 2.25vw, 2.5rem);
 }
 
 .calendar-today-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 5.5rem;
-  height: 2.5rem;
-  padding: 0 0.9rem;
+  min-width: clamp(4.5rem, 4.8vw, 5.5rem);
+  height: clamp(2.1rem, 2.25vw, 2.5rem);
+  padding: 0 clamp(0.65rem, 0.75vw, 0.9rem);
   background: var(--control-bg);
   border-color: var(--control-border);
   box-shadow: none;
@@ -77,11 +79,11 @@
 }
 
 .calendar-body {
-  display: grid;
-  grid-template-columns: minmax(0, 1.22fr) minmax(260px, 0.78fr);
-  gap: 0.85rem;
-  flex: 1;
+  display: block;
+  min-width: 0;
+  flex: 0 1 auto;
   min-height: 0;
+  max-height: min(52vh, 28rem);
   overflow: hidden;
 }
 
@@ -102,14 +104,14 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  padding: 0.55rem;
+  padding: clamp(0.38rem, 0.52vw, 0.55rem);
 }
 
 .calendar-weekdays {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 0.35rem;
-  padding: 0 0 0.45rem;
+  gap: clamp(0.18rem, 0.28vw, 0.35rem);
+  padding: 0 0 clamp(0.28rem, 0.38vw, 0.45rem);
 }
 
 .calendar-weekday {
@@ -124,10 +126,9 @@
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  grid-template-rows: repeat(6, minmax(0, 1fr));
-  grid-auto-rows: minmax(0, 1fr);
-  gap: 0.35rem;
-  flex: 1;
+  grid-template-rows: repeat(6, minmax(2.45rem, auto));
+  gap: clamp(0.18rem, 0.28vw, 0.35rem);
+  flex: 0 1 auto;
   min-height: 0;
 }
 
@@ -321,9 +322,10 @@
 .calendar-day-detail {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: clamp(0.48rem, 0.62vw, 0.75rem);
+  min-width: 0;
   overflow: auto;
-  padding: 0.85rem;
+  padding: clamp(0.58rem, 0.75vw, 0.85rem);
 }
 
 .calendar-detail-header {
@@ -469,7 +471,7 @@
 
 .calendar-event-list {
   display: grid;
-  gap: 0.65rem;
+  gap: clamp(0.42rem, 0.56vw, 0.65rem);
 }
 
 .calendar-empty-copy {
@@ -564,7 +566,7 @@
 }
 
 .calendar-form-grid {
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.9fr) minmax(0, 0.9fr);
+  grid-template-columns: minmax(0, 1.12fr) minmax(0, 0.92fr) minmax(0, 0.92fr);
 }
 
 .calendar-field {
@@ -666,4 +668,52 @@
   min-width: auto;
   min-height: 2.55rem;
   padding: 0.62rem 0.9rem;
+}
+
+.calendar-detail-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  border: 0;
+  background: var(--modal-overlay-bg);
+  backdrop-filter: blur(2px);
+}
+
+.calendar-detail-popover {
+  position: fixed;
+  z-index: 121;
+  top: 50%;
+  left: 50%;
+  display: flex;
+  flex-direction: column;
+  width: min(28rem, calc(100vw - 2.5rem));
+  max-height: min(72vh, 34rem);
+  padding: 0.85rem 0.9rem 0.95rem;
+  border: 1px solid var(--control-border-strong);
+  background:
+    linear-gradient(180deg, var(--glare-soft), var(--glare-faint)),
+    var(--panel-bg-soft);
+  box-shadow: var(--shadow-lg);
+  transform: translate(-50%, -50%);
+  overflow: hidden;
+}
+
+.calendar-detail-close {
+  align-self: flex-end;
+  min-width: 2rem;
+  min-height: 2rem;
+  margin-bottom: 0.35rem;
+  padding: 0;
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.calendar-detail-popover .calendar-day-detail {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
 }

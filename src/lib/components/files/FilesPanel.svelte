@@ -233,7 +233,7 @@
 
   .files-explorer {
     display: grid;
-    grid-template-columns: minmax(11rem, 13.5rem) minmax(0, 1fr);
+    grid-template-columns: minmax(9.5rem, 12rem) minmax(0, 1fr);
     gap: 0.65rem;
     flex: 1;
     min-height: 0;
@@ -297,13 +297,9 @@
     color: var(--accent-strong);
   }
 
-  @media (max-width: 920px) {
-    .files-explorer {
-      grid-template-columns: 1fr;
-    }
-
-    .files-sidebar {
-      max-height: 10rem;
+  @media (max-width: 1100px) {
+    :global(.files-sidebar) {
+      max-height: none;
     }
   }
 </style>

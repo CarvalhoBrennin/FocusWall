@@ -1,12 +1,106 @@
-@media (max-width: 1280px) {
+@media (max-width: 1680px) {
+  :root {
+    --shell-padding: clamp(0.8rem, 1.15vw, 1.35rem);
+    --shell-gap: clamp(0.65rem, 1vw, 1.15rem);
+    --rail-column: clamp(16.5rem, 21vw, 22.5rem);
+    --rail-padding: clamp(0.85rem, 1.05vw, 1.25rem);
+    --panel-padding: clamp(0.78rem, 0.95vw, 1.05rem);
+    --panel-inner-gap: clamp(0.55rem, 0.76vw, 0.85rem);
+  }
+
+  .rate-row-top {
+    grid-template-columns: minmax(0, 1fr) minmax(6rem, auto);
+    gap: 0.7rem;
+  }
+
+  .rate-value .rate-number {
+    font-size: clamp(1.45rem, 2.05vw, 2.7rem);
+  }
+}
+
+@media (max-width: 1440px) {
+  :root {
+    --shell-padding: clamp(0.72rem, 0.95vw, 1.1rem);
+    --shell-gap: clamp(0.58rem, 0.8vw, 0.95rem);
+    --rail-column: clamp(16rem, 20vw, 18.5rem);
+    --rail-padding: clamp(0.78rem, 0.9vw, 1rem);
+    --panel-padding: clamp(0.7rem, 0.84vw, 0.95rem);
+    --panel-inner-gap: clamp(0.48rem, 0.65vw, 0.75rem);
+  }
+
+  .app-shell-frame {
+    grid-template-columns: minmax(15.75rem, var(--rail-column)) minmax(0, 1fr);
+  }
+
+  .clock-header,
+  .section-heading {
+    gap: 0.65rem;
+  }
+
+  .section-heading--rates,
+  .rate-row-top {
+    align-items: flex-start;
+  }
+
+  .rate-row-top {
+    grid-template-columns: 1fr;
+  }
+
+  .rate-value-wrap,
+  .rates-status {
+    justify-items: start;
+  }
+
+  .rates-subtitle,
+  .clock-note,
+  .meta-text--rates {
+    line-height: 1.34;
+  }
+
+  .task-header {
+    align-items: flex-start;
+  }
+
+  .panel-tab {
+    letter-spacing: 0.045em;
+  }
+
+  .composer-panel {
+    grid-template-columns: minmax(8rem, 0.24fr) minmax(0, 1fr);
+  }
+
+  .progress-summary--inline {
+    grid-template-columns: minmax(0, 0.62fr) minmax(10rem, 1fr);
+  }
+
+  .calendar-day {
+    padding: 0.34rem;
+  }
+
+  .calendar-day-number {
+    font-size: 0.78rem;
+  }
+
+  .files-explorer {
+    grid-template-columns: minmax(9.5rem, 11.5rem) minmax(0, 1fr);
+  }
+
+  .files-toolbar-row--primary {
+    align-items: flex-start;
+  }
+
+  .system-overview-grid {
+    gap: 0.75rem;
+  }
+
   .opencode-chat {
-    grid-template-columns: minmax(12rem, 16rem) minmax(0, 1fr);
+    grid-template-columns: minmax(11rem, 14rem) minmax(0, 1fr);
     grid-template-rows: 1fr auto;
   }
 
   .opencode-chat-inspector {
     grid-column: 1 / -1;
-    min-height: 14rem;
+    min-height: 12rem;
     flex-direction: row;
     gap: 0.65rem;
   }
@@ -21,16 +115,403 @@
   .opencode-inspector-section--diff {
     border-right: 0;
   }
+
+  .neural-panel {
+    grid-template-columns: minmax(11rem, 0.65fr) minmax(0, 1.35fr);
+  }
+
+  .neural-relations {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.75rem;
+    min-height: 0;
+  }
+
+  .neural-delete-button {
+    grid-column: 1 / -1;
+  }
 }
 
-@media (max-width: 1600px) {
+@media (max-width: 1280px) {
+  :root {
+    --shell-padding: 0.68rem;
+    --shell-gap: 0.62rem;
+    --rail-column: 16rem;
+    --rail-padding: 0.72rem;
+    --panel-padding: 0.68rem;
+    --panel-inner-gap: 0.56rem;
+  }
+
   .app-shell-frame {
-    grid-template-columns: minmax(288px, 0.32fr) minmax(0, 1fr);
+    grid-template-columns: minmax(15.25rem, var(--rail-column)) minmax(0, 1fr);
+  }
+
+  .clock-block,
+  .rates-card {
+    padding: 0.68rem;
+  }
+
+  .clock {
+    font-size: clamp(2.2rem, 4.2vw, 3.75rem);
+  }
+
+  .clock-seconds {
+    font-size: clamp(0.72rem, 1vw, 1rem);
+  }
+
+  .clock-accent,
+  .rates-badge,
+  .status-pill,
+  .rate-market,
+  .rate-pulse,
+  .task-pill,
+  .progress-stat {
+    letter-spacing: 0.055em;
+  }
+
+  .date-line {
+    max-width: 21ch;
+  }
+
+  .rate-row {
+    padding: 0.58rem 0.62rem 0.58rem 0.72rem;
+  }
+
+  .rate-row::before {
+    top: 0.58rem;
+    bottom: 0.58rem;
+  }
+
+  .task-header h1 {
+    font-size: clamp(1.95rem, 2.45vw, 2.85rem);
+  }
+
+  .history-nav {
+    gap: 0.34rem;
+  }
+
+  .history-label {
+    min-width: 5.6rem;
+  }
+
+  .panel-tab {
+    min-width: 3.85rem;
+    padding-inline: 0.42rem;
+    font-size: 0.68rem;
+  }
+
+  .panel-tabs {
+    scrollbar-width: thin;
+  }
+
+  .task-kicker {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+  }
+
+  .rate-value .rate-number {
+    font-size: clamp(1.35rem, 1.85vw, 2.35rem);
+  }
+
+  .status-pill {
+    min-width: 5.25rem;
+  }
+
+  .composer-panel {
+    grid-template-columns: minmax(7rem, 0.22fr) minmax(0, 1fr);
+  }
+
+  .composer-title {
+    font-size: 0.82rem;
+  }
+
+  .progress-title {
+    font-size: 0.64rem;
+    letter-spacing: 0.1em;
+  }
+
+  .progress-footnote,
+  .progress-label,
+  .progress-stat {
+    font-size: 0.74rem;
+  }
+
+  .task-text {
+    font-size: 0.86rem;
+    line-height: 1.28;
+  }
+
+  .task-actions {
+    grid-template-columns: repeat(3, 1.48rem);
+  }
+
+  .task-action,
+  .task-action.move {
+    width: 1.48rem;
+    min-width: 1.48rem;
+    height: 1.48rem;
+  }
+
+  .calendar-toolbar {
+    padding-top: 0.45rem;
+  }
+
+  .calendar-body {
+    max-height: min(48vh, 26rem);
+  }
+
+  .files-explorer {
+    grid-template-columns: minmax(7.5rem, 9rem) minmax(0, 1fr);
+  }
+
+  .neural-lower-grid {
+    grid-template-columns: minmax(12rem, 0.62fr) minmax(0, 1fr);
+    min-height: 0;
+  }
+
+  .calendar-weekday {
+    font-size: 0.6rem;
+    letter-spacing: 0.08em;
+  }
+
+  .calendar-day-markers {
+    gap: 0.14rem;
+  }
+
+  .files-toolbar-row {
+    gap: 0.42rem;
+  }
+
+  .files-action-btn {
+    padding-inline: 0.52rem;
+  }
+
+  .files-search-wrap {
+    min-width: 8rem;
+  }
+
+  .opencode-launcher-toolbar,
+  .opencode-launcher-footer,
+  .opencode-session-bar {
+    grid-template-columns: minmax(0, 1fr);
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .opencode-launcher-toolbar {
+    display: grid;
+  }
+
+  .opencode-launcher-footer .primary-button,
+  .opencode-launcher-toolbar .ghost-button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 1100px) {
+  :root {
+    --rail-column: 15.25rem;
+    --rail-padding: 0.62rem;
+    --panel-padding: 0.62rem;
+  }
+
+  .app-shell-frame {
+    grid-template-columns: minmax(14.75rem, var(--rail-column)) minmax(0, 1fr);
+  }
+
+  .clock-header,
+  .section-heading,
+  .task-header {
+    gap: 0.5rem;
+  }
+
+  .clock-header,
+  .section-heading {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .task-header {
+    flex-wrap: nowrap;
+  }
+
+  .task-header-copy {
+    gap: 0.36rem;
+  }
+
+  .task-kicker {
+    font-size: 0.68rem;
+  }
+
+  .panel-tabs {
+    width: 100%;
+  }
+
+  .panel-tab {
+    min-width: max-content;
+    flex: 1 0 auto;
+  }
+
+  .history-nav {
+    flex-shrink: 0;
+  }
+
+  .nav-button {
+    width: 2rem;
+    height: 2rem;
+  }
+
+  .composer-panel,
+  .progress-summary--inline,
+  .calendar-toolbar,
+  .calendar-detail-header {
+    grid-template-columns: 1fr;
+  }
+
+  .composer-panel,
+  .composer-shell {
+    display: grid;
+  }
+
+  .composer-copy {
+    gap: 0.18rem;
+  }
+
+  .composer-title {
+    max-width: none;
+  }
+
+  .progress-summary--inline {
+    gap: 0.42rem;
+  }
+
+  .calendar-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+  }
+
+  .calendar-toolbar-actions {
+    justify-content: space-between;
+  }
+
+  /* Calendário: detalhe permanece EMPILHADO abaixo do grid de 1100 a 1280
+     (herda a regra do bloco 1280). Não há re-flip para lado-a-lado aqui —
+     isso causava zig-zag de eixo ao redimensionar entre 1100 e 1280. */
+
+  .calendar-form-grid,
+  .calendar-color-group {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .files-explorer {
+    grid-template-columns: minmax(8.75rem, 10rem) minmax(0, 1fr);
+  }
+
+  .files-toolbar-row--primary,
+  .files-toolbar-row--secondary,
+  .files-footer {
+    flex-wrap: wrap;
+  }
+
+  .files-toolbar-actions {
+    margin-left: auto;
+  }
+
+  .system-overview-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .neural-panel {
+    grid-template-columns: minmax(10.5rem, 0.62fr) minmax(0, 1fr);
+  }
+
+  .neural-relations {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.65rem;
+    min-height: 0;
+    max-height: min(36vh, 18rem);
+    overflow: auto;
+  }
+
+  .neural-delete-button {
+    grid-column: 1 / -1;
+  }
+
+  .neural-lower-grid {
+    grid-template-columns: 1fr;
+    min-height: 0;
+  }
+
+  .neural-editor-toolbar,
+  .neural-link-tools {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .neural-link-tools select {
+    width: 100%;
+  }
+
+  .neural-save-state {
+    text-align: left;
+  }
+
+  .files-explorer {
+    grid-template-columns: minmax(7.25rem, 8.5rem) minmax(0, 1fr);
+  }
+
+  .system-overview {
+    padding: 0.65rem;
+  }
+
+  .system-overview-grid {
+    gap: 0.75rem;
+  }
+
+  .system-chips {
+    grid-template-columns: 1fr;
+  }
+
+  .opencode-chat {
+    grid-template-columns: 1fr;
+    overflow: auto;
+  }
+
+  .opencode-chat-sidebar,
+  .opencode-chat-inspector {
+    min-height: 11rem;
+  }
+
+  .opencode-chat-main {
+    min-height: 22rem;
+  }
+}
+
+/* ==========================================================================
+   FALLBACK SOMENTE BROWSER (preview/dev) — html:not(.is-tauri)
+   A janela Tauri nunca fica abaixo de minWidth:1100, então todas as faixas
+   ≤1080px são código morto no app. Ficam isoladas aqui para o preview de
+   navegador (empilhamento em 1 coluna, body rolável), sem poluir o runtime
+   do desktop nem competir por especificidade com o CSS scoped dos componentes.
+   ========================================================================== */
+html:not(.is-tauri) {
+
+@media (max-width: 1060px) and (min-width: 981px) {
+  :root {
+    --rail-column: 14.5rem;
+  }
+
+  .app-shell-frame {
+    grid-template-columns: minmax(14rem, var(--rail-column)) minmax(0, 1fr);
   }
 
   .rate-row-top {
     grid-template-columns: 1fr;
-    align-items: flex-start;
   }
 
   .rate-value-wrap {
@@ -38,25 +519,44 @@
   }
 }
 
-@media (max-width: 1200px) {
+@media (max-width: 980px) {
   body {
     overflow: auto;
+  }
+
+  .info-rail-bottom {
+    width: 100%;
+  }
+
+  .info-rail-bottom .settings-button {
+    width: 100%;
   }
 
   .app-shell {
     height: auto;
     min-height: calc(100vh - var(--taskbar-height));
+    overflow: visible;
   }
 
   .app-shell-frame {
     grid-template-columns: 1fr;
     height: auto;
+    min-height: 0;
+    overflow: visible;
   }
 
   .info-rail {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     align-items: stretch;
+    height: auto;
+    overflow: visible;
+  }
+
+  .info-rail-bottom {
+    grid-column: 1 / -1;
+    margin-top: 0;
+    padding-top: 0;
   }
 
   .task-panel {
@@ -64,42 +564,49 @@
   }
 
   .task-list {
-    display: flex;
-    flex-direction: column;
     max-height: 58vh;
     overflow: auto;
     padding-bottom: 0.2rem;
-    scrollbar-width: thin;
-    scrollbar-color: rgba(241, 236, 236, 0.2) transparent;
   }
 
-  .task-list::-webkit-scrollbar {
-    width: 10px;
-  }
-
-  .task-list::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  .task-list::-webkit-scrollbar-thumb {
-    background: rgba(241, 236, 236, 0.18);
-    border-radius: 0;
-  }
-
-  .task-list::-webkit-scrollbar-thumb:hover {
-    background: rgba(241, 236, 236, 0.28);
-  }
-
-  .calendar-body {
-    grid-template-columns: 1fr;
+  .calendar-body,
+  .files-explorer,
+  .neural-panel {
     overflow: auto;
-    padding-right: 0.1rem;
   }
 
-  .calendar-grid {
-    min-height: 24rem;
-    grid-template-rows: repeat(6, minmax(0, 1fr));
-    grid-auto-rows: minmax(0, 1fr);
+  .neural-relations {
+    display: flex;
+    flex-direction: column;
+    grid-template-columns: 1fr;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .neural-lower-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .neural-sidebar,
+  .neural-editor-shell {
+    min-height: 0;
+    overflow: visible;
+  }
+
+  .neural-note-list,
+  .neural-reference-list,
+  .neural-chip-list {
+    max-height: min(16rem, 34vh);
+  }
+
+  .calendar-day-detail,
+  .files-sidebar,
+  .neural-relations {
+    max-height: none;
+  }
+
+  .files-sidebar {
+    max-height: min(10rem, 22vh);
   }
 
   .opencode-launcher-body {
@@ -111,23 +618,13 @@
   .opencode-project-list {
     max-height: none;
   }
-
-  .opencode-chat {
-    grid-template-columns: 1fr;
-    overflow: auto;
-  }
-
-  .opencode-chat-sidebar,
-  .opencode-chat-inspector {
-    min-height: 12rem;
-  }
-
-  .opencode-chat-main {
-    min-height: 26rem;
-  }
 }
 
-@media (max-width: 920px) {
+@media (max-width: 760px) {
+  .app-shell {
+    padding: 0.85rem;
+  }
+
   .task-header,
   .composer-panel,
   .task-tools {
@@ -142,83 +639,8 @@
     align-self: flex-start;
   }
 
-  .calendar-toolbar,
-  .calendar-detail-header {
+  .info-rail {
     grid-template-columns: 1fr;
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .calendar-toolbar-actions {
-    justify-content: space-between;
-  }
-
-  .calendar-form-grid,
-  .calendar-color-group {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .composer-panel {
-    display: grid;
-  }
-
-  .composer-copy {
-    gap: 0.5rem;
-  }
-
-  .composer-title {
-    max-width: none;
-  }
-
-  .progress-summary--inline {
-    grid-template-columns: 1fr;
-  }
-
-  .opencode-launcher-toolbar,
-  .opencode-launcher-footer,
-  .opencode-session-bar {
-    grid-template-columns: 1fr;
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .opencode-launcher-toolbar {
-    display: grid;
-  }
-
-  .opencode-launcher-footer .primary-button,
-  .opencode-launcher-toolbar .ghost-button {
-    width: 100%;
-  }
-
-  .opencode-composer {
-    grid-template-columns: 1fr;
-  }
-
-  .opencode-composer-actions {
-    flex-direction: row;
-    justify-content: flex-end;
-    align-self: auto;
-  }
-
-  .opencode-composer-actions .primary-button,
-  .opencode-composer-actions .ghost-button {
-    flex: 0 0 auto;
-    min-width: auto;
-  }
-
-  .section-heading--rates {
-    align-items: flex-start;
-  }
-
-  .rates-status {
-    justify-items: start;
-  }
-}
-
-@media (max-width: 720px) {
-  .app-shell {
-    padding: 0.85rem;
   }
 
   .task-item {
@@ -245,10 +667,6 @@
     max-width: 100%;
   }
 
-  .info-rail {
-    grid-template-columns: 1fr;
-  }
-
   .clock-block,
   .rates-card,
   .composer-panel,
@@ -256,22 +674,11 @@
     padding: 0.85rem;
   }
 
-  .clock-header,
-  .section-heading {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .rate-row-top {
-    grid-template-columns: 1fr;
-    align-items: flex-start;
-  }
-
-  .rate-value-wrap {
-    justify-items: start;
-  }
-
-  .composer-entry {
+  .composer-entry,
+  .progress-summary--inline,
+  .calendar-form-grid,
+  .calendar-color-group,
+  .calendar-event-actions {
     grid-template-columns: 1fr;
   }
 
@@ -298,22 +705,6 @@
     gap: 0.24rem;
   }
 
-  .calendar-grid {
-    min-height: 21rem;
-    grid-template-rows: repeat(6, minmax(0, 1fr));
-    grid-auto-rows: minmax(0, 1fr);
-  }
-
-  .calendar-day {
-    padding: 0.42rem;
-  }
-
-  .calendar-form-grid,
-  .calendar-color-group,
-  .calendar-event-actions {
-    grid-template-columns: 1fr;
-  }
-
   .pagination-meta {
     width: 100%;
     justify-content: center;
@@ -324,7 +715,7 @@
   }
 }
 
-@media (max-width: 520px) {
+@media (max-width: 560px) {
   .app-shell {
     padding: 0.6rem;
   }
@@ -386,6 +777,258 @@
   .pagination-controls {
     width: 100%;
     justify-content: space-between;
+  }
+}
+
+}
+/* fim do fallback html:not(.is-tauri) — abaixo, regras de ALTURA valem para
+   Tauri e browser (compactação vertical; jamais trocam o modo de scroll). */
+
+@media (max-height: 840px) and (min-width: 981px) {
+  :root {
+    --shell-padding: 0.68rem;
+    --shell-gap: 0.62rem;
+    --rail-padding: 0.68rem;
+    --panel-padding: 0.68rem;
+    --panel-inner-gap: 0.5rem;
+  }
+
+  .clock-block,
+  .rates-card {
+    gap: 0.48rem;
+    padding: 0.62rem;
+  }
+
+  .clock {
+    font-size: clamp(2.05rem, 4.2vw, 3.7rem);
+  }
+
+  .section-title,
+  .section-title--rates {
+    margin-top: 0.18rem;
+  }
+
+  .rate-list {
+    gap: 0.45rem;
+  }
+
+  .rate-row {
+    padding-block: 0.52rem;
+  }
+
+  .task-header {
+    padding-top: 0;
+    padding-bottom: 0.52rem;
+  }
+
+  .task-header h1 {
+    font-size: clamp(1.85rem, 2.35vw, 2.65rem);
+  }
+
+  .panel-tab {
+    padding-block: 0.32rem;
+  }
+
+  .composer-panel {
+    padding-block: 0.38rem;
+  }
+
+  .progress-card {
+    padding-block: 0.34rem;
+  }
+
+  .calendar-toolbar {
+    padding-top: 0.36rem;
+  }
+
+  .calendar-day-detail {
+    gap: 0.45rem;
+  }
+
+  .app-shell-frame {
+    min-height: 0;
+  }
+
+  .info-rail-bottom {
+    width: 100%;
+  }
+
+  #media-panel,
+  #files-panel,
+  #system-panel,
+  #neural-panel,
+  #calendar-panel {
+    overflow-y: auto;
+  }
+
+  .neural-panel {
+    overflow-y: auto;
+  }
+
+  .neural-content-field textarea {
+    min-height: clamp(4.5rem, 16vh, 8rem);
+  }
+
+  .neural-lower-grid {
+    min-height: 0;
+  }
+
+  .neural-graph {
+    min-height: clamp(5rem, 12vh, 8rem);
+  }
+
+  .media-panel-root .media-scene {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(0, 1fr) auto;
+  }
+
+  .media-panel-root .media-art-cinematic {
+    -webkit-mask-image: linear-gradient(180deg, #000 64%, transparent 100%);
+    mask-image: linear-gradient(180deg, #000 64%, transparent 100%);
+  }
+
+  .media-panel-root .media-empty-stage {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(0, 1fr) auto;
+  }
+
+  .media-panel-root .media-info-panel {
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+    gap: 0.55rem;
+  }
+
+  .media-panel-root .media-eq {
+    display: none;
+  }
+
+  .system-panel-stack {
+    gap: 0.65rem;
+  }
+
+  .system-apps-table-wrap {
+    max-height: min(30vh, 280px);
+  }
+
+  .calendar-day-detail {
+    max-height: min(32vh, 18rem);
+  }
+
+}
+
+@media (max-height: 780px) and (min-width: 981px) {
+  .info-rail-bottom {
+    padding-top: 0.2rem;
+  }
+
+  .rate-copy {
+    gap: 0.3rem;
+  }
+
+  .rate-delta,
+  .meta-text--rates {
+    line-height: 1.26;
+  }
+
+  .task-list-safe-area {
+    padding: 0.18rem 0.18rem 0;
+  }
+
+  .task-list {
+    gap: 0.24rem;
+  }
+
+  .neural-relations {
+    max-height: min(30vh, 16rem);
+  }
+
+  .neural-sidebar-head h2,
+  .neural-empty-state h2 {
+    font-size: clamp(1.25rem, 1.4vw, 1.65rem);
+  }
+
+  .media-panel-root .media-info-panel {
+    padding-block: clamp(0.65rem, 2vh, 1rem);
+  }
+}
+
+@media (max-height: 720px) and (min-width: 981px) {
+  .clock-note,
+  .rates-subtitle,
+  .meta-text--rates {
+    font-size: 0.74rem;
+    line-height: 1.28;
+  }
+
+  .date-line {
+    font-size: 0.78rem;
+  }
+
+  .rate-row {
+    gap: 0.34rem;
+  }
+
+  .rate-sparkline {
+    height: 1.2rem;
+  }
+
+  .composer-panel {
+    grid-template-columns: minmax(7rem, 0.2fr) minmax(0, 1fr);
+  }
+
+  .composer-copy {
+    gap: 0.12rem;
+  }
+
+  .composer-title {
+    font-size: 0.76rem;
+  }
+
+  .progress-body {
+    gap: 0.42rem;
+  }
+
+  .task-pagination {
+    padding-top: 0.42rem;
+  }
+
+  .calendar-event-item,
+  .calendar-task-preview-item,
+  .file-row {
+    padding-block: 0.42rem;
+  }
+
+  .neural-content-field textarea {
+    min-height: clamp(4rem, 14vh, 6.5rem);
+  }
+
+  .neural-graph {
+    min-height: clamp(4.5rem, 10vh, 7rem);
+  }
+
+  .neural-relations {
+    max-height: min(28vh, 14rem);
+  }
+
+  .media-panel-root .media-marquee-text {
+    font-size: clamp(1.25rem, 4cqw, 1.75rem);
+  }
+
+  .opencode-chat {
+    min-height: 18rem;
+  }
+
+  .opencode-chat-main {
+    min-height: 14rem;
+  }
+
+  .system-overview {
+    padding: 0.55rem;
+    gap: 0.65rem;
+  }
+
+  .system-apps-table-wrap {
+    max-height: min(26vh, 240px);
   }
 }
 

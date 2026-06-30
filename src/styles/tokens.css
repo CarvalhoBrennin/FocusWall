@@ -86,10 +86,23 @@
   --space-6: 2rem;
   --space-7: 2.6rem;
   --space-8: 3.4rem;
+  --shell-padding: clamp(0.9rem, 1.45vw, 1.75rem);
+  --shell-gap: clamp(0.75rem, 1.2vw, 1.45rem);
+  --rail-column: clamp(17.25rem, 22vw, 25.5rem);
+  --rail-padding: clamp(1rem, 1.35vw, 1.55rem);
+  --panel-padding: clamp(0.85rem, 1.05vw, 1.2rem);
+  --panel-inner-gap: clamp(0.65rem, 0.9vw, 1rem);
   --transition-fast: 160ms ease;
   --transition: 260ms cubic-bezier(0.2, 0.85, 0.25, 1);
   --transition-minimal: 50ms linear;
   --font-ui: "Manrope", "Segoe UI", sans-serif;
   --font-display: "Orbitron", "Trebuchet MS", sans-serif;
   --font-mono: "Cascadia Mono", "Consolas", "Lucida Console", monospace;
+}
+
+/* Desktop-app-first: a base é o modo Tauri (janela nativa, wall alwaysOnBottom).
+   --taskbar-height reserva a faixa da barra de tarefas real do Windows.
+   No preview de browser não existe barra do SO, então a reserva é zerada. */
+html:not(.is-tauri) {
+  --taskbar-height: 0px;
 }

@@ -177,4 +177,10 @@
   .files-sidebar::-webkit-scrollbar-thumb {
     background: var(--surface-dark-border);
   }
+
+  @media (max-width: 980px) {
+    .files-sidebar {
+      max-height: min(10rem, 22vh);
+    }
+  }
 </style>

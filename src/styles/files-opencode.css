@@ -1,8 +1,9 @@
 .history-nav {
   display: inline-flex;
   align-items: center;
-  gap: 0.7rem;
-  padding: 0.35rem;
+  gap: clamp(0.42rem, 0.6vw, 0.7rem);
+  min-width: 0;
+  padding: clamp(0.24rem, 0.32vw, 0.35rem);
   border-radius: 0;
   background: var(--control-bg);
   border: 1px solid var(--control-border-soft);
@@ -30,8 +31,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2.5rem;
-  height: 2.5rem;
+  width: clamp(2.1rem, 2.15vw, 2.5rem);
+  height: clamp(2.1rem, 2.15vw, 2.5rem);
   border: 1px solid var(--control-border-strong);
   border-radius: 0;
   background: var(--control-bg);
@@ -53,19 +54,20 @@
 }
 
 .history-label {
-  min-width: 7.8rem;
+  min-width: clamp(5.8rem, 6.4vw, 7.8rem);
   text-align: center;
-  font-size: 0.92rem;
+  font-size: clamp(0.76rem, 0.78vw, 0.92rem);
   font-weight: 800;
   color: var(--light-main);
 }
 
 .composer-panel {
   display: grid;
-  grid-template-columns: minmax(160px, 0.3fr) minmax(0, 1fr);
-  gap: 0.75rem;
+  grid-template-columns: minmax(9rem, 0.28fr) minmax(0, 1fr);
+  gap: clamp(0.5rem, 0.7vw, 0.75rem);
+  min-width: 0;
   align-items: center;
-  padding: 0.5rem 0.75rem;
+  padding: clamp(0.42rem, 0.55vw, 0.5rem) clamp(0.55rem, 0.75vw, 0.75rem);
   border-radius: 0;
   border: 1px solid var(--control-border-soft);
   background:
@@ -86,7 +88,7 @@
 .composer-title {
   margin: 0;
   font-family: var(--font-ui);
-  font-size: 0.98rem;
+  font-size: clamp(0.82rem, 0.85vw, 0.98rem);
   font-weight: 850;
   line-height: 1.18;
   letter-spacing: 0;
@@ -110,7 +112,7 @@
 .composer-entry {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 0.55rem;
+  gap: clamp(0.42rem, 0.52vw, 0.55rem);
   align-items: center;
 }
 
@@ -118,8 +120,8 @@
 .task-edit-input {
   width: 100%;
   min-width: 0;
-  min-height: 2.35rem;
-  padding: 0.5rem 0.75rem;
+  min-height: clamp(2.08rem, 2.15vw, 2.35rem);
+  padding: clamp(0.42rem, 0.48vw, 0.5rem) clamp(0.58rem, 0.65vw, 0.75rem);
   border-radius: var(--radius-lg);
   border: 1px solid var(--control-border-strong);
   background: var(--field-bg);
@@ -143,9 +145,9 @@
 }
 
 .primary-button {
-  min-width: 8.2rem;
-  min-height: 2.35rem;
-  padding: 0.5rem 0.95rem;
+  min-width: clamp(6.7rem, 7vw, 8.2rem);
+  min-height: clamp(2.08rem, 2.15vw, 2.35rem);
+  padding: clamp(0.42rem, 0.48vw, 0.5rem) clamp(0.72rem, 0.85vw, 0.95rem);
   background: var(--accent);
   color: var(--bg-0);
   font-weight: 800;
@@ -159,7 +161,7 @@
 }
 
 .ghost-button {
-  padding: 0.85rem 1.15rem;
+  padding: clamp(0.62rem, 0.75vw, 0.85rem) clamp(0.82rem, 0.95vw, 1.15rem);
   background: var(--control-bg-active);
   border-color: var(--control-border-strong);
   color: var(--light-main);
@@ -204,8 +206,8 @@ input:disabled {
 
 .progress-card {
   display: grid;
-  gap: 0.55rem;
-  padding: 0.55rem 0.8rem;
+  gap: clamp(0.38rem, 0.5vw, 0.55rem);
+  padding: clamp(0.45rem, 0.55vw, 0.55rem) clamp(0.6rem, 0.7vw, 0.8rem);
   border-radius: var(--radius-lg);
   border: 1px solid var(--control-border-soft);
   background: var(--panel-bg-soft);
@@ -216,11 +218,11 @@ input:disabled {
 
 .progress-summary--inline {
   margin-top: 0;
-  grid-template-columns: minmax(0, 0.88fr) minmax(220px, 1fr);
+  grid-template-columns: minmax(0, 0.75fr) minmax(11rem, 1fr);
   align-items: center;
-  gap: 0.65rem 0.85rem;
-  min-height: 2.75rem;
-  padding: 0.38rem 0.65rem;
+  gap: clamp(0.45rem, 0.6vw, 0.65rem) clamp(0.55rem, 0.75vw, 0.85rem);
+  min-height: clamp(2.25rem, 2.45vw, 2.75rem);
+  padding: clamp(0.3rem, 0.4vw, 0.38rem) clamp(0.52rem, 0.6vw, 0.65rem);
   background:
     linear-gradient(180deg, var(--glare-soft), var(--glare-faint));
 }
@@ -278,6 +280,7 @@ input:disabled {
 .progress-stat {
   display: inline-flex;
   align-items: center;
+  min-width: 0;
   min-height: 1.65rem;
   padding: 0.2rem 0.58rem;
   border-radius: 0;
@@ -291,8 +294,8 @@ input:disabled {
 
 .progress-footnote {
   margin: 0;
-  font-size: 0.9rem;
-  line-height: 1.5;
+  font-size: clamp(0.76rem, 0.78vw, 0.9rem);
+  line-height: 1.4;
   color: var(--light-muted);
 }
 
@@ -302,7 +305,7 @@ input:disabled {
   flex-direction: column;
   flex: 1;
   min-height: 0;
-  padding: 0.35rem;
+  padding: clamp(0.22rem, 0.32vw, 0.35rem);
   border-radius: 0;
   overflow: hidden;
   background:
@@ -335,7 +338,7 @@ input:disabled {
   display: flex;
   flex-direction: column;
   flex: 1;
-  gap: 0.42rem;
+  gap: clamp(0.28rem, 0.38vw, 0.42rem);
   min-height: 0;
   margin: 0;
   padding: 0.08rem 0.08rem 0.35rem;
@@ -364,10 +367,10 @@ input:disabled {
   display: grid;
   grid-template-columns: 1.15rem minmax(0, 1fr) auto;
   align-items: center;
-  gap: 0.62rem;
+  gap: clamp(0.42rem, 0.52vw, 0.62rem);
   min-height: 0;
   height: auto;
-  padding: 0.52rem 0.58rem 0.52rem 0.82rem;
+  padding: clamp(0.42rem, 0.5vw, 0.52rem) clamp(0.48rem, 0.55vw, 0.58rem) clamp(0.42rem, 0.5vw, 0.52rem) clamp(0.68rem, 0.72vw, 0.82rem);
   border-radius: 0;
   border: 1px solid var(--control-border-soft);
   background:
@@ -380,6 +383,14 @@ input:disabled {
     background-color var(--transition-fast);
   isolation: isolate;
   flex-shrink: 0;
+}
+
+.task-content {
+  min-width: 0;
+}
+
+.task-meta {
+  min-width: 0;
 }
 
 .task-item::before {

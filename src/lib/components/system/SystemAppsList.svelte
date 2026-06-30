@@ -155,4 +155,16 @@
     text-align: right;
     white-space: nowrap;
   }
+
+
+  @media (max-height: 840px) and (min-width: 981px) {
+    .system-apps-table-wrap {
+      max-height: min(34vh, 320px);
+    }
+
+    .system-apps-table th,
+    .system-apps-table td {
+      padding-block: 0.42rem;
+    }
+  }
 </style>

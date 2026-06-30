@@ -91,9 +91,6 @@
     text-overflow: ellipsis;
   }
 
-  @media (max-width: 720px) {
-    .system-overview-grid {
-      grid-template-columns: 1fr;
-    }
-  }
+  /* Compactação ≤1100px centralizada em responsive.css (.system-overview) para
+     evitar divergência scoped vs global no mesmo breakpoint. */
 </style>

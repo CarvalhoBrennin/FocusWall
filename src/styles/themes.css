@@ -157,6 +157,8 @@ html[data-theme='olive'] .app-shell {
 html.is-tauri body {
   overflow: hidden;
   background: transparent !important;
+  /* O shell já usa calc(100dvh - var(--taskbar-height)); padding aqui duplicava a reserva. */
+  padding-bottom: 0;
 }
 
 html.is-tauri {
@@ -164,17 +166,11 @@ html.is-tauri {
 }
 
 html.is-tauri .app-shell {
-  height: calc(100vh - var(--taskbar-height));
-  padding: 1.25rem;
+  height: calc(100dvh - var(--taskbar-height));
+  padding: var(--shell-padding);
 }
 
-@media (max-width: 1200px) {
-  html.is-tauri body {
-    overflow: hidden;
-  }
-
-  html.is-tauri .app-shell {
-    height: calc(100vh - var(--taskbar-height));
-    min-height: calc(100vh - var(--taskbar-height));
-  }
-}
+/* No Tauri o body NUNCA rola: o shell é fixo e cada coluna (rail / painel ativo)
+   rola internamente. Em altura baixa (≤800/≤720) a resposta é compactar, não
+   transformar o dashboard em página rolável. Por isso não há aqui override de
+   height:auto / overflow:auto — isso vive apenas no fallback html:not(.is-tauri). */
