@@ -162,6 +162,7 @@ export type MediaSessionPollingOptions = {
 
 let pollTimer: ReturnType<typeof setInterval> | null = null;
 let pollInFlight = false;
+let pollPending = false;
 let lastSnapshot: MediaSnapshot | null = null;
 let pollingActive = false;
 let unlistenChanged: UnlistenFn | null = null;
@@ -186,7 +187,11 @@ function scheduleNextPoll(options: MediaSessionPollingOptions) {
 }
 
 async function pollOnce(options: MediaSessionPollingOptions) {
-  if (!pollingActive || !options.getActive() || options.getPaused() || pollInFlight) return;
+  if (!pollingActive || !options.getActive() || options.getPaused()) return;
+  if (pollInFlight) {
+    pollPending = true;
+    return;
+  }
   pollInFlight = true;
   try {
     const snapshot = await fetchMediaSnapshot();
@@ -198,6 +203,12 @@ async function pollOnce(options: MediaSessionPollingOptions) {
     options.onError?.(err instanceof Error ? err.message : String(err));
   } finally {
     pollInFlight = false;
+    if (pollPending && pollingActive && options.getActive() && !options.getPaused()) {
+      pollPending = false;
+      void pollOnce(options);
+      return;
+    }
+    pollPending = false;
     if (pollingActive && options.getActive() && !options.getPaused()) {
       scheduleNextPoll(options);
     } else if (pollTimer) {
@@ -240,6 +251,7 @@ export function stopMediaSessionPolling() {
   pollingActive = false;
   changeListenerGeneration += 1;
   changeListenerPending = false;
+  pollPending = false;
   if (pollTimer) {
     clearInterval(pollTimer);
     pollTimer = null;

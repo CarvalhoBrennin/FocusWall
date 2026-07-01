@@ -1,6 +1,7 @@
 use super::MediaSnapshot;
 use base64::{engine::general_purpose::STANDARD, Engine as _};
 use image::GenericImageView;
+use std::collections::HashSet;
 use std::hash::{Hash, Hasher};
 use std::sync::mpsc::{self, RecvTimeoutError, SyncSender, TrySendError};
 use std::sync::{LazyLock, Mutex, OnceLock};
@@ -160,6 +161,12 @@ pub fn skip_previous() -> Result<(), String> {
     })
 }
 
+/// Lê a capa da sessão ativa para resolução de artwork (sempre com base64).
+pub fn read_cover_art_for_artwork(
+) -> Result<(Option<String>, Option<String>, Option<u32>, Option<u32>), String> {
+    run_on_worker(read_cover_art_for_artwork_impl)
+}
+
 // ---------------------------------------------------------------------------
 // Implementação (sempre executada na thread de mídia / MTA)
 // ---------------------------------------------------------------------------
@@ -246,6 +253,8 @@ fn clear_pin() {
 
 static EVENT_APP: OnceLock<AppHandle> = OnceLock::new();
 static LAST_EMIT: LazyLock<Mutex<Option<Instant>>> = LazyLock::new(|| Mutex::new(None));
+static SUBSCRIBED_SESSIONS: LazyLock<Mutex<HashSet<String>>> =
+    LazyLock::new(|| Mutex::new(HashSet::new()));
 const EMIT_THROTTLE: Duration = Duration::from_millis(250);
 
 fn emit_media_changed() {
@@ -282,21 +291,75 @@ pub fn start_event_bridge(app: AppHandle) {
     }
 }
 
+fn session_subscription_key(session: &GlobalSystemMediaTransportControlsSession) -> String {
+    let app_id = session
+        .SourceAppUserModelId()
+        .map(|s| s.to_string())
+        .unwrap_or_default();
+    format!("{app_id}:{:?}", std::ptr::from_ref(session))
+}
+
+fn subscribe_session_events(session: &GlobalSystemMediaTransportControlsSession) -> Result<(), String> {
+    let key = session_subscription_key(session);
+    if let Ok(mut subscribed) = SUBSCRIBED_SESSIONS.lock() {
+        if !subscribed.insert(key) {
+            return Ok(());
+        }
+    }
+
+    session
+        .MediaPropertiesChanged(&TypedEventHandler::new(move |_, _| {
+            emit_media_changed();
+            Ok(())
+        }))
+        .map_err(|e| e.to_string())?;
+    session
+        .PlaybackInfoChanged(&TypedEventHandler::new(move |_, _| {
+            emit_media_changed();
+            Ok(())
+        }))
+        .map_err(|e| e.to_string())?;
+    session
+        .TimelinePropertiesChanged(&TypedEventHandler::new(move |_, _| {
+            emit_media_changed();
+            Ok(())
+        }))
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+fn ensure_session_subscriptions() -> Result<(), String> {
+    let manager = get_manager()?;
+    let sessions = manager.GetSessions().map_err(|e| e.to_string())?;
+    let count = sessions.Size().map_err(|e| e.to_string())?;
+    for index in 0..count {
+        let Ok(session) = sessions.GetAt(index) else {
+            continue;
+        };
+        if let Err(err) = subscribe_session_events(&session) {
+            log::debug!("Falha ao subscrever eventos da sessão SMTC: {err}");
+        }
+    }
+    Ok(())
+}
+
 fn register_session_events() -> Result<(), String> {
     let manager = get_manager()?;
     manager
         .CurrentSessionChanged(&TypedEventHandler::new(move |_, _| {
             emit_media_changed();
+            let _ = ensure_session_subscriptions();
             Ok(())
         }))
         .map_err(|e| e.to_string())?;
     manager
         .SessionsChanged(&TypedEventHandler::new(move |_, _| {
             emit_media_changed();
+            let _ = ensure_session_subscriptions();
             Ok(())
         }))
         .map_err(|e| e.to_string())?;
-    Ok(())
+    ensure_session_subscriptions()
 }
 
 fn get_manager() -> Result<GlobalSystemMediaTransportControlsSessionManager, String> {
@@ -506,16 +569,7 @@ fn friendly_app_name(aumid: &str) -> String {
 fn read_properties(
     session: &GlobalSystemMediaTransportControlsSession,
 ) -> Option<GlobalSystemMediaTransportControlsSessionMediaProperties> {
-    let props = session.TryGetMediaPropertiesAsync().ok()?.get().ok()?;
-    let title = props.Title().map(|s| s.to_string()).unwrap_or_default();
-    let artist = props.Artist().map(|s| s.to_string()).unwrap_or_default();
-    let album = props.AlbumTitle().map(|s| s.to_string()).unwrap_or_default();
-
-    if !title.trim().is_empty() || !artist.trim().is_empty() || !album.trim().is_empty() {
-        Some(props)
-    } else {
-        None
-    }
+    session.TryGetMediaPropertiesAsync().ok()?.get().ok()
 }
 
 fn detect_image_mime(bytes: &[u8]) -> &'static str {
@@ -532,9 +586,31 @@ fn detect_image_mime(bytes: &[u8]) -> &'static str {
     }
 }
 
+fn read_cover_art_for_artwork_impl(
+) -> Result<(Option<String>, Option<String>, Option<u32>, Option<u32>), String> {
+    let Some(data) = active_session_data() else {
+        return Ok((None, None, None, None));
+    };
+    let track_key = super::artwork::track_key(
+        &data.identity.artist,
+        &data.identity.album,
+        &data.identity.title,
+        &data.identity.app_id,
+    );
+    Ok(read_cover_art_inner(&data.props, &track_key, false))
+}
+
 fn read_cover_art(
     props: &GlobalSystemMediaTransportControlsSessionMediaProperties,
     track_key: &str,
+) -> (Option<String>, Option<String>, Option<u32>, Option<u32>) {
+    read_cover_art_inner(props, track_key, true)
+}
+
+fn read_cover_art_inner(
+    props: &GlobalSystemMediaTransportControlsSessionMediaProperties,
+    track_key: &str,
+    allow_omit: bool,
 ) -> (Option<String>, Option<String>, Option<u32>, Option<u32>) {
     let thumb = match props.Thumbnail() {
         Ok(thumb) => thumb,
@@ -589,8 +665,10 @@ fn read_cover_art(
     let cover_width = if width > 0 { Some(width) } else { None };
     let cover_height = if height > 0 { Some(height) } else { None };
     let hash = hash_cover_bytes(&bytes);
-    let omit_base64 = cover_should_omit(track_key, hash);
-    remember_sent_cover(track_key, hash);
+    let omit_base64 = allow_omit && cover_should_omit(track_key, hash);
+    if allow_omit {
+        remember_sent_cover(track_key, hash);
+    }
 
     (
         if omit_base64 {
@@ -692,7 +770,7 @@ fn read_media_snapshot_impl() -> Result<MediaSnapshot, String> {
 fn toggle_playback_impl(
     session: &GlobalSystemMediaTransportControlsSession,
 ) -> Result<bool, String> {
-    if session
+    let result = if session
         .TryTogglePlayPauseAsync()
         .map_err(|e| e.to_string())?
         .get()
@@ -700,26 +778,29 @@ fn toggle_playback_impl(
     {
         let info = session.GetPlaybackInfo().map_err(|e| e.to_string())?;
         let status = info.PlaybackStatus().map_err(|e| e.to_string())?;
-        return Ok(status == GlobalSystemMediaTransportControlsSessionPlaybackStatus::Playing);
-    }
-
-    let info = session.GetPlaybackInfo().map_err(|e| e.to_string())?;
-    let status = info.PlaybackStatus().map_err(|e| e.to_string())?;
-    if status == GlobalSystemMediaTransportControlsSessionPlaybackStatus::Playing {
-        session
-            .TryPauseAsync()
-            .map_err(|e| e.to_string())?
-            .get()
-            .map_err(|e| e.to_string())?;
-        Ok(false)
+        Ok(status == GlobalSystemMediaTransportControlsSessionPlaybackStatus::Playing)
     } else {
-        session
-            .TryPlayAsync()
-            .map_err(|e| e.to_string())?
-            .get()
-            .map_err(|e| e.to_string())?;
-        Ok(true)
-    }
+        let info = session.GetPlaybackInfo().map_err(|e| e.to_string())?;
+        let status = info.PlaybackStatus().map_err(|e| e.to_string())?;
+        if status == GlobalSystemMediaTransportControlsSessionPlaybackStatus::Playing {
+            session
+                .TryPauseAsync()
+                .map_err(|e| e.to_string())?
+                .get()
+                .map_err(|e| e.to_string())?;
+            Ok(false)
+        } else {
+            session
+                .TryPlayAsync()
+                .map_err(|e| e.to_string())?
+                .get()
+                .map_err(|e| e.to_string())?;
+            Ok(true)
+        }
+    };
+
+    emit_media_changed();
+    result
 }
 
 fn skip_next_impl(session: &GlobalSystemMediaTransportControlsSession) -> Result<(), String> {
@@ -728,6 +809,7 @@ fn skip_next_impl(session: &GlobalSystemMediaTransportControlsSession) -> Result
         .map_err(|e| e.to_string())?
         .get()
         .map_err(|e| e.to_string())?;
+    emit_media_changed();
     Ok(())
 }
 
@@ -737,5 +819,6 @@ fn skip_previous_impl(session: &GlobalSystemMediaTransportControlsSession) -> Re
         .map_err(|e| e.to_string())?
         .get()
         .map_err(|e| e.to_string())?;
+    emit_media_changed();
     Ok(())
 }

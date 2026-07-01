@@ -1,5 +1,5 @@
 <script>
-  import { onDestroy, onMount } from 'svelte';
+  import { onMount } from 'svelte';
   import { get } from 'svelte/store';
   import SystemOverview from './SystemOverview.svelte';
   import SystemAppsList from './SystemAppsList.svelte';
@@ -15,6 +15,7 @@
   let snapshot = $state(null);
   let loading = $state(true);
   let errorMsg = $state(null);
+  let pausedHint = $state(false);
 
   onMount(() => {
     if (!isTauri()) {
@@ -23,20 +24,15 @@
     }
   });
 
-  onDestroy(() => {
-    stopSystemMetricsPolling();
-  });
-
   $effect(() => {
     if (!isTauri()) return;
+
+    const shouldPoll = active && !get(paused);
     active;
     $paused;
-    syncPolling();
-  });
+    pausedHint = active && get(paused);
 
-  function syncPolling() {
-    const isActive = active && !get(paused);
-    if (!isActive) {
+    if (!shouldPoll) {
       stopSystemMetricsPolling();
       return;
     }
@@ -54,7 +50,9 @@
         loading = false;
       }
     });
-  }
+
+    return () => stopSystemMetricsPolling();
+  });
 </script>
 
 <div class="system-panel">
@@ -67,6 +65,9 @@
       <SystemOverview {snapshot} />
       <SystemAppsList apps={snapshot.apps} />
     </div>
+    {#if pausedHint}
+      <p class="system-paused-hint" aria-live="polite">Atualização pausada — retome o painel para atualizar.</p>
+    {/if}
     {#if errorMsg}
       <p class="system-inline-error" role="alert">{errorMsg}</p>
     {/if}
@@ -80,11 +81,13 @@
     gap: 0.75rem;
     min-height: 0;
     height: 100%;
+    overflow: hidden;
   }
 
   .system-panel-stack {
     display: flex;
     flex-direction: column;
+    flex: 1;
     gap: 1rem;
     min-height: 0;
     overflow: auto;
@@ -107,6 +110,13 @@
     color: var(--danger, #c45c5c);
     border: 1px solid var(--control-border);
     background: var(--control-bg);
+  }
+
+  .system-paused-hint {
+    margin: 0;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--light-soft);
   }
 
   .system-inline-error {

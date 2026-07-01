@@ -135,6 +135,16 @@ pub async fn get_media_artwork(
     let smtc_base64 = smtc_base64.filter(|value| value.len() <= 16_000_000);
     let smtc_mime = smtc_mime.filter(|value| value.len() <= 128);
 
+    #[cfg(windows)]
+    let (smtc_base64, smtc_mime, smtc_width, smtc_height) = if smtc_base64.is_none() {
+        match smtc::read_cover_art_for_artwork() {
+            Ok((base64, mime, width, height)) if base64.is_some() => (base64, mime, width, height),
+            _ => (smtc_base64, smtc_mime, smtc_width, smtc_height),
+        }
+    } else {
+        (smtc_base64, smtc_mime, smtc_width, smtc_height)
+    };
+
     let cache_dir = app
         .path()
         .app_data_dir()

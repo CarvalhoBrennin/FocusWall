@@ -24,8 +24,9 @@
   import {
     artworkToResolvedCover,
     clearCoverArtCache,
-    rememberResolvedCover
-  } from '../../utils/cover-art.js';
+  rememberResolvedCover,
+  getCachedResolvedCover
+} from '../../utils/cover-art.js';
   import MediaNowPlaying from './MediaNowPlaying.svelte';
   import MediaEmptyState from './MediaEmptyState.svelte';
   import './media.css';
@@ -96,6 +97,7 @@
     mediaProgressPercent(displayPositionMs, snapshot?.durationMs ?? 0)
   );
   const trackKey = $derived(mediaTrackKey(snapshot));
+  const displayTrackKey = $derived(confirmedTrackKey || trackKey);
   const coverFingerprint = $derived(
     `${trackKey}|${snapshot?.coverArtWidth ?? 0}|${snapshot?.coverArtHeight ?? 0}`
   );
@@ -289,6 +291,14 @@
         displayCoverWidth = width;
         displayCoverHeight = height;
         coverImageReady = false;
+      } else {
+        const cached = getCachedResolvedCover(snapshot);
+        if (cached?.src) {
+          displayCoverSrc = cached.src;
+          displayCoverWidth = cached.width || width;
+          displayCoverHeight = cached.height || height;
+          coverImageReady = false;
+        }
       }
       lastCoverFingerprint = fingerprint;
     } else if (fingerprint !== lastCoverFingerprint) {
@@ -404,7 +414,8 @@
       confirmedTrackKey === '' ||
       key === confirmedTrackKey ||
       data.isPlaying ||
-      rawKeyStreak >= 2
+      rawKeyStreak >= 2 ||
+      (Boolean(data.title?.trim()) && rawKeyStreak >= 1)
     ) {
       confirmedTrackKey = key;
     }
@@ -485,7 +496,7 @@
         {ghostCoverSrc}
         coverWidth={displayCoverWidth}
         coverHeight={displayCoverHeight}
-        {trackKey}
+        trackKey={displayTrackKey}
         {displayPositionMs}
         {displayPercent}
         controlBusy={controlBusy}

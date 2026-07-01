@@ -878,10 +878,13 @@ html:not(.is-tauri) {
 
   #media-panel,
   #files-panel,
-  #system-panel,
   #neural-panel,
   #calendar-panel {
     overflow-y: auto;
+  }
+
+  #system-panel {
+    overflow: hidden;
   }
 
   .neural-panel {

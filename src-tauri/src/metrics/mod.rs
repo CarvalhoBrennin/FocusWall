@@ -98,9 +98,11 @@ fn process_denied(name: &str) -> bool {
             | "searchindexer"
             | "spoolsv"
             | "audiodg"
-            | "memory compression"
+            |         "memory compression"
             | "memcompression"
             | "system idle process"
+            | "focus-desktop-dashboard"
+            | "focus dashboard"
     )
 }
 
@@ -143,10 +145,20 @@ fn read_hardware(sys: &System) -> HardwareInfo {
         .unwrap_or_else(|| "CPU".to_string());
 
     let total_memory_mb = bytes_to_mb(sys.total_memory()).round() as u64;
-    let os_name = System::name()
-        .map(|s| s.trim().to_string())
-        .filter(|s| !s.is_empty())
-        .unwrap_or_else(|| std::env::consts::OS.to_string());
+    let os_name = {
+        let name = System::name()
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty());
+        let version = System::os_version()
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty());
+        match (name, version) {
+            (Some(n), Some(v)) => format!("{n} {v}"),
+            (Some(n), None) => n,
+            (None, Some(v)) => v,
+            (None, None) => std::env::consts::OS.to_string(),
+        }
+    };
 
     let info = HardwareInfo {
         cpu_name,
@@ -256,13 +268,11 @@ fn seed_active_exe_keys(sys: &System, visible: &HashSet<u32>) -> HashSet<String>
     keys
 }
 
-fn collect_apps(sys: &mut System, top_apps: u32) -> Vec<AppProcessRow> {
-    sys.refresh_processes(ProcessesToUpdate::All, true);
-
+fn collect_apps(sys: &System, top_apps: u32, broad_fallback: bool) -> Vec<AppProcessRow> {
     let num_cpus = sys.cpus().len().max(1) as f32;
     let visible = visible::visible_window_pids();
     let active_exe_keys = seed_active_exe_keys(sys, &visible);
-    let use_exe_filter = !active_exe_keys.is_empty();
+    let use_exe_filter = !broad_fallback && !active_exe_keys.is_empty();
 
     let mut grouped: HashMap<String, AggregatedApp> = HashMap::new();
 
@@ -345,6 +355,15 @@ fn collect_apps(sys: &mut System, top_apps: u32) -> Vec<AppProcessRow> {
     apps
 }
 
+fn collect_apps_with_fallback(sys: &System, top_apps: u32) -> Vec<AppProcessRow> {
+    let apps = collect_apps(sys, top_apps, false);
+    if apps.is_empty() {
+        collect_apps(sys, top_apps, true)
+    } else {
+        apps
+    }
+}
+
 pub fn build_system_snapshot(top_apps: Option<u32>) -> Result<SystemSnapshot, String> {
     let limit = top_apps.unwrap_or(DEFAULT_TOP_APPS).clamp(1, 50);
     let temperature = read_temperatures_cached();
@@ -356,15 +375,18 @@ pub fn build_system_snapshot(top_apps: Option<u32>) -> Result<SystemSnapshot, St
     sys.refresh_memory();
     let hardware = read_hardware(&sys);
 
+    // CPU global e por processo exigem duas amostras com intervalo (delta temporal).
+    sys.refresh_processes(ProcessesToUpdate::All, true);
     sys.refresh_cpu_usage();
     drop(sys);
     thread::sleep(Duration::from_millis(CPU_SAMPLE_MS));
     let mut sys = SYS
         .lock()
         .map_err(|_| "Estado de métricas indisponível.".to_string())?;
+    sys.refresh_processes(ProcessesToUpdate::All, false);
     sys.refresh_cpu_usage();
     let metrics = metrics_from_sys(&sys);
-    let apps = collect_apps(&mut sys, limit);
+    let apps = collect_apps_with_fallback(&sys, limit);
 
     Ok(SystemSnapshot {
         metrics,
@@ -375,6 +397,8 @@ pub fn build_system_snapshot(top_apps: Option<u32>) -> Result<SystemSnapshot, St
 }
 
 #[tauri::command]
-pub fn get_system_snapshot(top_apps: Option<u32>) -> Result<SystemSnapshot, String> {
-    build_system_snapshot(top_apps)
+pub async fn get_system_snapshot(top_apps: Option<u32>) -> Result<SystemSnapshot, String> {
+    tauri::async_runtime::spawn_blocking(move || build_system_snapshot(top_apps))
+        .await
+        .map_err(|e| format!("Falha ao coletar métricas: {e}"))?
 }

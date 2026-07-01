@@ -125,20 +125,48 @@ export type SystemMetricsPollingOptions = {
 let pollTimer: ReturnType<typeof setInterval> | null = null;
 let pollInFlight = false;
 let pollingActive = false;
+let pollGeneration = 0;
 
-async function pollOnce(options: SystemMetricsPollingOptions) {
-  if (!pollingActive || !options.getActive() || options.getPaused() || pollInFlight) return;
+async function pollOnce(options: SystemMetricsPollingOptions, generation: number) {
+  if (
+    generation !== pollGeneration ||
+    !pollingActive ||
+    !options.getActive() ||
+    options.getPaused() ||
+    pollInFlight
+  ) {
+    return;
+  }
   pollInFlight = true;
   try {
     const snapshot = await fetchSystemSnapshot(options.topApps ?? DEFAULT_TOP_APPS);
-    if (!pollingActive || !options.getActive() || options.getPaused()) return;
+    if (
+      generation !== pollGeneration ||
+      !pollingActive ||
+      !options.getActive() ||
+      options.getPaused()
+    ) {
+      return;
+    }
     options.onData(snapshot);
   } catch (err) {
-    if (!pollingActive || !options.getActive() || options.getPaused()) return;
+    if (
+      generation !== pollGeneration ||
+      !pollingActive ||
+      !options.getActive() ||
+      options.getPaused()
+    ) {
+      return;
+    }
     options.onError?.(err instanceof Error ? err.message : String(err));
   } finally {
     pollInFlight = false;
-    if (!pollingActive || !options.getActive() || options.getPaused()) {
+    if (
+      generation !== pollGeneration ||
+      !pollingActive ||
+      !options.getActive() ||
+      options.getPaused()
+    ) {
       if (pollTimer) {
         clearInterval(pollTimer);
         pollTimer = null;
@@ -150,14 +178,16 @@ async function pollOnce(options: SystemMetricsPollingOptions) {
 export function startSystemMetricsPolling(options: SystemMetricsPollingOptions) {
   stopSystemMetricsPolling();
   pollingActive = true;
-  void pollOnce(options);
+  const generation = pollGeneration;
+  void pollOnce(options, generation);
   pollTimer = setInterval(() => {
-    void pollOnce(options);
+    void pollOnce(options, generation);
   }, POLL_MS);
 }
 
 export function stopSystemMetricsPolling() {
   pollingActive = false;
+  pollGeneration += 1;
   if (pollTimer) {
     clearInterval(pollTimer);
     pollTimer = null;
