@@ -3,6 +3,7 @@ import { CONFIG, VIEW, RATE_STATUS, PRIORITY_ORDER, formatters } from '../config
 import { storage } from '../services/storage.js';
 import { startTimer, stopAllTimers } from '../services/timer.js';
 import { fetchExchangeRates } from '../services/exchange.js';
+import { migrateLegacyFilesLists } from '../services/files.js';
 import {
   createDefaultState,
   normalizeState,
@@ -308,6 +309,7 @@ export function bootstrapApp() {
       let d = ensureDateBucket(loaded, $currentDateKey);
       d = pruneHistory(d, $currentDateKey);
       data.set(d);
+      migrateLegacyFilesLists();
       syncCalendarMonthIfStale($currentDateKey);
       applyTheme(d.ui.theme ?? 'dark');
       const bootLocale = d.ui.locale ?? 'pt-BR';

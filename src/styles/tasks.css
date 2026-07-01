@@ -183,6 +183,12 @@
   overflow: hidden;
 }
 
+#calendar-panel {
+  gap: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
 #neural-panel {
   gap: 0;
   min-height: 0;

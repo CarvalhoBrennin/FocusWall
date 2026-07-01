@@ -15,6 +15,8 @@ export function createDefaultState(): AppState {
       viewOffsetDays: 0,
       calendarMonth: '',
       filesLastPath: '',
+      filesFavorites: [],
+      filesRecents: [],
       lastNeuralNoteId: null,
       theme: 'dark',
       locale: CONFIG.LOCALE,
@@ -47,6 +49,8 @@ export function normalizeState(candidate) {
       calendarMonth: normalizeMonthKey(candidate.ui?.calendarMonth) || '',
       preferredMonitor: Number.isInteger(candidate.ui?.preferredMonitor) ? candidate.ui.preferredMonitor : null,
       filesLastPath: typeof candidate.ui?.filesLastPath === 'string' ? candidate.ui.filesLastPath : '',
+      filesFavorites: normalizePathList(candidate.ui?.filesFavorites, 12),
+      filesRecents: normalizePathList(candidate.ui?.filesRecents, 10),
       lastNeuralNoteId:
         typeof candidate.ui?.lastNeuralNoteId === 'string' && candidate.ui.lastNeuralNoteId
           ? candidate.ui.lastNeuralNoteId
@@ -58,6 +62,21 @@ export function normalizeState(candidate) {
       locale: candidate.ui?.locale === 'en-US' ? 'en-US' : CONFIG.LOCALE
     }
   };
+}
+
+function normalizePathList(value, maxItems) {
+  if (!Array.isArray(value)) return [];
+  const seen = new Set();
+  const next = [];
+  for (const item of value) {
+    if (typeof item !== 'string') continue;
+    const trimmed = item.trim();
+    if (!trimmed || seen.has(trimmed)) continue;
+    seen.add(trimmed);
+    next.push(trimmed);
+    if (next.length >= maxItems) break;
+  }
+  return next;
 }
 
 export function normalizeTasksByDate(tbd) {

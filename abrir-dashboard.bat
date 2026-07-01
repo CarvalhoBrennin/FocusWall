@@ -8,9 +8,6 @@ if exist "%USERPROFILE%\.cargo\bin" (
     set "PATH=%USERPROFILE%\.cargo\bin;%PATH%"
 )
 
-call :ENSURE_NPM_DEPS
-if errorlevel 1 exit /b %ERRORLEVEL%
-
 set "INSTALLED=%LOCALAPPDATA%\FocusWall\focus-desktop-dashboard.exe"
 set "RELEASE=%ROOT%src-tauri\target\release\focus-desktop-dashboard.exe"
 set "DIST=%ROOT%dist\index.html"
@@ -50,6 +47,27 @@ echo Modo desenvolvimento: iniciando Vite + Tauri...
 call npm run tauri:dev
 exit /b %ERRORLEVEL%
 
+:CLOSE_RUNNING
+set "CLOSE_ATTEMPTS=0"
+:CLOSE_RETRY
+tasklist /FI "IMAGENAME eq focus-desktop-dashboard.exe" 2>NUL | find /I "focus-desktop-dashboard.exe" >NUL
+if errorlevel 1 exit /b 0
+set /A CLOSE_ATTEMPTS+=1
+if %CLOSE_ATTEMPTS% GTR 8 (
+    echo.
+    echo Nao foi possivel fechar Focus Dashboard apos varias tentativas.
+    echo Feche o aplicativo manualmente ^(incluindo na bandeja^) e tente novamente.
+    echo.
+    pause
+    exit /b 1
+)
+if %CLOSE_ATTEMPTS% EQU 1 (
+    echo Fechando Focus Dashboard em execucao para atualizar o build...
+)
+taskkill /F /IM focus-desktop-dashboard.exe >NUL 2>NUL
+ping 127.0.0.1 -n 3 >NUL
+goto CLOSE_RETRY
+
 :ENSURE_NPM_DEPS
 if exist "%ROOT%node_modules\.bin\tauri.cmd" exit /b 0
 echo Dependencias npm nao encontradas. Instalando...
@@ -80,11 +98,11 @@ exit /b 0
 if "%SKIP_FOCUSWALL_BUILD%"=="1" exit /b 0
 set "SKIP_FOCUSWALL_BUILD=1"
 
-tasklist /FI "IMAGENAME eq focus-desktop-dashboard.exe" 2>NUL | find /I "focus-desktop-dashboard.exe" >NUL
-if not errorlevel 1 (
-    echo Fechando Focus Dashboard em execucao para atualizar o build...
-    taskkill /F /IM focus-desktop-dashboard.exe >NUL 2>NUL
-)
+call :ENSURE_NPM_DEPS
+if errorlevel 1 exit /b %ERRORLEVEL%
+
+call :CLOSE_RUNNING
+if errorlevel 1 exit /b %ERRORLEVEL%
 
 echo Compilando Focus Dashboard...
 call npm run tauri:build

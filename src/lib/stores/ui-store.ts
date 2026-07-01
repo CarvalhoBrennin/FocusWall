@@ -1,35 +1,20 @@
 import { writable } from 'svelte/store';
 import { CONFIG } from '../config.js';
-import { OPENCODE_TAB_ENABLED, VIVARIUM_ENABLED } from '../features.js';
+import { isPanelTabEnabled } from '../features.js';
+import type { PanelTab } from '../types/app.js';
 
 export const toast = writable(null);
 export const modal = writable(null);
 export const settingsModal = writable(null);
-export const panelTab = writable('execution');
+export const panelTab = writable<PanelTab>('execution');
 export const opencodeSessionActive = writable(false);
 
-/** @param {'execution' | 'opencode' | 'calendar' | 'files' | 'system' | 'media' | 'neural' | 'vivarium'} tab */
-export function setPanelTab(tab) {
-  if (tab === 'opencode' && !OPENCODE_TAB_ENABLED) {
+export function setPanelTab(tab: PanelTab) {
+  if (!isPanelTabEnabled(tab)) {
     panelTab.set('execution');
     return;
   }
-  if (tab === 'vivarium' && !VIVARIUM_ENABLED) {
-    panelTab.set('execution');
-    return;
-  }
-  if (
-    tab === 'execution' ||
-    (tab === 'opencode' && OPENCODE_TAB_ENABLED) ||
-    tab === 'calendar' ||
-    tab === 'files' ||
-    tab === 'system' ||
-    tab === 'media' ||
-    tab === 'neural' ||
-    (tab === 'vivarium' && VIVARIUM_ENABLED)
-  ) {
-    panelTab.set(tab);
-  }
+  panelTab.set(tab);
 }
 
 /** @param {boolean} active */
@@ -37,7 +22,7 @@ export function setOpencodeSessionActive(active) {
   opencodeSessionActive.set(active);
 }
 
-let toastTimeoutId = null;
+let toastTimeoutId: ReturnType<typeof setTimeout> | null = null;
 let toastHovering = false;
 
 function clearToastTimer() {
@@ -61,7 +46,7 @@ export function dismissToast() {
   toast.set(null);
 }
 
-export function showToast(message, undoCallback) {
+export function showToast(message, undoCallback?) {
   clearToastTimer();
   toastHovering = false;
   toast.set({ message, undoCallback });

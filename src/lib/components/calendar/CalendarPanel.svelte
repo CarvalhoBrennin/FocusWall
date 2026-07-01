@@ -17,7 +17,6 @@
   let { active = false } = $props();
 
   let wasActive = false;
-  let detailOpen = $state(false);
 
   function getMonthKey(dateKey) {
     return getMonthKeyFromDateKey(dateKey);
@@ -59,26 +58,6 @@
   });
 
   $effect(() => {
-    if (!active) {
-      detailOpen = false;
-    }
-  });
-
-  $effect(() => {
-    if (!active || !detailOpen) return;
-
-    function handleKeydown(e) {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        detailOpen = false;
-      }
-    }
-
-    window.addEventListener('keydown', handleKeydown);
-    return () => window.removeEventListener('keydown', handleKeydown);
-  });
-
-  $effect(() => {
     if (!active) return;
 
     function handleKeydown(e) {
@@ -98,21 +77,11 @@
   });
 
   function selectDate(dateKey) {
-    if (detailOpen && dateKey === executionDateKey) {
-      detailOpen = false;
-      return;
-    }
-
     setExecutionDateForDateKey(dateKey);
-    detailOpen = true;
     const monthKey = getMonthKey(dateKey);
     if (monthKey !== displayedMonthKey) {
       setCalendarMonth(monthKey);
     }
-  }
-
-  function closeDetail() {
-    detailOpen = false;
   }
 
   function navigateMonth(delta) {
@@ -125,7 +94,6 @@
   function goToToday() {
     setExecutionDateForDateKey(todayDateKey);
     setCalendarMonth(getMonthKey(todayDateKey));
-    detailOpen = true;
   }
 </script>
 
@@ -168,27 +136,6 @@
       {todayDateKey}
       onSelect={selectDate}
     />
+    <CalendarDayDetail dateKey={executionDateKey} />
   </div>
-
-  {#if detailOpen}
-    <!-- svelte-ignore a11y_click_events_have_key_events -->
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <div class="calendar-detail-backdrop" onclick={closeDetail} aria-hidden="true"></div>
-    <div
-      class="calendar-detail-popover"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Detalhes do dia selecionado"
-    >
-      <button
-        type="button"
-        class="calendar-detail-close ghost-button"
-        aria-label="Fechar detalhes do dia"
-        onclick={closeDetail}
-      >
-        ×
-      </button>
-      <CalendarDayDetail dateKey={executionDateKey} />
-    </div>
-  {/if}
 </section>

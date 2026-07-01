@@ -1,15 +1,14 @@
 # Vivarium (archived)
 
-This feature is **dormant** — UI entry points are disabled via `VIVARIUM_ENABLED` in `src/lib/features.ts`.
+This feature is **dormant** — set `VIVARIUM_ENABLED = true` in `src/lib/features.ts` to show the tab and panel (no manual edits in `TaskPanel.svelte` or `TaskHeader.svelte`).
 
 Code under `src/lib/components/vivarium/` is kept for later sprite-based work.
 
 ## Re-enable
 
 1. Set `VIVARIUM_ENABLED = true` in `src/lib/features.ts`.
-2. Uncomment the Vivarium lazy-load `$effect` and panel block in `TaskPanel.svelte`.
-3. Add a Vivarium tab entry to `TaskHeader.svelte` if you want it in the tab bar (no tab is registered while archived).
+2. Rebuild or restart the app.
 
-## OpenCode (separate feature)
+## OpenCode / Neural (separate features)
 
-OpenCode uses `OPENCODE_TAB_ENABLED` in `src/lib/features.ts`. See `docs/AUDIT-FEATURE-OPENCODE.md`.
+Use `OPENCODE_TAB_ENABLED` and `NEURAL_TAB_ENABLED` in the same file. See `docs/AUDIT-FEATURE-OPENCODE.md` and `docs/PLAN-NEURAL.md`.

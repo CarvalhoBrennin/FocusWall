@@ -16,16 +16,12 @@
     filterEntries,
     sortEntries,
     rememberFilesPath,
-    loadFilesFavorites,
-    loadFilesRecents,
     toggleFilesFavorite,
   } from '../../services/files.js';
 
   let currentPath = $state('');
   let rawEntries = $state([]);
   let places = $state([]);
-  let favorites = $state(loadFilesFavorites());
-  let recents = $state(loadFilesRecents());
   let loading = $state(true);
   let errorMsg = $state(null);
   let searchQuery = $state('');
@@ -34,6 +30,9 @@
   let showHidden = $state(false);
   let readDirRequestId = 0;
   let mounted = false;
+
+  const favorites = $derived($data.ui?.filesFavorites || []);
+  const recents = $derived($data.ui?.filesRecents || []);
 
   const displayEntries = $derived(
     sortEntries(filterEntries(rawEntries, searchQuery), sortBy)
@@ -101,7 +100,6 @@
       rawEntries = entries;
       currentPath = absolute;
       rememberFilesPath(absolute);
-      recents = loadFilesRecents();
       await setFilesLastPath(absolute);
       return true;
     } catch (err) {
@@ -148,7 +146,7 @@
   function handleToggleFavorite() {
     if (!currentPath) return;
     const added = !favorites.some((path) => pathsEqual(path, currentPath));
-    favorites = toggleFilesFavorite(currentPath);
+    toggleFilesFavorite(currentPath);
     showToast(added ? 'Pasta adicionada aos favoritos.' : 'Pasta removida dos favoritos.');
   }
 

@@ -157,8 +157,6 @@ html[data-theme='olive'] .app-shell {
 html.is-tauri body {
   overflow: hidden;
   background: transparent !important;
-  /* O shell já usa calc(100dvh - var(--taskbar-height)); padding aqui duplicava a reserva. */
-  padding-bottom: 0;
 }
 
 html.is-tauri {
@@ -166,7 +164,7 @@ html.is-tauri {
 }
 
 html.is-tauri .app-shell {
-  height: calc(100dvh - var(--taskbar-height));
+  height: 100dvh;
   padding: var(--shell-padding);
 }
 

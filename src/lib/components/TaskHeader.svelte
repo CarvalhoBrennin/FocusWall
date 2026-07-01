@@ -11,15 +11,9 @@
   import { formatters } from '../config.js';
   import { parseDateKey, parseMonthKey, addDays, normalizeMonthKey } from '../utils/state.js';
   import { t } from '../i18n/index.js';
+  import { getVisiblePanelTabs } from '../features.js';
 
-  const tabs = [
-    { id: 'execution', labelKey: 'tasks.execution', panelId: 'execution-panel' },
-    { id: 'calendar', labelKey: 'tasks.calendar', panelId: 'calendar-panel' },
-    { id: 'files', labelKey: 'tasks.files', panelId: 'files-panel' },
-    { id: 'system', labelKey: 'tasks.system', panelId: 'system-panel' },
-    { id: 'media', labelKey: 'tasks.media', panelId: 'media-panel' },
-    { id: 'neural', labelKey: 'tasks.neural', panelId: 'neural-panel' }
-  ];
+  const tabs = getVisiblePanelTabs();
 
   $: tasks = $visibleTasks || [];
   $: total = tasks.length;
@@ -48,7 +42,11 @@
             ? $t('tasks.media')
             : $panelTab === 'neural'
               ? $t('tasks.neural')
-              : executionHeadline;
+              : $panelTab === 'opencode'
+                ? $t('tasks.opencode')
+                : $panelTab === 'vivarium'
+                  ? $t('tasks.vivarium')
+                  : executionHeadline;
   $: kicker =
     $panelTab === 'calendar'
       ? calendarKicker

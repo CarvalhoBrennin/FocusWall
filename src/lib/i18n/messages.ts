@@ -46,6 +46,8 @@ export type MessageKey =
   | 'tasks.system'
   | 'tasks.media'
   | 'tasks.neural'
+  | 'tasks.opencode'
+  | 'tasks.vivarium'
   | 'tasks.panelMode'
   | 'tasks.execution'
   | 'tasks.historyNav'
@@ -235,6 +237,8 @@ const messages: Record<LocaleId, Record<MessageKey, string>> = {
     'tasks.system': 'Sistema',
     'tasks.media': 'Mídia',
     'tasks.neural': 'Neural',
+    'tasks.opencode': 'OpenCode',
+    'tasks.vivarium': 'Vivarium',
     'tasks.panelMode': 'Modo do painel',
     'tasks.execution': 'Execução',
     'tasks.historyNav': 'Histórico rápido',
@@ -426,6 +430,8 @@ const messages: Record<LocaleId, Record<MessageKey, string>> = {
     'tasks.system': 'System',
     'tasks.media': 'Media',
     'tasks.neural': 'Neural',
+    'tasks.opencode': 'OpenCode',
+    'tasks.vivarium': 'Vivarium',
     'tasks.panelMode': 'Panel mode',
     'tasks.execution': 'Execution',
     'tasks.historyNav': 'Quick history',

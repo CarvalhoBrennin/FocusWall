@@ -11,7 +11,6 @@ O projeto nasceu como um painel pessoal de produtividade e contexto rápido: tar
 - app desktop em Tauri 2
 - interface em Svelte 5
 - bloco de tarefas do dia com histórico
-- aba **Neural** — notas interligadas por `[[links]]`, backlinks, menções não vinculadas e grafo local
 - calendário mensal com eventos
 - painel de arquivos locais (pastas conhecidas + navegação)
 - aba **Mídia** — now playing via SMTC (Windows), capas e controles
@@ -24,8 +23,11 @@ O projeto nasceu como um painel pessoal de produtividade e contexto rápido: tar
 
 ### Recursos presentes no código, mas ocultos na UI
 
-- **OpenCode** — cliente visual para `opencode serve`; aba removida de `TaskHeader.svelte` e blocos comentados em `TaskPanel.svelte`. Reativar com `OPENCODE_TAB_ENABLED` em [`src/lib/features.ts`](src/lib/features.ts) e restaurar a entrada da aba no header + painel.
-- **Vivarium** — painel experimental arquivado; desabilitado via `VIVARIUM_ENABLED` em [`src/lib/features.ts`](src/lib/features.ts). Blocos comentados apenas em `TaskPanel.svelte`. Ver [`src/lib/components/vivarium/ARCHIVED.md`](src/lib/components/vivarium/ARCHIVED.md).
+Altere apenas as flags em [`src/lib/features.ts`](src/lib/features.ts) — `TaskHeader` e `TaskPanel` reagem automaticamente.
+
+- **Neural** — notas interligadas por `[[links]]`, backlinks, menções e grafo local; `NEURAL_TAB_ENABLED = false`.
+- **OpenCode** — cliente visual para `opencode serve`; `OPENCODE_TAB_ENABLED = false`.
+- **Vivarium** — painel experimental; `VIVARIUM_ENABLED = false`. Ver [`src/lib/components/vivarium/ARCHIVED.md`](src/lib/components/vivarium/ARCHIVED.md).
 
 ## Stack
 
@@ -96,7 +98,7 @@ build-bootstrapper.bat
 ## Dados
 
 - preview web: `localStorage`
-- app desktop: `dashboard-state.json` no AppData do usuário
+- app desktop: `dashboard-state.json` no AppData do usuário (inclui favoritos e recentes de arquivos)
 - notas neurais: campo `neuralNotes` no mesmo estado persistido
 - backup manual: exportação JSON nas configurações
 

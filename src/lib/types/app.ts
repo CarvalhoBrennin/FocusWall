@@ -92,6 +92,8 @@ export interface UiState {
   calendarMonth: string;
   preferredMonitor: number | null;
   filesLastPath: string;
+  filesFavorites: string[];
+  filesRecents: string[];
   lastNeuralNoteId: string | null;
   theme: ThemeId;
   locale: LocaleId;

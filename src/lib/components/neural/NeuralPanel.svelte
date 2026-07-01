@@ -1,4 +1,5 @@
 <script>
+  import '../../../styles/neural.css';
   import { onDestroy, tick } from 'svelte';
   import { get } from 'svelte/store';
   import NeuralGraph from './NeuralGraph.svelte';

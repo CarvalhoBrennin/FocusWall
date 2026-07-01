@@ -1,9 +1,12 @@
-import { tauriInvoke } from '../utils/tauri.js';
+import { get } from 'svelte/store';
+import { data, persistStateDebounced } from '../stores/app-store.js';
+import type { AppState } from '../types/app.js';
 import { ensureAbsolutePath } from '../utils/path.js';
+import { tauriInvoke } from '../utils/tauri.js';
 import { pickProjectDir, folderLabel } from './opencode.js';
 
-const FAVORITES_KEY = 'focuswall-files-favorites';
-const RECENTS_KEY = 'focuswall-files-recents';
+const LEGACY_FAVORITES_KEY = 'focuswall-files-favorites';
+const LEGACY_RECENTS_KEY = 'focuswall-files-recents';
 const MAX_RECENTS = 10;
 const MAX_FAVORITES = 12;
 
@@ -43,7 +46,7 @@ export type WellKnownFolder = {
 
 export type FilesSort = 'name' | 'date' | 'size';
 
-function readPathList(key: string): string[] {
+function readLegacyPathList(key: string): string[] {
   try {
     const raw = localStorage.getItem(key);
     const parsed = raw ? JSON.parse(raw) : [];
@@ -53,41 +56,89 @@ function readPathList(key: string): string[] {
   }
 }
 
-function writePathList(key: string, paths: string[]) {
+function clearLegacyPathList(key: string) {
   try {
-    localStorage.setItem(key, JSON.stringify(paths));
-  } catch (err) {
-    console.warn('[files] Falha ao salvar lista de caminhos:', err);
+    localStorage.removeItem(key);
+  } catch {
+    // ignore
   }
 }
 
+function getUiPaths($data: AppState) {
+  return {
+    favorites: Array.isArray($data.ui?.filesFavorites) ? $data.ui.filesFavorites : [],
+    recents: Array.isArray($data.ui?.filesRecents) ? $data.ui.filesRecents : []
+  };
+}
+
+function updateUiPaths(mutator: (lists: { favorites: string[]; recents: string[] }) => {
+  favorites: string[];
+  recents: string[];
+}) {
+  const $data = get(data);
+  const current = getUiPaths($data);
+  const nextLists = mutator(current);
+  data.set({
+    ...$data,
+    ui: {
+      ...$data.ui,
+      filesFavorites: nextLists.favorites,
+      filesRecents: nextLists.recents
+    }
+  });
+  persistStateDebounced();
+  return nextLists;
+}
+
+/** One-time import from legacy localStorage keys into dashboard state. */
+export function migrateLegacyFilesLists() {
+  const $data = get(data);
+  const { favorites, recents } = getUiPaths($data);
+  const legacyFavorites = favorites.length ? [] : readLegacyPathList(LEGACY_FAVORITES_KEY);
+  const legacyRecents = recents.length ? [] : readLegacyPathList(LEGACY_RECENTS_KEY);
+  if (!legacyFavorites.length && !legacyRecents.length) return;
+
+  data.set({
+    ...$data,
+    ui: {
+      ...$data.ui,
+      filesFavorites: favorites.length ? favorites : legacyFavorites.slice(0, MAX_FAVORITES),
+      filesRecents: recents.length ? recents : legacyRecents.slice(0, MAX_RECENTS)
+    }
+  });
+  persistStateDebounced();
+  if (legacyFavorites.length) clearLegacyPathList(LEGACY_FAVORITES_KEY);
+  if (legacyRecents.length) clearLegacyPathList(LEGACY_RECENTS_KEY);
+}
+
 export function loadFilesFavorites(): string[] {
-  return readPathList(FAVORITES_KEY);
+  return getUiPaths(get(data)).favorites;
 }
 
 export function loadFilesRecents(): string[] {
-  return readPathList(RECENTS_KEY);
+  return getUiPaths(get(data)).recents;
 }
 
 export function rememberFilesPath(path: string) {
   if (!path?.trim()) return;
   const trimmed = ensureAbsolutePath(path) || path.trim();
-  const next = [trimmed, ...loadFilesRecents().filter((item) => item !== trimmed)].slice(
-    0,
-    MAX_RECENTS
-  );
-  writePathList(RECENTS_KEY, next);
+  updateUiPaths(({ favorites, recents }) => ({
+    favorites,
+    recents: [trimmed, ...recents.filter((item) => item !== trimmed)].slice(0, MAX_RECENTS)
+  }));
 }
 
 export function toggleFilesFavorite(path: string): string[] {
   if (!path?.trim()) return loadFilesFavorites();
   const trimmed = ensureAbsolutePath(path) || path.trim();
-  const current = loadFilesFavorites();
-  const next = current.includes(trimmed)
-    ? current.filter((item) => item !== trimmed)
-    : [trimmed, ...current].slice(0, MAX_FAVORITES);
-  writePathList(FAVORITES_KEY, next);
-  return next;
+  let nextFavorites: string[] = [];
+  updateUiPaths(({ favorites, recents }) => {
+    nextFavorites = favorites.includes(trimmed)
+      ? favorites.filter((item) => item !== trimmed)
+      : [trimmed, ...favorites].slice(0, MAX_FAVORITES);
+    return { favorites: nextFavorites, recents };
+  });
+  return nextFavorites;
 }
 
 export function isFilesFavorite(path: string, favorites = loadFilesFavorites()) {

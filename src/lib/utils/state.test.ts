@@ -13,6 +13,8 @@ describe('state utils', () => {
     expect(state.version).toBeGreaterThan(0);
     expect(state.tasksByDate).toEqual({});
     expect(state.ui.filesLastPath).toBe('');
+    expect(state.ui.filesFavorites).toEqual([]);
+    expect(state.ui.filesRecents).toEqual([]);
     expect(state.neuralNotes).toEqual([]);
     expect(state.ui.lastNeuralNoteId).toBeNull();
   });

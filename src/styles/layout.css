@@ -1,8 +1,8 @@
 .app-shell {
   position: relative;
   /* dvh casa melhor com a área útil real do WebView2 (chrome custom) do que vh */
-  height: calc(100dvh - var(--taskbar-height));
-  min-height: calc(100dvh - var(--taskbar-height));
+  height: 100dvh;
+  min-height: 100dvh;
   padding: var(--shell-padding);
   overflow: hidden;
   background: var(--app-bg);
