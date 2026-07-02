@@ -92,6 +92,58 @@ export function interpolateMediaPosition(
   return Math.min(snapshot.durationMs, snapshot.positionMs + elapsed);
 }
 
+/**
+ * Âncora de posição usada para interpolar a barra de progresso.
+ * `baseMs` é a posição conhecida no instante `atMs` (relógio `performance.now`).
+ */
+export type PositionAnchor = { baseMs: number; atMs: number };
+
+/**
+ * Acima deste desvio (ms) entre a posição prevista e a reportada pelo SMTC,
+ * tratamos como *seek* real e re-ancoramos. Abaixo dele, mantemos a âncora
+ * anterior para que a barra não "salte" para trás a cada poll — o SMTC costuma
+ * reportar uma posição ligeiramente atrasada, o que causava o tranco visível.
+ */
+export const POSITION_RESYNC_THRESHOLD_MS = 1500;
+
+/**
+ * Decide a âncora de posição para o snapshot novo. Re-ancora em troca de faixa,
+ * mudança de play/pause, ausência de âncora, pausa, ou desvio grande (seek);
+ * caso contrário preserva a âncora atual para uma progressão contínua.
+ */
+export function reconcilePositionAnchor(
+  prev: PositionAnchor | null,
+  snapshot: Pick<MediaSnapshot, 'positionMs' | 'isPlaying' | 'durationMs'>,
+  opts: { trackChanged: boolean; playStateChanged: boolean; nowMs?: number }
+): PositionAnchor {
+  const now = opts.nowMs ?? performance.now();
+  const reported = Math.max(0, snapshot.positionMs);
+
+  if (!prev || opts.trackChanged || opts.playStateChanged || !snapshot.isPlaying) {
+    return { baseMs: reported, atMs: now };
+  }
+
+  const predicted = prev.baseMs + Math.max(0, now - prev.atMs);
+  if (Math.abs(reported - predicted) >= POSITION_RESYNC_THRESHOLD_MS) {
+    return { baseMs: reported, atMs: now };
+  }
+
+  return prev;
+}
+
+/** Posição interpolada (ms) a partir de uma âncora, limitada pela duração. */
+export function positionFromAnchor(
+  anchor: PositionAnchor | null,
+  durationMs: number,
+  isPlaying: boolean,
+  nowMs = performance.now()
+): number {
+  if (!anchor) return 0;
+  if (!isPlaying) return anchor.baseMs;
+  const projected = anchor.baseMs + Math.max(0, nowMs - anchor.atMs);
+  return durationMs > 0 ? Math.min(durationMs, projected) : projected;
+}
+
 export function mediaCoverSrc(snapshot: MediaSnapshot | null | undefined): string | null {
   if (!snapshot?.coverArtBase64) return null;
   const mime = snapshot.coverArtMime || 'image/jpeg';

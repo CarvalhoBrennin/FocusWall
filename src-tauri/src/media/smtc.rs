@@ -430,11 +430,15 @@ fn collect_sessions(
 /// Seleção *sticky*: mantém a faixa fixada enquanto nada novo começa a tocar.
 ///
 /// Regras (desempate determinístico, sem depender da janela em foco):
-/// 1. Se algo está a tocar: preferir a sessão a tocar. Se a fixada também
-///    está a tocar, mantê-la (estabilidade); senão a que está "current"; senão
-///    a primeira a tocar.
-/// 2. Se nada toca: manter a fixada se ainda existir; senão a "current"; senão
-///    a de maior posição (a usada por último).
+/// 1. Se algo está a tocar: preferir a sessão a tocar. Prioridade: fixada exata
+///    → mesma *app* da fixada (ex.: trocou de faixa no mesmo player) → "current"
+///    → primeira a tocar.
+/// 2. Se nada toca: fixada exata → mesma app da fixada → "current" → maior
+///    posição (a usada por último).
+///
+/// A prioridade por *app_id* é o que evita o painel "pular sozinho" para outro
+/// reprodutor no instante em que os metadados mudam ao trocar de faixa: a
+/// identidade exata deixa de casar por uma leitura, mas a app continua a mesma.
 fn select_active(
     sessions: &[SessionData],
     pinned: Option<&SessionIdentity>,
@@ -449,6 +453,18 @@ fn select_active(
     let current_idx = current
         .and_then(|cur| sessions.iter().position(|d| identities_match(&d.identity, cur)));
 
+    // Índice de uma sessão da mesma app que a fixada, opcionalmente exigindo que
+    // esteja a tocar. `app_id` vazio nunca casa (evita agrupar tudo sob "").
+    let pinned_app = pinned
+        .map(|p| p.app_id.as_str())
+        .filter(|id| !id.is_empty());
+    let same_app_idx = |require_playing: bool| -> Option<usize> {
+        let app = pinned_app?;
+        sessions
+            .iter()
+            .position(|d| d.identity.app_id == app && (!require_playing || d.is_playing))
+    };
+
     let any_playing = sessions.iter().any(|d| d.is_playing);
 
     if any_playing {
@@ -456,6 +472,9 @@ fn select_active(
             if sessions[idx].is_playing {
                 return Some(idx);
             }
+        }
+        if let Some(idx) = same_app_idx(true) {
+            return Some(idx);
         }
         if let Some(idx) = current_idx {
             if sessions[idx].is_playing {
@@ -467,6 +486,9 @@ fn select_active(
 
     if pinned_idx.is_some() {
         return pinned_idx;
+    }
+    if let Some(idx) = same_app_idx(false) {
+        return Some(idx);
     }
     if current_idx.is_some() {
         return current_idx;

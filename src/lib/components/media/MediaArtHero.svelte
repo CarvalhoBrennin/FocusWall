@@ -1,4 +1,5 @@
 <script>
+  import { onDestroy } from 'svelte';
   import MediaIcons from './icons/MediaIcons.svelte';
   import MediaTrackSkeleton from './MediaTrackSkeleton.svelte';
   import { classifyCover, isVideoCover } from '../../utils/cover-art.js';
@@ -20,18 +21,33 @@
 
   let rootEl = $state(null);
   let containerSide = $state(480);
-  let imageLoaded = $state(false);
-  let loadedSrc = $state(null);
-  let coverImgEl = $state(null);
 
-  const classification = $derived(classifyCover(coverWidth, coverHeight, containerSide));
-  const isVideo = $derived(isVideoCover(coverWidth, coverHeight));
-  const isHdLayout = $derived(Boolean(coverSrc) && classification.hd && !isVideo);
+  // Crossfade por pré-carregamento.
+  //
+  // `frontSrc` é a imagem JÁ decodificada e visível; `prevSrc` é a anterior,
+  // mantida numa camada de fundo durante a transição. Só promovemos a capa nova
+  // quando ela termina de carregar (via `new Image()`), portanto a camada
+  // visível nunca fica em branco — elimina o "piscar" ao trocar de faixa e ao
+  // subir para a versão HD (que antes zerava a opacidade sobre o fundo escuro).
+  let frontSrc = $state(null);
+  let frontW = $state(0);
+  let frontH = $state(0);
+  let prevSrc = $state(null);
+  let frontVisible = $state(false);
+
+  let loadedSrc = '';
+  /** @type {HTMLImageElement | null} */
+  let preloader = null;
+  let prevClearTimer = 0;
+
+  const classification = $derived(classifyCover(frontW, frontH, containerSide));
+  const isVideo = $derived(isVideoCover(frontW, frontH));
+  const isHdLayout = $derived(Boolean(frontSrc) && classification.hd && !isVideo);
   const kenBurns = $derived(
-    isPlaying && !reducedMotion && isHdLayout && imageLoaded && !coverLoading
+    isPlaying && !reducedMotion && isHdLayout && frontVisible && !coverLoading
   );
   const showShimmer = $derived(
-    coverLoading || coverUpgrading || (Boolean(coverSrc) && !imageLoaded)
+    coverLoading || coverUpgrading || (Boolean(coverSrc) && !frontSrc)
   );
   const maxForegroundSide = $derived(
     isVideo
@@ -54,31 +70,80 @@
   });
 
   $effect(() => {
-    coverSrc;
-    coverImgEl;
-    if (coverSrc !== loadedSrc) {
-      imageLoaded = false;
+    const incoming = coverSrc;
+    const width = coverWidth;
+    const height = coverHeight;
+
+    if (!incoming) {
+      cancelPreload();
+      loadedSrc = '';
+      frontSrc = null;
+      prevSrc = null;
+      frontVisible = false;
+      return;
     }
-    const node = coverImgEl;
-    if (node?.complete && node.naturalWidth > 0 && coverSrc) {
-      handleImageLoad(coverSrc);
-    }
+
+    if (incoming === loadedSrc) return;
+
+    cancelPreload();
+    const img = new Image();
+    preloader = img;
+
+    const promote = () => {
+      if (preloader !== img) return;
+      preloader = null;
+      window.clearTimeout(prevClearTimer);
+      // Mantém a capa anterior por baixo durante o crossfade.
+      prevSrc = frontSrc;
+      frontSrc = incoming;
+      frontW = width || img.naturalWidth || 0;
+      frontH = height || img.naturalHeight || 0;
+      loadedSrc = incoming;
+      frontVisible = false;
+      // Próximo frame: dispara o fade-in por cima da camada anterior.
+      requestAnimationFrame(() => {
+        if (loadedSrc === incoming) frontVisible = true;
+      });
+      // Depois do crossfade, descarta a camada anterior para não vazar nas
+      // bordas de capas "contain".
+      prevClearTimer = window.setTimeout(() => {
+        if (loadedSrc === incoming) prevSrc = null;
+      }, 640);
+      onCoverLoad();
+    };
+
+    img.decoding = 'async';
+    img.onload = promote;
+    img.onerror = () => {
+      if (preloader !== img) return;
+      preloader = null;
+      // Não troca a imagem visível, mas libera o pipeline de settling do painel.
+      onCoverLoad();
+    };
+    img.src = incoming;
+    if (img.complete && img.naturalWidth > 0) promote();
   });
 
-  function handleImageLoad(src) {
-    if (!src || loadedSrc === src) return;
-    loadedSrc = src;
-    imageLoaded = true;
-    onCoverLoad();
+  function cancelPreload() {
+    if (preloader) {
+      preloader.onload = null;
+      preloader.onerror = null;
+      preloader = null;
+    }
   }
+
+  onDestroy(() => {
+    cancelPreload();
+    window.clearTimeout(prevClearTimer);
+  });
 </script>
 
 <div
   bind:this={rootEl}
   class="media-art-cinematic"
-  class:media-art-cinematic--hd={isHdLayout && imageLoaded}
-  class:media-art-cinematic--lowres={(!isHdLayout && coverSrc && imageLoaded) || isVideo}
-  class:media-art-cinematic--video={isVideo && coverSrc && imageLoaded}
+  class:media-art-cinematic--hd={isHdLayout}
+  class:media-art-cinematic--lowres={(Boolean(frontSrc) && !isHdLayout) || isVideo}
+  class:media-art-cinematic--video={isVideo && Boolean(frontSrc)}
   class:media-art-cinematic--playing={kenBurns}
   class:media-art-cinematic--settling={showShimmer}
 >
@@ -92,45 +157,47 @@
     ></div>
   {/if}
 
-  {#if coverSrc}
+  {#if prevSrc}
+    <div
+      class="media-art-cinematic-prev"
+      style:background-image={`url(${JSON.stringify(prevSrc)})`}
+      aria-hidden="true"
+    ></div>
+  {/if}
+
+  {#if frontSrc}
     {#if isHdLayout}
       <div
         class="media-art-cinematic-fill media-art-cinematic-fill--hd"
-        class:media-art-cinematic-fill--visible={imageLoaded}
-        style:background-image={`url(${JSON.stringify(coverSrc)})`}
+        class:media-art-cinematic-fill--visible={frontVisible}
+        style:background-image={`url(${JSON.stringify(frontSrc)})`}
         aria-hidden="true"
       ></div>
       <img
-        bind:this={coverImgEl}
         class="media-art-cinematic-image media-cover-reveal"
-        class:media-cover-reveal--visible={imageLoaded}
-        src={coverSrc}
+        class:media-cover-reveal--visible={frontVisible}
+        src={frontSrc}
         alt="Capa de {title || 'faixa'}"
         decoding="async"
-        fetchpriority="high"
         draggable="false"
-        onload={() => handleImageLoad(coverSrc)}
       />
     {:else}
       <div
         class="media-art-cinematic-fill"
-        class:media-art-cinematic-fill--visible={imageLoaded}
-        style:background-image={`url(${JSON.stringify(coverSrc)})`}
+        class:media-art-cinematic-fill--visible={frontVisible}
+        style:background-image={`url(${JSON.stringify(frontSrc)})`}
         aria-hidden="true"
       ></div>
       <div class="media-art-cinematic-foreground">
         <img
-          bind:this={coverImgEl}
           class="media-art-cinematic-image--contain media-cover-reveal"
           class:media-art-cinematic-image--video={isVideo}
-          class:media-cover-reveal--visible={imageLoaded}
-          src={coverSrc}
+          class:media-cover-reveal--visible={frontVisible}
+          src={frontSrc}
           alt="Capa de {title || 'faixa'}"
           style:--cover-max-side={maxForegroundSide}
           decoding="async"
-          fetchpriority="high"
           draggable="false"
-          onload={() => handleImageLoad(coverSrc)}
         />
       </div>
     {/if}

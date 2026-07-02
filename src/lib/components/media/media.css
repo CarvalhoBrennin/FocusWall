@@ -171,6 +171,20 @@
   filter: blur(20px) saturate(1.25) brightness(0.68);
 }
 
+/* Camada da capa anterior, mantida opaca por baixo durante o crossfade para
+   nunca expor o fundo escuro do palco ao trocar de capa / subir para HD. */
+.media-art-cinematic-prev {
+  position: absolute;
+  inset: -8%;
+  z-index: 0;
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  filter: blur(24px) saturate(1.25) brightness(0.6);
+  transform: translateZ(0) scale(1.1);
+  pointer-events: none;
+}
+
 /* Wrapper de posicionamento para a capa ampliada em baixa resolução. */
 .media-art-cinematic-foreground {
   position: absolute;

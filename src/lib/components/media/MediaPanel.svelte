@@ -6,9 +6,10 @@
   import {
     fetchMediaArtwork,
     fetchMediaSnapshot,
-    interpolateMediaPosition,
     mediaCoverSrc,
     mediaProgressPercent,
+    positionFromAnchor,
+    reconcilePositionAnchor,
     skipMediaNext,
     skipMediaPrevious,
     startMediaSessionPolling,
@@ -57,7 +58,9 @@
   let loading = $state(true);
   let errorMsg = $state(null);
   let controlBusy = $state(false);
-  let syncedAt = $state(0);
+  /** @type {import('../../services/media-session.js').PositionAnchor | null} */
+  let posAnchor = null;
+  let posAnchorVersion = $state(0);
   let displayPositionMs = $state(0);
   let tickRaf = 0;
   let sceneEl = $state(null);
@@ -228,13 +231,15 @@
       return;
     }
 
-    snapshot.positionMs;
-    syncedAt;
+    // Dependências reativas: re-executa quando a âncora muda (seek/resync) ou
+    // quando o snapshot é substituído (troca de faixa / play-pause).
+    posAnchorVersion;
+    const duration = snapshot.durationMs;
     let running = true;
 
     const loop = () => {
       if (!running) return;
-      displayPositionMs = interpolateMediaPosition(snapshot, syncedAt);
+      displayPositionMs = positionFromAnchor(posAnchor, duration, true);
       tickRaf = requestAnimationFrame(loop);
     };
 
@@ -274,6 +279,8 @@
       rawKeyStreak = 0;
       pendingReveal = false;
       settlePhase = 'boot';
+      posAnchor = null;
+      displayPositionMs = 0;
       clearSettleTimers();
       return;
     }
@@ -393,12 +400,24 @@
       };
     }
 
+    const prevSnap = snapshot;
+    const trackChanged = !prevSnap || mediaTrackKey(prevSnap) !== mediaTrackKey(data);
+    const playStateChanged = !prevSnap || prevSnap.isPlaying !== data.isPlaying;
+
     snapshot = data;
-    syncedAt = performance.now();
-    displayPositionMs = data.positionMs;
+    reanchorPosition(data, trackChanged, playStateChanged);
     loading = false;
     errorMsg = null;
     confirmTrackKey(data);
+  }
+
+  function reanchorPosition(data, trackChanged, playStateChanged) {
+    posAnchor = reconcilePositionAnchor(posAnchor, data, {
+      trackChanged,
+      playStateChanged
+    });
+    posAnchorVersion += 1;
+    displayPositionMs = positionFromAnchor(posAnchor, data.durationMs, data.isPlaying);
   }
 
   function confirmTrackKey(data) {
@@ -439,9 +458,13 @@
     });
   }
 
-  async function runControl(action) {
+  async function runControl(action, optimistic) {
     if (controlBusy || !snapshot?.available) return;
     controlBusy = true;
+    // Atualização otimista: reflete o estado desejado de imediato para o
+    // controle não parecer "travado" enquanto o comando faz a ida-e-volta ao
+    // SMTC. O snapshot real, ao chegar, corrige qualquer divergência.
+    if (optimistic) optimistic();
     try {
       await action();
       applySnapshot(await fetchMediaSnapshot());
@@ -450,6 +473,16 @@
     } finally {
       controlBusy = false;
     }
+  }
+
+  function togglePlayback() {
+    return runControl(() => toggleMediaPlayback(), () => {
+      if (!snapshot) return;
+      const pos = Math.round(displayPositionMs);
+      posAnchor = { baseMs: pos, atMs: performance.now() };
+      posAnchorVersion += 1;
+      snapshot = { ...snapshot, isPlaying: !snapshot.isPlaying, positionMs: pos };
+    });
   }
 
   function handleKeydown(event) {
@@ -466,7 +499,7 @@
 
     if (event.code === 'Space') {
       event.preventDefault();
-      void runControl(() => toggleMediaPlayback());
+      if (snapshot.canPlay || snapshot.canPause) void togglePlayback();
     } else if (event.key === 'ArrowRight') {
       event.preventDefault();
       if (snapshot.canNext) void runControl(() => skipMediaNext());
@@ -507,7 +540,7 @@
         {coverUpgrading}
         onCoverLoad={handleCoverLoad}
         onPrevious={() => runControl(() => skipMediaPrevious())}
-        onToggle={() => runControl(() => toggleMediaPlayback())}
+        onToggle={togglePlayback}
         onNext={() => runControl(() => skipMediaNext())}
       />
     </section>

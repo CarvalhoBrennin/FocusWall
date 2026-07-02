@@ -48,10 +48,18 @@ fn spotify_track_id(url: &str) -> Option<String> {
 }
 
 fn fetch_youtube_artwork(client: &Client, video_id: &str) -> Option<ArtworkBytes> {
+    // Tenta da maior para a menor resolução. Cada etapa pode falhar
+    // (download, decode ou thumbnail placeholder) sem abortar as seguintes:
+    // usar `?` aqui descartaria `sddefault`/`hqdefault` sempre que o
+    // `maxresdefault` não existisse (caso comum em vídeos antigos).
     for size in ["maxresdefault", "sddefault", "hqdefault"] {
         let url = format!("https://i.ytimg.com/vi/{video_id}/{size}.jpg");
-        let bytes = fetch_url_bytes(client, &url)?;
-        let artwork = artwork_from_bytes(bytes, None, "youtube", false)?;
+        let Some(bytes) = fetch_url_bytes(client, &url) else {
+            continue;
+        };
+        let Some(artwork) = artwork_from_bytes(bytes, None, "youtube", false) else {
+            continue;
+        };
         if is_youtube_placeholder(&artwork) {
             continue;
         }
