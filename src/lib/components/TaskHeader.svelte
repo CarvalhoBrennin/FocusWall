@@ -40,13 +40,15 @@
           ? $t('tasks.system')
           : $panelTab === 'media'
             ? $t('tasks.media')
-            : $panelTab === 'neural'
-              ? $t('tasks.neural')
-              : $panelTab === 'opencode'
-                ? $t('tasks.opencode')
-                : $panelTab === 'vivarium'
-                  ? $t('tasks.vivarium')
-                  : executionHeadline;
+            : $panelTab === 'assistant'
+              ? $t('tasks.assistant')
+              : $panelTab === 'neural'
+                ? $t('tasks.neural')
+                : $panelTab === 'opencode'
+                  ? $t('tasks.opencode')
+                  : $panelTab === 'vivarium'
+                    ? $t('tasks.vivarium')
+                    : executionHeadline;
   $: kicker =
     $panelTab === 'calendar'
       ? calendarKicker
@@ -56,9 +58,11 @@
           ? $t('tasks.performance')
           : $panelTab === 'media'
             ? $t('tasks.nowPlaying')
-            : $panelTab === 'neural'
-              ? $t('tasks.knowledge')
-              : historyLabel;
+            : $panelTab === 'assistant'
+              ? $t('tasks.operator')
+              : $panelTab === 'neural'
+                ? $t('tasks.knowledge')
+                : historyLabel;
 
   $: historySpanDays =
     $panelTab === 'calendar' ? CONFIG.HISTORY_RETENTION_DAYS : CONFIG.HISTORY_VIEW_DAYS;

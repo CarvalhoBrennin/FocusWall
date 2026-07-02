@@ -19,7 +19,14 @@ export const CONFIG = {
   TASK_HIGHLIGHT_MS: 450,
   TOAST_TIMEOUT_MS: 4000,
   EXCHANGE_MAX_RETRIES: 3,
-  EXCHANGE_RETRY_BASE_MS: 1000
+  EXCHANGE_RETRY_BASE_MS: 1000,
+  ASSISTANT: {
+    ollamaBaseUrl: 'http://127.0.0.1:11434',
+    model: 'qwen2.5:1.5b',
+    modelPreferences: ['qwen2.5:1.5b', 'qwen3:4b', 'qwen2.5:3b'],
+    streamIdleTimeoutMs: 60000,
+    maxToolRounds: 5
+  }
 };
 
 export const PRIORITY = { HIGH: 'high', MEDIUM: 'medium', LOW: 'low' } as const;

@@ -1,0 +1,313 @@
+.assistant-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid rgba(207, 206, 205, 0.16);
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.022) 1px, transparent 1px),
+    #050505;
+  background-size: 100% 1.6rem;
+  font-family: var(--font-mono);
+}
+
+.assistant-status-bar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-height: 3.35rem;
+  padding: 0.55rem 0.7rem;
+  border-bottom: 1px solid rgba(207, 206, 205, 0.14);
+  background: #070707;
+}
+
+.assistant-status-main {
+  display: flex;
+  align-items: center;
+  gap: 0.62rem;
+  min-width: 0;
+}
+
+.assistant-status-main > div {
+  display: grid;
+  gap: 0.16rem;
+  min-width: 0;
+}
+
+.assistant-status-main strong {
+  color: var(--light-strong);
+  font-size: 0.82rem;
+}
+
+.assistant-status-main span:not(.assistant-status-dot) {
+  overflow: hidden;
+  color: var(--light-soft);
+  font-size: 0.68rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.assistant-status-main .model-missing {
+  color: var(--danger);
+}
+
+.assistant-status-dot {
+  width: 0.62rem;
+  height: 0.62rem;
+  flex: 0 0 auto;
+  border: 1px solid rgba(207, 206, 205, 0.22);
+  background: var(--danger);
+  box-shadow: 0 0 0 3px rgba(181, 92, 80, 0.1);
+}
+
+.assistant-status-dot.is-online {
+  background: var(--success);
+  box-shadow: 0 0 0 3px rgba(91, 140, 91, 0.12);
+}
+
+.assistant-status-dot.is-busy {
+  animation: assistant-pulse 900ms ease-in-out infinite alternate;
+}
+
+.assistant-status-actions {
+  display: flex;
+  align-items: stretch;
+  gap: 0.45rem;
+}
+
+.assistant-status-actions .ghost-button {
+  min-height: 2rem;
+  padding: 0.34rem 0.62rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+
+.assistant-offline {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 0.58rem 0.72rem;
+  border-bottom: 1px solid rgba(181, 92, 80, 0.22);
+  background: rgba(181, 92, 80, 0.08);
+  color: var(--danger);
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
+.assistant-offline-detail {
+  display: block;
+  margin-top: 0.2rem;
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
+.assistant-message-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding: 0.9rem 1rem;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(207, 206, 205, 0.15) transparent;
+}
+
+.assistant-message-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.assistant-message-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.assistant-message-list::-webkit-scrollbar-thumb {
+  background: rgba(207, 206, 205, 0.15);
+}
+
+.assistant-empty {
+  margin: 0;
+  padding: 0.85rem;
+  color: var(--light-muted);
+  font-size: 0.88rem;
+}
+
+.assistant-message {
+  margin: 0 0 1rem;
+  padding: 0 0 0 0.72rem;
+  border-left: 2px solid rgba(207, 206, 205, 0.18);
+}
+
+.assistant-message--user {
+  border-left-color: rgba(143, 209, 143, 0.72);
+}
+
+.assistant-message--assistant {
+  border-left-color: rgba(207, 206, 205, 0.32);
+}
+
+.assistant-message.is-error {
+  border-left-color: rgba(181, 92, 80, 0.82);
+}
+
+.assistant-message header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.2rem;
+}
+
+.assistant-message header strong {
+  color: #8fd18f;
+  font-size: 0.74rem;
+}
+
+.assistant-message--assistant header strong {
+  color: var(--light-strong);
+}
+
+.assistant-message header span {
+  color: var(--light-soft);
+  font-size: 0.64rem;
+}
+
+.assistant-message pre {
+  margin: 0;
+  color: var(--light-main);
+  font-family: var(--font-mono);
+  font-size: 0.84rem;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.assistant-cursor {
+  display: inline-block;
+  width: 0.55rem;
+  height: 1rem;
+  background: var(--light-main);
+  animation: assistant-cursor 800ms steps(2, start) infinite;
+}
+
+.assistant-action-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.36rem;
+  margin-top: 0.48rem;
+}
+
+.assistant-action-chip {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  min-height: 1.75rem;
+  gap: 0.36rem;
+  padding: 0.28rem 0.52rem;
+  border: 1px solid rgba(91, 140, 91, 0.25);
+  background: rgba(91, 140, 91, 0.08);
+  color: var(--light-main);
+  font-size: 0.68rem;
+  line-height: 1.25;
+}
+
+.assistant-action-chip strong {
+  flex: 0 0 auto;
+  color: var(--success);
+}
+
+.assistant-action-chip.is-failed {
+  border-color: rgba(181, 92, 80, 0.26);
+  background: rgba(181, 92, 80, 0.08);
+}
+
+.assistant-action-chip.is-failed strong {
+  color: var(--danger);
+}
+
+.assistant-composer {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 5.6rem;
+  align-items: start;
+  gap: 0.55rem;
+  padding: 0.58rem 0.72rem;
+  border-top: 1px solid rgba(207, 206, 205, 0.14);
+  background: #070707;
+}
+
+.assistant-composer textarea {
+  width: 100%;
+  height: 5rem;
+  min-height: 5rem;
+  max-height: 5rem;
+  resize: none;
+  padding: 0.68rem 0.75rem;
+  border: 1px solid rgba(207, 206, 205, 0.18);
+  border-radius: 0;
+  background: #050505;
+  color: #f0f0f0;
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.assistant-composer textarea::placeholder {
+  color: var(--field-placeholder);
+}
+
+.assistant-composer textarea:focus {
+  outline: none;
+  border-color: rgba(207, 206, 205, 0.35);
+  background: var(--field-bg-hover);
+  box-shadow: 0 0 0 4px var(--focus-ring);
+}
+
+.assistant-composer .primary-button {
+  width: 5.6rem;
+  min-width: 5.6rem;
+  height: 3rem;
+  align-self: start;
+  padding-inline: 0.85rem;
+}
+
+@media (max-width: 760px) {
+  .assistant-status-bar,
+  .assistant-composer {
+    grid-template-columns: 1fr;
+  }
+
+  .assistant-status-bar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .assistant-status-actions,
+  .assistant-composer .primary-button {
+    width: 100%;
+  }
+
+  .assistant-status-actions .ghost-button {
+    flex: 1;
+  }
+}
+
+@keyframes assistant-pulse {
+  from {
+    opacity: 0.62;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes assistant-cursor {
+  0%,
+  45% {
+    opacity: 1;
+  }
+  46%,
+  100% {
+    opacity: 0;
+  }
+}

@@ -217,7 +217,7 @@ fn friendly_app_title(exe: &str, process_name: &str) -> String {
         "searchhost" => "Pesquisar",
         "applicationframehost" => "Application Frame Host",
         "webview2" | "msedgewebview2" => "Gerenciador WebView2",
-        "focus-desktop-dashboard" => "Focus Dashboard",
+        "focus-desktop-dashboard" => "FocusWall",
         _ => "",
     };
     if !mapped.is_empty() {

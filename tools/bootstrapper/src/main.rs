@@ -7,7 +7,7 @@ use std::{
 use mslnk::ShellLink;
 
 const APP_EXE: &str = "focus-desktop-dashboard.exe";
-const APP_NAME: &str = "Focus Dashboard";
+const APP_NAME: &str = "FocusWall";
 
 fn main() {
     println!("=== {} — Instalador ===\n", APP_NAME);

@@ -8,6 +8,13 @@ export default defineConfig({
   server: {
     port: 1420,
     strictPort: true,
-    watch: { ignored: ['**/src-tauri/**'] }
+    watch: { ignored: ['**/src-tauri/**'] },
+    proxy: {
+      '/ollama': {
+        target: 'http://127.0.0.1:11434',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/ollama/, '')
+      }
+    }
   }
 });

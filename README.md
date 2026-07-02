@@ -1,4 +1,4 @@
-# Focus Dashboard
+# FocusWall
 
 Dashboard desktop em `Tauri + Svelte` para acompanhar tarefas do dia, relógio local, câmbio BRL, calendário, arquivos, métricas do sistema e mídia em reprodução — pensado para ficar residente no ambiente do Windows.
 

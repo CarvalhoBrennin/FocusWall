@@ -1,0 +1,165 @@
+.focus-reticle-mark,
+.focuswall-logo__reticle {
+  --reticle-ink: var(--brand-ink, #f1ecec);
+  --bracket-size: 15px;
+  --bracket-stroke: 2px;
+  position: relative;
+  color: var(--reticle-ink);
+}
+
+.focus-reticle-mark.is-light,
+.focuswall-logo.is-light {
+  --brand-ink: #0a0a0a;
+  --brand-ink-muted: rgba(10, 10, 10, 0.62);
+  --brand-divider: rgba(10, 10, 10, 0.28);
+  --reticle-ink: #0a0a0a;
+}
+
+.focus-reticle-mark {
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+
+.focus-reticle-corner {
+  position: absolute;
+  width: var(--bracket-size);
+  height: var(--bracket-size);
+  border: var(--bracket-stroke) solid var(--reticle-ink);
+}
+
+.focus-reticle-corner--tl {
+  top: 0;
+  left: 0;
+  border-right: 0;
+  border-bottom: 0;
+}
+
+.focus-reticle-corner--tr {
+  top: 0;
+  right: 0;
+  border-left: 0;
+  border-bottom: 0;
+}
+
+.focus-reticle-corner--bl {
+  bottom: 0;
+  left: 0;
+  border-right: 0;
+  border-top: 0;
+}
+
+.focus-reticle-corner--br {
+  right: 0;
+  bottom: 0;
+  border-left: 0;
+  border-top: 0;
+}
+
+.focus-reticle-letter,
+.focuswall-logo__mark {
+  font-family: var(--font-display);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.02em;
+}
+
+.focus-reticle-mark {
+  --bracket-size: calc(var(--mark-size, 52px) * 0.29);
+  --bracket-stroke: max(2px, calc(var(--mark-size, 52px) * 0.038));
+}
+
+.focus-reticle-letter {
+  font-size: calc(var(--mark-size, 52px) * 0.37);
+}
+
+.focuswall-logo {
+  --brand-ink: #f1ecec;
+  --brand-ink-muted: rgba(183, 177, 177, 0.7);
+  --brand-divider: rgba(75, 70, 70, 0.5);
+  display: inline-flex;
+  justify-content: center;
+}
+
+.focuswall-logo__reticle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.95rem 1.15rem;
+}
+
+.focuswall-logo--sm .focuswall-logo__reticle {
+  --bracket-size: 12px;
+  --bracket-stroke: 2px;
+  padding: 0.62rem 0.78rem;
+}
+
+.focuswall-logo--lg .focuswall-logo__reticle {
+  --bracket-size: 20px;
+  --bracket-stroke: 2px;
+  padding: 1.15rem 1.45rem;
+}
+
+.focuswall-logo__wordmark {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.focuswall-logo__focus,
+.focuswall-logo__wall,
+.focuswall-logo__mark {
+  font-family: var(--font-display);
+  line-height: 1;
+  text-align: center;
+}
+
+.focuswall-logo__focus {
+  font-size: clamp(1rem, 1.25vw, 1.35rem);
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.focuswall-logo__wall {
+  font-size: clamp(1rem, 1.25vw, 1.35rem);
+  font-weight: 500;
+  letter-spacing: 0.34em;
+  color: var(--brand-ink-muted);
+}
+
+.focuswall-logo__mark {
+  font-size: 1.25rem;
+}
+
+.focuswall-logo--sm .focuswall-logo__focus,
+.focuswall-logo--sm .focuswall-logo__wall {
+  font-size: 0.88rem;
+}
+
+.focuswall-logo--sm .focuswall-logo__mark {
+  font-size: 1rem;
+}
+
+.focuswall-logo--lg .focuswall-logo__focus,
+.focuswall-logo--lg .focuswall-logo__wall {
+  font-size: 1.55rem;
+}
+
+.focuswall-logo--lg .focuswall-logo__mark {
+  font-size: 1.65rem;
+}
+
+.focuswall-logo__divider {
+  width: min(100%, 7.8rem);
+  height: 1px;
+  background: var(--brand-divider);
+}
+
+.info-rail-brand {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: center;
+  padding: 0.1rem 0 0.45rem;
+}

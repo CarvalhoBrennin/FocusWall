@@ -1,5 +1,5 @@
 @echo off
-setlocal
+setlocal EnableDelayedExpansion
 
 set "ROOT=%~dp0"
 cd /d "%ROOT%"
@@ -9,26 +9,39 @@ if exist "%USERPROFILE%\.cargo\bin" (
 )
 
 set "INSTALLED=%LOCALAPPDATA%\FocusWall\focus-desktop-dashboard.exe"
-set "RELEASE=%ROOT%src-tauri\target\release\focus-desktop-dashboard.exe"
-set "DIST=%ROOT%dist\index.html"
+set "RELEASE_EXE=%ROOT%src-tauri\target\release\focus-desktop-dashboard.exe"
+set "DIST_INDEX=%ROOT%dist\index.html"
 
 if /I "%~1"=="--debug" goto DEV_MODE
 if /I "%~1"=="--installed" goto USE_INSTALLED
-if /I "%~1"=="--release" goto USE_RELEASE
+if /I "%~1"=="--build" goto FORCE_BUILD_AND_OPEN
+if /I "%~1"=="--release" goto OPEN_APP
 
-REM Padrao: compila o release local, abre o release, depois tenta instalado.
-REM Nunca abra o .exe de debug direto; ele depende do Vite em 127.0.0.1:1420.
-call :BUILD_RELEASE
-if errorlevel 1 exit /b %ERRORLEVEL%
-goto USE_RELEASE
+REM Padrao: abre se o build estiver atualizado; recompila so se codigo mudou.
+goto OPEN_APP
 
-:USE_RELEASE
-call :BUILD_RELEASE
+:OPEN_APP
+call :CHECK_BUILD_STALE
+if errorlevel 1 goto REBUILD_AND_OPEN
+echo Build atual. Abrindo sem recompilar...
+goto LAUNCH_APP
+
+:REBUILD_AND_OPEN
+echo Alteracoes detectadas no codigo. Recompilando...
+call :DO_TAURI_BUILD
 if errorlevel 1 exit /b %ERRORLEVEL%
-if not exist "%RELEASE%" goto TRY_INSTALLED
-if not exist "%DIST%" goto NEED_BUILD
-echo Abrindo Focus Dashboard...
-start "" "%RELEASE%"
+goto LAUNCH_APP
+
+:FORCE_BUILD_AND_OPEN
+call :DO_TAURI_BUILD
+if errorlevel 1 exit /b %ERRORLEVEL%
+goto LAUNCH_APP
+
+:LAUNCH_APP
+if not exist "%RELEASE_EXE%" goto TRY_INSTALLED
+if not exist "%DIST_INDEX%" goto NEED_BUILD
+echo Abrindo FocusWall...
+start "" "%RELEASE_EXE%"
 exit /b 0
 
 :TRY_INSTALLED
@@ -36,7 +49,7 @@ if /I "%~1"=="--release" goto NOT_FOUND
 
 :USE_INSTALLED
 if exist "%INSTALLED%" (
-    echo Abrindo Focus Dashboard instalado...
+    echo Abrindo FocusWall instalado...
     start "" "%INSTALLED%"
     exit /b 0
 )
@@ -44,7 +57,17 @@ goto NOT_FOUND
 
 :DEV_MODE
 echo Modo desenvolvimento: iniciando Vite + Tauri...
+call :ENSURE_NPM_DEPS
+if errorlevel 1 exit /b %ERRORLEVEL%
 call npm run tauri:dev
+exit /b %ERRORLEVEL%
+
+:CHECK_BUILD_STALE
+if not exist "%RELEASE_EXE%" exit /b 1
+if not exist "%DIST_INDEX%" exit /b 1
+where node >NUL 2>&1
+if errorlevel 1 exit /b 1
+node "tools\is-build-stale.mjs"
 exit /b %ERRORLEVEL%
 
 :CLOSE_RUNNING
@@ -53,85 +76,84 @@ set "CLOSE_ATTEMPTS=0"
 tasklist /FI "IMAGENAME eq focus-desktop-dashboard.exe" 2>NUL | find /I "focus-desktop-dashboard.exe" >NUL
 if errorlevel 1 exit /b 0
 set /A CLOSE_ATTEMPTS+=1
-if %CLOSE_ATTEMPTS% GTR 8 (
-    echo.
-    echo Nao foi possivel fechar Focus Dashboard apos varias tentativas.
-    echo Feche o aplicativo manualmente ^(incluindo na bandeja^) e tente novamente.
-    echo.
-    pause
-    exit /b 1
-)
-if %CLOSE_ATTEMPTS% EQU 1 (
-    echo Fechando Focus Dashboard em execucao para atualizar o build...
-)
+if !CLOSE_ATTEMPTS! GTR 8 goto CLOSE_FAILED
+if !CLOSE_ATTEMPTS! EQU 1 echo Fechando FocusWall em execucao para atualizar o build...
 taskkill /F /IM focus-desktop-dashboard.exe >NUL 2>NUL
-ping 127.0.0.1 -n 3 >NUL
+ping 127.0.0.1 -n 2 >NUL
 goto CLOSE_RETRY
+
+:CLOSE_FAILED
+echo.
+echo Nao foi possivel fechar FocusWall apos varias tentativas.
+echo Feche o aplicativo manualmente e tente novamente.
+echo.
+pause
+exit /b 1
 
 :ENSURE_NPM_DEPS
 if exist "%ROOT%node_modules\.bin\tauri.cmd" exit /b 0
 echo Dependencias npm nao encontradas. Instalando...
-if exist "%ROOT%package-lock.json" (
-    call npm ci
-) else (
-    call npm install
-)
-if errorlevel 1 (
-    echo.
-    echo Falha ao instalar dependencias npm.
-    echo Verifique se Node.js 20+ esta instalado: node --version
-    echo.
-    pause
-    exit /b 1
-)
-if not exist "%ROOT%node_modules\.bin\tauri.cmd" (
-    echo.
-    echo Tauri CLI nao encontrado apos npm install.
-    echo Execute manualmente na pasta do projeto: npm install
-    echo.
-    pause
-    exit /b 1
-)
+if exist "%ROOT%package-lock.json" goto NPM_CI
+call npm install
+goto NPM_DEPS_DONE
+:NPM_CI
+call npm ci
+:NPM_DEPS_DONE
+if errorlevel 1 goto NPM_DEPS_FAIL
+if not exist "%ROOT%node_modules\.bin\tauri.cmd" goto NPM_TAURI_MISSING
 exit /b 0
 
-:BUILD_RELEASE
-if "%SKIP_FOCUSWALL_BUILD%"=="1" exit /b 0
-set "SKIP_FOCUSWALL_BUILD=1"
+:NPM_DEPS_FAIL
+echo.
+echo Falha ao instalar dependencias npm.
+echo Verifique se Node.js 20 ou superior esta instalado.
+echo.
+pause
+exit /b 1
 
+:NPM_TAURI_MISSING
+echo.
+echo Tauri CLI nao encontrado apos npm install.
+echo Execute manualmente na pasta do projeto: npm install
+echo.
+pause
+exit /b 1
+
+:DO_TAURI_BUILD
 call :ENSURE_NPM_DEPS
 if errorlevel 1 exit /b %ERRORLEVEL%
-
 call :CLOSE_RUNNING
 if errorlevel 1 exit /b %ERRORLEVEL%
-
-echo Compilando Focus Dashboard...
+echo Compilando FocusWall...
 call npm run tauri:build
-if errorlevel 1 (
-    echo.
-    echo Falha ao compilar o Focus Dashboard.
-    echo Feche o aplicativo se ele ainda estiver aberto e tente novamente.
-    echo.
-    pause
-    exit /b %ERRORLEVEL%
-)
+if errorlevel 1 goto BUILD_FAILED
 exit /b 0
+
+:BUILD_FAILED
+echo.
+echo Falha ao compilar o FocusWall.
+echo Feche o aplicativo se ele ainda estiver aberto e tente novamente.
+echo.
+pause
+exit /b %ERRORLEVEL%
 
 :NEED_BUILD
 echo Frontend nao compilado. Execute:
-echo   npm run tauri:build
+echo   abrir-dashboard.bat --build
 echo.
 pause
 exit /b 1
 
 :NOT_FOUND
-echo Focus Dashboard nao encontrado.
+echo FocusWall nao encontrado.
 echo.
 echo Desenvolvedor:
-echo   npm run tauri:build          ^(gera o .exe standalone^)
-echo   abrir-dashboard.bat --debug  ^(modo dev com hot reload^)
+echo   abrir-dashboard.bat           - abre; recompila se codigo mudou
+echo   abrir-dashboard.bat --build   - forca recompilacao
+echo   abrir-dashboard.bat --debug   - modo dev com hot reload
 echo   npm run open:dev
 echo.
-echo Usuario final: execute o instalador (Instalar-Focus-Setup.exe).
+echo Usuario final: execute o instalador Instalar-Focus-Setup.exe
 echo.
 pause
 exit /b 1

@@ -5,6 +5,7 @@
   import { panelTab } from '../stores/ui-store.js';
   import { visibleTasks } from '../stores/app-store.js';
   import {
+    ASSISTANT_TAB_ENABLED,
     NEURAL_TAB_ENABLED,
     OPENCODE_TAB_ENABLED,
     VIVARIUM_ENABLED
@@ -14,6 +15,7 @@
   let filesMounted = $state(false);
   let systemMounted = $state(false);
   let mediaMounted = $state(false);
+  let assistantMounted = $state(false);
   let opencodeMounted = $state(false);
   let neuralMounted = $state(false);
   let vivariumMounted = $state(false);
@@ -22,6 +24,7 @@
   let FilesPanel = $state(null);
   let SystemPanel = $state(null);
   let MediaPanel = $state(null);
+  let AssistantPanel = $state(null);
   let OpenCodePanel = $state(null);
   let NeuralPanel = $state(null);
   let VivariumTab = $state(null);
@@ -59,6 +62,15 @@
       if (!MediaPanel) {
         import('./media/MediaPanel.svelte').then((mod) => {
           MediaPanel = mod.default;
+        });
+      }
+    }
+
+    if (ASSISTANT_TAB_ENABLED && $panelTab === 'assistant') {
+      assistantMounted = true;
+      if (!AssistantPanel) {
+        import('./assistant/AssistantPanel.svelte').then((mod) => {
+          AssistantPanel = mod.default;
         });
       }
     }
@@ -177,6 +189,20 @@
           aria-hidden={$panelTab !== 'media'}
         >
           <MediaPanel active={$panelTab === 'media'} />
+        </div>
+      {/if}
+
+      {#if ASSISTANT_TAB_ENABLED && assistantMounted && AssistantPanel}
+        <div
+          id="assistant-panel"
+          class="panel-view"
+          class:is-active={$panelTab === 'assistant'}
+          role="tabpanel"
+          aria-labelledby="assistant-tab"
+          tabindex={$panelTab === 'assistant' ? 0 : -1}
+          aria-hidden={$panelTab !== 'assistant'}
+        >
+          <AssistantPanel active={$panelTab === 'assistant'} />
         </div>
       {/if}
 

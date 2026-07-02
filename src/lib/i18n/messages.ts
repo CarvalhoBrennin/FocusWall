@@ -45,6 +45,7 @@ export type MessageKey =
   | 'tasks.files'
   | 'tasks.system'
   | 'tasks.media'
+  | 'tasks.assistant'
   | 'tasks.neural'
   | 'tasks.opencode'
   | 'tasks.vivarium'
@@ -56,6 +57,7 @@ export type MessageKey =
   | 'tasks.desktop'
   | 'tasks.performance'
   | 'tasks.nowPlaying'
+  | 'tasks.operator'
   | 'tasks.knowledge'
   | 'tasks.listArea'
   | 'tasks.listLabel'
@@ -129,6 +131,28 @@ export type MessageKey =
   | 'opencode.exitedUnexpectedly'
   | 'opencode.starting'
   | 'opencode.desktopOnly'
+  | 'assistant.panelLabel'
+  | 'assistant.you'
+  | 'assistant.name'
+  | 'assistant.model'
+  | 'assistant.refresh'
+  | 'assistant.clearChat'
+  | 'assistant.empty'
+  | 'assistant.inputLabel'
+  | 'assistant.placeholder'
+  | 'assistant.send'
+  | 'assistant.sending'
+  | 'assistant.offline'
+  | 'assistant.error'
+  | 'assistant.actionDone'
+  | 'assistant.actionFailed'
+  | 'assistant.status.checking'
+  | 'assistant.status.online'
+  | 'assistant.status.offline'
+  | 'assistant.status.ready'
+  | 'assistant.status.thinking'
+  | 'assistant.status.executing'
+  | 'assistant.status.error'
   | 'neural.panelLabel'
   | 'neural.sidebarLabel'
   | 'neural.editorLabel'
@@ -192,7 +216,7 @@ export type MessageKey =
 
 const messages: Record<LocaleId, Record<MessageKey, string>> = {
   'pt-BR': {
-    'app.loading': 'Carregando Focus Dashboard...',
+    'app.loading': 'Carregando FocusWall...',
     'app.reload': 'Recarregar',
     'app.fatalError': 'Erro inesperado no aplicativo.',
     'app.unhandledRejection': 'Promise rejeitada sem tratamento.',
@@ -236,6 +260,7 @@ const messages: Record<LocaleId, Record<MessageKey, string>> = {
     'tasks.files': 'Arquivos',
     'tasks.system': 'Sistema',
     'tasks.media': 'Mídia',
+    'tasks.assistant': 'Assistente',
     'tasks.neural': 'Neural',
     'tasks.opencode': 'OpenCode',
     'tasks.vivarium': 'Vivarium',
@@ -247,6 +272,7 @@ const messages: Record<LocaleId, Record<MessageKey, string>> = {
     'tasks.desktop': 'Desktop',
     'tasks.performance': 'Desempenho',
     'tasks.nowPlaying': 'Tocando agora',
+    'tasks.operator': 'Operador local',
     'tasks.knowledge': 'Conhecimento conectado',
     'tasks.listArea': 'Área principal de tarefas',
     'tasks.listLabel': 'Lista de tarefas do dia',
@@ -320,6 +346,28 @@ const messages: Record<LocaleId, Record<MessageKey, string>> = {
     'opencode.exitedUnexpectedly': 'OpenCode encerrou inesperadamente.',
     'opencode.starting': 'Iniciando...',
     'opencode.desktopOnly': 'OpenCode CLI só está disponível no desktop (Tauri).',
+    'assistant.panelLabel': 'Assistente FocusWall',
+    'assistant.you': 'Você',
+    'assistant.name': 'Assistente',
+    'assistant.model': 'Modelo',
+    'assistant.refresh': 'Atualizar',
+    'assistant.clearChat': 'Limpar conversa',
+    'assistant.empty': 'Conversa vazia.',
+    'assistant.inputLabel': 'Mensagem para o assistente',
+    'assistant.placeholder': 'Peça uma ação no FocusWall...',
+    'assistant.send': 'Enviar',
+    'assistant.sending': 'Enviando...',
+    'assistant.offline': 'Ollama offline. Abra o app Ollama ou execute "ollama serve" e clique em Atualizar.',
+    'assistant.error': 'Não foi possível concluir a resposta.',
+    'assistant.actionDone': 'ação concluída',
+    'assistant.actionFailed': 'ação falhou',
+    'assistant.status.checking': 'Verificando',
+    'assistant.status.online': 'Online',
+    'assistant.status.offline': 'Offline',
+    'assistant.status.ready': 'Pronto',
+    'assistant.status.thinking': 'Pensando',
+    'assistant.status.executing': 'Executando ação',
+    'assistant.status.error': 'Erro',
     'neural.panelLabel': 'Neural — notas conectadas',
     'neural.sidebarLabel': 'Notas neurais',
     'neural.editorLabel': 'Editor da nota neural',
@@ -385,7 +433,7 @@ const messages: Record<LocaleId, Record<MessageKey, string>> = {
     'neural.graph.untitled': 'Sem título'
   },
   'en-US': {
-    'app.loading': 'Loading Focus Dashboard...',
+    'app.loading': 'Loading FocusWall...',
     'app.reload': 'Reload',
     'app.fatalError': 'Unexpected application error.',
     'app.unhandledRejection': 'Unhandled promise rejection.',
@@ -429,6 +477,7 @@ const messages: Record<LocaleId, Record<MessageKey, string>> = {
     'tasks.files': 'Files',
     'tasks.system': 'System',
     'tasks.media': 'Media',
+    'tasks.assistant': 'Assistant',
     'tasks.neural': 'Neural',
     'tasks.opencode': 'OpenCode',
     'tasks.vivarium': 'Vivarium',
@@ -440,6 +489,7 @@ const messages: Record<LocaleId, Record<MessageKey, string>> = {
     'tasks.desktop': 'Desktop',
     'tasks.performance': 'Performance',
     'tasks.nowPlaying': 'Now playing',
+    'tasks.operator': 'Local operator',
     'tasks.knowledge': 'Connected knowledge',
     'tasks.listArea': 'Main task area',
     'tasks.listLabel': 'Today\'s task list',
@@ -513,6 +563,28 @@ const messages: Record<LocaleId, Record<MessageKey, string>> = {
     'opencode.exitedUnexpectedly': 'OpenCode exited unexpectedly.',
     'opencode.starting': 'Starting...',
     'opencode.desktopOnly': 'OpenCode CLI is only available on desktop (Tauri).',
+    'assistant.panelLabel': 'FocusWall assistant',
+    'assistant.you': 'You',
+    'assistant.name': 'Assistant',
+    'assistant.model': 'Model',
+    'assistant.refresh': 'Refresh',
+    'assistant.clearChat': 'Clear chat',
+    'assistant.empty': 'Empty conversation.',
+    'assistant.inputLabel': 'Message for the assistant',
+    'assistant.placeholder': 'Ask for a FocusWall action...',
+    'assistant.send': 'Send',
+    'assistant.sending': 'Sending...',
+    'assistant.offline': 'Ollama offline. Open the Ollama app or run "ollama serve", then click Refresh.',
+    'assistant.error': 'Could not complete the response.',
+    'assistant.actionDone': 'action completed',
+    'assistant.actionFailed': 'action failed',
+    'assistant.status.checking': 'Checking',
+    'assistant.status.online': 'Online',
+    'assistant.status.offline': 'Offline',
+    'assistant.status.ready': 'Ready',
+    'assistant.status.thinking': 'Thinking',
+    'assistant.status.executing': 'Running action',
+    'assistant.status.error': 'Error',
     'neural.panelLabel': 'Neural — connected notes',
     'neural.sidebarLabel': 'Neural notes',
     'neural.editorLabel': 'Neural note editor',

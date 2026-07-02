@@ -36,4 +36,6 @@ commands.allow = [
   "media_toggle_playback",
   "media_skip_next",
   "media_skip_previous",
+  "check_ollama_health",
+  "ollama_chat_stream",
 ]

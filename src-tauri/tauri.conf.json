@@ -1,6 +1,6 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "Focus Dashboard",
+  "productName": "FocusWall",
   "version": "0.1.0",
   "identifier": "com.carva.focusdashboard",
   "build": {
@@ -14,7 +14,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "Focus Dashboard",
+        "title": "FocusWall",
         "width": 1600,
         "height": 900,
         "minWidth": 1100,
@@ -33,7 +33,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; connect-src 'self' ipc: http://ipc.localhost https://economia.awesomeapi.com.br; script-src 'self' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' asset: https://asset.localhost blob: data:; worker-src 'self' blob:;"
+      "csp": "default-src 'self'; connect-src 'self' ipc: http://ipc.localhost http://127.0.0.1:11434 http://localhost:11434 https://economia.awesomeapi.com.br; script-src 'self' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' asset: https://asset.localhost blob: data:; worker-src 'self' blob:;"
     }
   },
   "bundle": {

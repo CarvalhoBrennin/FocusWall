@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 180" fill="none">
+  <rect width="420" height="180" fill="#0A0A0A"/>
+  <path stroke="#F1ECEC" stroke-width="8" d="M48 36h56M48 36v56"/>
+  <path stroke="#F1ECEC" stroke-width="8" d="M372 36H316M372 36v56"/>
+  <path stroke="#F1ECEC" stroke-width="8" d="M48 144h56M48 144V88"/>
+  <path stroke="#F1ECEC" stroke-width="8" d="M372 144H316M372 144V88"/>
+  <text x="210" y="78" text-anchor="middle" fill="#F1ECEC" font-family="Orbitron, Arial, sans-serif" font-size="44" font-weight="800" letter-spacing="4">FOCUS</text>
+  <line x1="118" y1="92" x2="302" y2="92" stroke="rgba(75,70,70,0.5)" stroke-width="2"/>
+  <text x="210" y="132" text-anchor="middle" fill="rgba(183,177,177,0.7)" font-family="Orbitron, Arial, sans-serif" font-size="44" font-weight="500" letter-spacing="12">WALL</text>
+</svg>

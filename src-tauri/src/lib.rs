@@ -1,6 +1,7 @@
 mod dashboard_state;
 mod media;
 mod metrics;
+mod ollama;
 
 use dashboard_state::{get_app_data_path, load_state, save_state};
 
@@ -1600,7 +1601,7 @@ fn build_tray(app: &AppHandle) -> tauri::Result<()> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let _ = env_logger::try_init();
-    info!("Starting Focus Dashboard...");
+    info!("Starting FocusWall...");
 
     let app = tauri::Builder::default()
         .manage(RuntimeState::default())
@@ -1655,7 +1656,9 @@ pub fn run() {
             media::get_media_artwork,
             media::media_toggle_playback,
             media::media_skip_next,
-            media::media_skip_previous
+            media::media_skip_previous,
+            ollama::check_ollama_health,
+            ollama::ollama_chat_stream
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application");

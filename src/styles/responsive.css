@@ -878,6 +878,7 @@ html:not(.is-tauri) {
 
   #media-panel,
   #files-panel,
+  #assistant-panel,
   #neural-panel,
   #calendar-panel {
     overflow-y: auto;
