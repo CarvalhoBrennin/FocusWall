@@ -27,7 +27,7 @@
         ? $t('tasks.yesterday')
         : formatters.historyDate.format(visibleDate);
   $: executionHeadline =
-    $viewOffsetDays === VIEW.TODAY ? $t('tasks.executionPanel') : $t('tasks.executionArchive');
+    $viewOffsetDays >= VIEW.TODAY ? $t('tasks.executionPanel') : $t('tasks.executionArchive');
   $: calendarMonthKey =
     normalizeMonthKey($data.ui?.calendarMonth) || $currentDateKey.slice(0, 7);
   $: calendarKicker = formatters.monthYear.format(parseMonthKey(calendarMonthKey));
@@ -67,7 +67,7 @@
   $: historySpanDays =
     $panelTab === 'calendar' ? CONFIG.HISTORY_RETENTION_DAYS : CONFIG.HISTORY_VIEW_DAYS;
   $: canGoPrev = $viewOffsetDays > -(historySpanDays - 1);
-  $: canGoNext = $viewOffsetDays < VIEW.TODAY;
+  $: canGoNext = $viewOffsetDays < CONFIG.FUTURE_VIEW_DAYS;
 
   function handleTabKeydown(event, tabId) {
     const currentIndex = tabs.findIndex((tab) => tab.id === tabId);

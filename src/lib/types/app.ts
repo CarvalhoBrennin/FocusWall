@@ -13,6 +13,7 @@ export type PanelTab =
 export type ThemeId = 'dark' | 'light' | 'olive';
 export type LocaleId = 'pt-BR' | 'en-US';
 export type CalendarColor = 'neutral' | 'accent' | 'success' | 'danger';
+export type CalendarRecurrence = 'none' | 'weekly' | 'monthly' | 'yearly';
 
 export interface Task {
   id: string;
@@ -32,6 +33,9 @@ export interface CalendarEvent {
   endTime?: string;
   notes?: string;
   color?: CalendarColor;
+  recurrence?: CalendarRecurrence;
+  /** Data da ocorrência expandida para eventos recorrentes; não deve ser persistida. */
+  occurrenceDateKey?: string;
   createdAt: string;
   updatedAt: string;
 }

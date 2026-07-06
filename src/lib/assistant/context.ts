@@ -2,7 +2,7 @@ import { get } from 'svelte/store';
 import type { AppState, CalendarEvent, Task } from '../types/app.js';
 import type { AssistantContextEvent, AssistantContextSnapshot, AssistantContextTask } from '../types/assistant.js';
 import { data, visibleDateKey, viewOffsetDays } from '../stores/app-store.js';
-import { sortCalendarEvents } from '../stores/calendar-store.js';
+import { getEventOccurrencesForDate, sortCalendarEvents } from '../stores/calendar-store.js';
 
 function toContextTask(task: Task): AssistantContextTask {
   return {
@@ -15,14 +15,18 @@ function toContextTask(task: Task): AssistantContextTask {
 }
 
 function toContextEvent(event: CalendarEvent): AssistantContextEvent {
+  const occurrenceDateKey = event.occurrenceDateKey || event.dateKey;
   return {
     id: event.id,
     title: event.title,
-    dateKey: event.dateKey,
+    dateKey: occurrenceDateKey,
+    baseDateKey: event.dateKey,
+    occurrenceDateKey: occurrenceDateKey !== event.dateKey ? occurrenceDateKey : undefined,
     startTime: event.startTime,
     endTime: event.endTime,
     notes: event.notes,
-    color: event.color
+    color: event.color,
+    recurrence: event.recurrence
   };
 }
 
@@ -32,9 +36,7 @@ export function createAssistantContextSnapshot(
   offsetDays: number
 ): AssistantContextSnapshot {
   const tasks = Array.isArray(state.tasksByDate?.[activeDateKey]) ? state.tasksByDate[activeDateKey] : [];
-  const events = Array.isArray(state.calendarEvents)
-    ? state.calendarEvents.filter((event) => event.dateKey === activeDateKey)
-    : [];
+  const events = getEventOccurrencesForDate(activeDateKey, state.calendarEvents);
   const completed = tasks.filter((task) => task.completed).length;
   const pinned = tasks.filter((task) => task.pinned).length;
 

@@ -129,6 +129,7 @@ export function normalizeCalendarEvent(event) {
     endTime: endTime && (!startTime || endTime >= startTime) ? endTime : undefined,
     notes: normalizeCalendarNotes(event.notes) || undefined,
     color: normalizeCalendarColor(event.color),
+    recurrence: normalizeCalendarRecurrence(event.recurrence),
     createdAt,
     updatedAt: isValidIsoString(event.updatedAt) ? event.updatedAt : createdAt
   };
@@ -173,6 +174,10 @@ export function normalizeCalendarNotes(notes) {
 
 export function normalizeCalendarColor(color) {
   return color === 'accent' || color === 'success' || color === 'danger' ? color : 'neutral';
+}
+
+export function normalizeCalendarRecurrence(recurrence) {
+  return recurrence === 'weekly' || recurrence === 'monthly' || recurrence === 'yearly' ? recurrence : 'none';
 }
 
 export function normalizeDateKey(dateKey) {

@@ -5,10 +5,12 @@ import {
   normalizeCalendarEvent,
   normalizeMonthKey,
   createId,
-  parseDateKey,
-  getMonthKeyFromDateKey
+  getLocalDateKey,
+  getMonthKeyFromDateKey,
+  normalizeDateKey,
+  parseMonthKey
 } from '../utils/state.js';
-import type { AppState, CalendarEvent, Task } from '../types/app.js';
+import type { AppState, CalendarEvent, CalendarRecurrence, Task } from '../types/app.js';
 import { setPanelTab } from './ui-store.js';
 import {
   data,
@@ -94,17 +96,92 @@ export function getCalendarDayTasks(
 
 export function buildEventsByDate(
   events: CalendarEvent[],
-  locale: string = CONFIG.LOCALE
+  locale: string = CONFIG.LOCALE,
+  dateKeys?: string[]
 ): Record<string, CalendarEvent[]> {
   const grouped: Record<string, CalendarEvent[]> = {};
-  for (const event of events || []) {
-    if (!grouped[event.dateKey]) grouped[event.dateKey] = [];
-    grouped[event.dateKey].push(event);
+
+  if (Array.isArray(dateKeys) && dateKeys.length > 0) {
+    for (const dateKey of dateKeys) {
+      const dayEvents = getEventOccurrencesForDate(dateKey, events);
+      if (dayEvents.length > 0) grouped[dateKey] = dayEvents;
+    }
+  } else {
+    for (const event of events || []) {
+      if (!grouped[event.dateKey]) grouped[event.dateKey] = [];
+      grouped[event.dateKey].push(event);
+    }
   }
+
   for (const dateKey of Object.keys(grouped)) {
     grouped[dateKey] = sortCalendarEvents(grouped[dateKey], locale);
   }
   return grouped;
+}
+
+export function buildCalendarGridDateKeys(monthKey: string): string[] {
+  const first = parseMonthKey(monthKey);
+  if (Number.isNaN(first.getTime())) return [];
+  const start = new Date(first);
+  start.setDate(first.getDate() - first.getDay());
+
+  const dateKeys: string[] = [];
+  for (let i = 0; i < 42; i += 1) {
+    const date = new Date(start);
+    date.setDate(start.getDate() + i);
+    dateKeys.push(getLocalDateKey(date));
+  }
+  return dateKeys;
+}
+
+export function getCalendarEventRecurrenceLabel(recurrence?: CalendarRecurrence): string {
+  if (recurrence === 'yearly') return 'Repete todo ano';
+  if (recurrence === 'monthly') return 'Repete todo mês';
+  if (recurrence === 'weekly') return 'Repete toda semana';
+  return 'Não repete';
+}
+
+function dateKeyWeekday(dateKey: string): number {
+  return new Date(`${dateKey}T12:00:00`).getDay();
+}
+
+export function calendarEventOccursOnDate(event: CalendarEvent, dateKey: string): boolean {
+  const occurrenceDateKey = normalizeDateKey(dateKey);
+  const eventDateKey = normalizeDateKey(event?.dateKey);
+  if (!occurrenceDateKey || !eventDateKey) return false;
+
+  if (event.recurrence === 'yearly') {
+    return occurrenceDateKey >= eventDateKey && occurrenceDateKey.slice(5) === eventDateKey.slice(5);
+  }
+
+  if (event.recurrence === 'monthly') {
+    return occurrenceDateKey >= eventDateKey && occurrenceDateKey.slice(8, 10) === eventDateKey.slice(8, 10);
+  }
+
+  if (event.recurrence === 'weekly') {
+    return occurrenceDateKey >= eventDateKey && dateKeyWeekday(occurrenceDateKey) === dateKeyWeekday(eventDateKey);
+  }
+
+  return occurrenceDateKey === eventDateKey;
+}
+
+function toEventOccurrence(event: CalendarEvent, occurrenceDateKey: string): CalendarEvent {
+  if (event.dateKey === occurrenceDateKey) return event;
+  return { ...event, occurrenceDateKey };
+}
+
+export function getEventOccurrencesForDate(
+  dateKey: string,
+  events: CalendarEvent[] | undefined
+): CalendarEvent[] {
+  const occurrenceDateKey = normalizeDateKey(dateKey);
+  if (!occurrenceDateKey) return [];
+
+  const occurrences = (events || [])
+    .filter((event) => calendarEventOccursOnDate(event, occurrenceDateKey))
+    .map((event) => toEventOccurrence(event, occurrenceDateKey));
+
+  return sortCalendarEvents(occurrences);
 }
 
 export const taskCountsByDate = derived(data, ($d) => buildTaskCountsByDate($d.tasksByDate));
@@ -122,8 +199,12 @@ export const executionTasksDigest = derived(visibleTasks, ($tasks) =>
     .join('\n')
 );
 
-export const eventsByDate = derived(data, ($d) =>
-  buildEventsByDate(getCalendarEvents($d), $d.ui?.locale ?? CONFIG.LOCALE)
+export const eventsByDate = derived([data, calendarMonth, visibleDateKey], ([$d, $calendarMonth, $visibleDateKey]) =>
+  buildEventsByDate(
+    getCalendarEvents($d),
+    $d.ui?.locale ?? CONFIG.LOCALE,
+    buildCalendarGridDateKeys($calendarMonth || $d.ui?.calendarMonth || getMonthKeyFromDateKey($visibleDateKey))
+  )
 );
 
 export function sortCalendarEvents(
@@ -145,15 +226,16 @@ export function getCalendarEvents(state: AppState): CalendarEvent[] {
 
 export function getEventsForDateKey(dateKey: string): CalendarEvent[] {
   const $data = get(data);
-  const events = getCalendarEvents($data).filter((event) => event.dateKey === dateKey);
+  const events = getEventOccurrencesForDate(dateKey, getCalendarEvents($data));
   return sortCalendarEvents(events, $data.ui?.locale);
 }
 
 export function getEventsForMonth(year: number, month: number): CalendarEvent[] {
   const $data = get(data);
   const prefix = `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}`;
+  const dateKeys = buildCalendarGridDateKeys(prefix).filter((dateKey) => dateKey.startsWith(prefix));
   return sortCalendarEvents(
-    getCalendarEvents($data).filter((event) => event.dateKey?.startsWith(prefix)),
+    dateKeys.flatMap((dateKey) => getEventOccurrencesForDate(dateKey, getCalendarEvents($data))),
     $data.ui?.locale
   );
 }

@@ -1545,14 +1545,17 @@ fn move_window_to_target_monitor(
 fn show_main_window(app: &AppHandle) {
     if let Some(window) = app.get_webview_window(MAIN_WINDOW_LABEL) {
         let _ = move_window_to_target_monitor(&window, app);
-        let _ = window.show();
+        let _ = window.set_skip_taskbar(false);
+        let _ = window.set_always_on_bottom(false);
         let _ = window.unminimize();
+        let _ = window.show();
         let _ = window.set_focus();
     }
 }
 
 fn hide_main_window(app: &AppHandle) {
     if let Some(window) = app.get_webview_window(MAIN_WINDOW_LABEL) {
+        let _ = window.set_skip_taskbar(true);
         let _ = window.hide();
     }
 }
@@ -1613,12 +1616,23 @@ pub fn run() {
         .setup(|app| {
             build_tray(app.handle())?;
 
-            if let Some(window) = app.get_webview_window(MAIN_WINDOW_LABEL) {
-                let _ = move_window_to_target_monitor(&window, app.handle());
-                let _ = window.show();
-            }
+            show_main_window(app.handle());
 
             media::start_media_events(app.handle().clone());
+
+            if let Err(error) = thread::Builder::new()
+                .name("ollama-autostart".into())
+                .spawn(|| {
+                    let result = ollama::ensure_ollama_started(None);
+                    if result.online {
+                        info!("Ollama ready for FocusWall assistant.");
+                    } else if let Some(error) = result.error {
+                        warn!("Ollama autostart failed: {error}");
+                    }
+                })
+            {
+                warn!("Could not spawn Ollama autostart thread: {error}");
+            }
 
             Ok(())
         })
@@ -1658,6 +1672,8 @@ pub fn run() {
             media::media_skip_next,
             media::media_skip_previous,
             ollama::check_ollama_health,
+            ollama::start_ollama_service,
+            ollama::install_ollama_model,
             ollama::ollama_chat_stream
         ])
         .build(tauri::generate_context!())

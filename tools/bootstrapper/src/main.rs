@@ -1,13 +1,16 @@
 use std::{
-    env, fs,
+    env, fs, thread,
     path::{Path, PathBuf},
     process::{exit, Command, Stdio},
+    time::Duration,
 };
 
 use mslnk::ShellLink;
 
 const APP_EXE: &str = "focus-desktop-dashboard.exe";
 const APP_NAME: &str = "FocusWall";
+const OLLAMA_PACKAGE_ID: &str = "Ollama.Ollama";
+const OLLAMA_MODEL: &str = "qwen2.5:1.5b";
 
 fn main() {
     println!("=== {} — Instalador ===\n", APP_NAME);
@@ -50,7 +53,7 @@ fn run() -> Result<(), String> {
     println!("Pasta de instalacao: {}", install_dir.display());
     println!();
 
-    println!("[1/4] Instalando arquivos...");
+    println!("[1/6] Instalando arquivos...");
     fs::create_dir_all(&install_dir)
         .map_err(|e| format!("Falha ao criar pasta de instalacao: {e}"))?;
 
@@ -60,16 +63,29 @@ fn run() -> Result<(), String> {
     println!("      Pronto.");
 
     println!();
-    println!("[2/4] Verificando WebView2 Runtime...");
+    println!("[2/6] Verificando WebView2 Runtime...");
     if !is_webview2_installed() {
-        println!("      Instalando WebView2 Runtime (unica dependencia necessaria)...");
+        println!("      Instalando WebView2 Runtime...");
         install_webview2()?;
     } else {
         println!("      WebView2 ja instalado.");
     }
 
     println!();
-    println!("[3/4] Criando atalhos...");
+    println!("[3/6] Verificando assistente local (Ollama)...");
+    if !is_ollama_installed() {
+        println!("      Instalando Ollama, dependencia do assistente local...");
+        install_ollama()?;
+    } else {
+        println!("      Ollama ja instalado.");
+    }
+
+    println!();
+    println!("[4/6] Verificando modelo do assistente...");
+    ensure_ollama_model()?;
+
+    println!();
+    println!("[5/6] Criando atalhos...");
 
     let shortcut_working_dir = &install_dir;
     let shortcut_target = &bin_dest;
@@ -89,7 +105,7 @@ fn run() -> Result<(), String> {
     println!("      Atalhos criados na Area de Trabalho e no Menu Iniciar.");
 
     println!();
-    println!("[4/4] Configuracao de autostart...");
+    println!("[6/6] Configuracao de autostart...");
     println!("      Deseja que o {} inicie junto com o Windows?", APP_NAME);
     print!("      (S/N): ");
     let mut answer = String::new();
@@ -234,6 +250,143 @@ fn install_webview2() -> Result<(), String> {
     }
 
     Ok(())
+}
+
+fn is_ollama_installed() -> bool {
+    ollama_command().is_some()
+}
+
+fn ollama_command() -> Option<PathBuf> {
+    if let Ok(output) = Command::new("where")
+        .arg("ollama")
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .output()
+    {
+        if output.status.success() {
+            let text = String::from_utf8_lossy(&output.stdout);
+            if let Some(first) = text.lines().map(str::trim).find(|line| !line.is_empty()) {
+                return Some(PathBuf::from(first));
+            }
+        }
+    }
+
+    let mut candidates = Vec::new();
+    if let Some(local_app_data) = env::var_os("LOCALAPPDATA") {
+        candidates.push(
+            PathBuf::from(local_app_data)
+                .join("Programs")
+                .join("Ollama")
+                .join("ollama.exe"),
+        );
+    }
+    for var_name in ["ProgramFiles", "ProgramFiles(x86)"] {
+        if let Some(root) = env::var_os(var_name) {
+            candidates.push(PathBuf::from(root).join("Ollama").join("ollama.exe"));
+        }
+    }
+
+    candidates.into_iter().find(|candidate| candidate.exists())
+}
+
+fn install_ollama() -> Result<(), String> {
+    let status = Command::new("winget")
+        .args([
+            "install",
+            "--id",
+            OLLAMA_PACKAGE_ID,
+            "-e",
+            "--accept-source-agreements",
+            "--accept-package-agreements",
+            "--silent",
+        ])
+        .status()
+        .map_err(|e| format!("Falha ao executar winget para instalar Ollama: {e}"))?;
+
+    if status.success() || is_ollama_installed() {
+        return Ok(());
+    }
+
+    Err("Falha ao instalar Ollama pelo winget. Instale o Ollama manualmente e execute o FocusWall novamente.".into())
+}
+
+
+fn ensure_ollama_model() -> Result<(), String> {
+    let Some(ollama) = ollama_command() else {
+        return Err("Ollama instalado, mas o executavel nao foi localizado para baixar o modelo.".into());
+    };
+
+    ensure_ollama_service_running(&ollama)?;
+
+    if is_ollama_model_available(&ollama, OLLAMA_MODEL) {
+        println!("      Modelo {OLLAMA_MODEL} ja instalado.");
+        return Ok(());
+    }
+
+    println!("      Baixando modelo {OLLAMA_MODEL}. Esta etapa pode demorar na primeira instalacao...");
+    let status = Command::new(&ollama)
+        .args(["pull", OLLAMA_MODEL])
+        .status()
+        .map_err(|e| format!("Falha ao executar ollama pull: {e}"))?;
+
+    if status.success() && is_ollama_model_available(&ollama, OLLAMA_MODEL) {
+        println!("      Modelo do assistente instalado.");
+        return Ok(());
+    }
+
+    Err(format!(
+        "Nao foi possivel baixar o modelo {OLLAMA_MODEL}. Execute manualmente: ollama pull {OLLAMA_MODEL}"
+    ))
+}
+
+fn ensure_ollama_service_running(ollama: &Path) -> Result<(), String> {
+    if ollama_list_success(ollama) {
+        return Ok(());
+    }
+
+    Command::new(ollama)
+        .arg("serve")
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn()
+        .map_err(|e| format!("Falha ao iniciar servico do Ollama: {e}"))?;
+
+    for _ in 0..40 {
+        thread::sleep(Duration::from_millis(500));
+        if ollama_list_success(ollama) {
+            return Ok(());
+        }
+    }
+
+    Err("Ollama foi chamado, mas o servico nao respondeu.".into())
+}
+
+fn ollama_list_success(ollama: &Path) -> bool {
+    Command::new(ollama)
+        .arg("list")
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status()
+        .is_ok_and(|status| status.success())
+}
+
+fn is_ollama_model_available(ollama: &Path, model: &str) -> bool {
+    let Ok(output) = Command::new(ollama)
+        .arg("list")
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .output()
+    else {
+        return false;
+    };
+
+    if !output.status.success() {
+        return false;
+    }
+
+    let text = String::from_utf8_lossy(&output.stdout);
+    text.lines().any(|line| line.split_whitespace().next() == Some(model))
 }
 
 fn pause() {

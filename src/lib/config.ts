@@ -1,7 +1,7 @@
 export const CONFIG = {
   LOCALE: 'pt-BR' as const,
   STORAGE_KEY: 'focus-dashboard-browser-preview',
-  STATE_VERSION: 6,
+  STATE_VERSION: 7,
   MAX_TASK_LENGTH: 180,
   TASKS_PER_PAGE: 6,
   EXCHANGE_API_URL: 'https://economia.awesomeapi.com.br/json/last/USD-BRL,EUR-BRL',
@@ -11,6 +11,7 @@ export const CONFIG = {
   RATE_REQUEST_TIMEOUT_MS: 8000,
   HISTORY_RETENTION_DAYS: 45,
   HISTORY_VIEW_DAYS: 7,
+  FUTURE_VIEW_DAYS: 3650,
   CLOCK_TICK_MS: 1000,
   DAY_CHECK_MS: 30000,
   FULLSCREEN_CHECK_MS: 3000,
@@ -22,8 +23,8 @@ export const CONFIG = {
   EXCHANGE_RETRY_BASE_MS: 1000,
   ASSISTANT: {
     ollamaBaseUrl: 'http://127.0.0.1:11434',
-    model: 'qwen2.5:1.5b',
-    modelPreferences: ['qwen2.5:1.5b', 'qwen3:4b', 'qwen2.5:3b'],
+    model: 'qwen3:4b',
+    modelPreferences: ['qwen3:4b', 'qwen2.5:3b', 'qwen2.5:1.5b'],
     streamIdleTimeoutMs: 60000,
     maxToolRounds: 5
   }

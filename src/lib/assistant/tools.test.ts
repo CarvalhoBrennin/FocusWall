@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { CalendarEvent, Task } from '../types/app.js';
 import type { AssistantToolRuntime } from './tools.js';
-import { executeAssistantTool, getAssistantToolDefinitions, normalizeToolArguments } from './tools.js';
+import { executeAssistantTool, getAssistantToolDefinitions, normalizeToolArguments, previewAssistantTool } from './tools.js';
 
 function createRuntime() {
   let tasks: Task[] = [
@@ -84,6 +84,7 @@ function createRuntime() {
           endTime: payload.endTime,
           notes: payload.notes,
           color: payload.color,
+          recurrence: payload.recurrence,
           createdAt: '',
           updatedAt: ''
         }
@@ -126,7 +127,10 @@ describe('assistant tool definitions', () => {
     const names = getAssistantToolDefinitions().map((tool) => tool.function.name);
     expect(names).toContain('add_task');
     expect(names).toContain('add_calendar_event');
+    expect(names).toContain('delete_calendar_events');
     expect(names).toContain('go_to_today');
+    const addEvent = getAssistantToolDefinitions().find((tool) => tool.function.name === 'add_calendar_event');
+    expect(addEvent?.function.parameters.properties.recurrence).toBeTruthy();
   });
 });
 
@@ -187,5 +191,216 @@ describe('executeAssistantTool', () => {
     expect(harness.getEvents()[1]?.title).toBe('Reunião');
     expect(harness.getNavigatedDate()).toBe('2026-07-02');
     expect(harness.wentToday()).toBe(true);
+  });
+
+  it('creates yearly recurring events for birthdays', async () => {
+    const harness = createRuntime();
+
+    const event = await executeAssistantTool(
+      'add_calendar_event',
+      { title: 'Aniversário da Ana', dateKey: '2026-07-03', recurrence: 'yearly' },
+      harness.runtime
+    );
+
+    expect(event.ok).toBe(true);
+    expect(harness.getEvents()[1]?.recurrence).toBe('yearly');
+  });
+
+  it('does not duplicate equivalent calendar events', async () => {
+    const harness = createRuntime();
+
+    const first = await executeAssistantTool(
+      'add_calendar_event',
+      { title: 'Meu aniversário', dateKey: '2026-09-05', recurrence: 'yearly' },
+      harness.runtime
+    );
+    const duplicate = await executeAssistantTool(
+      'add_calendar_event',
+      { title: 'Meu aniversario', dateKey: '2026-09-05', recurrence: 'yearly' },
+      harness.runtime
+    );
+
+    expect(first.changed).toBe(true);
+    expect(duplicate.ok).toBe(true);
+    expect(duplicate.changed).toBe(false);
+    expect(harness.getEvents()).toHaveLength(2);
+  });
+
+  it('deletes recurring calendar events by occurrence date', async () => {
+    const harness = createRuntime();
+
+    await executeAssistantTool(
+      'add_calendar_event',
+      { title: 'Meu aniversário', dateKey: '2026-09-05', recurrence: 'yearly' },
+      harness.runtime
+    );
+    await executeAssistantTool(
+      'add_calendar_event',
+      { title: 'Reunião', dateKey: '2026-09-05', recurrence: 'none' },
+      harness.runtime
+    );
+
+    const deleted = await executeAssistantTool(
+      'delete_calendar_events',
+      { dateKey: '2027-09-05', recurring: true },
+      harness.runtime
+    );
+
+    expect(deleted.ok).toBe(true);
+    expect(deleted.changed).toBe(true);
+    expect(harness.getEvents().map((event) => event.title)).toEqual(['Dentista', 'Reunião']);
+  });
+
+  it('previews destructive calendar deletion without changing state', async () => {
+    const harness = createRuntime();
+
+    await executeAssistantTool(
+      'add_calendar_event',
+      { title: 'Meu aniversÃ¡rio', dateKey: '2026-09-05', recurrence: 'yearly' },
+      harness.runtime
+    );
+
+    const preview = previewAssistantTool(
+      'delete_calendar_events',
+      { dateKey: '2027-09-05', recurring: true },
+      harness.runtime
+    );
+
+    expect(preview?.ok).toBe(true);
+    expect(preview?.changed).toBe(false);
+    expect(preview?.matchedCount).toBe(1);
+    expect(preview?.reason).toBe('needs_confirmation');
+    expect(harness.getEvents()).toHaveLength(2);
+  });
+
+  it('rejects invalid calendar event recurrence and invalid list dates', async () => {
+    const harness = createRuntime();
+
+    const add = await executeAssistantTool(
+      'add_calendar_event',
+      { title: 'Backup', dateKey: '2026-07-03', recurrence: 'daily' },
+      harness.runtime
+    );
+    const list = await executeAssistantTool('list_calendar_events', { dateKey: '2026-02-31' }, harness.runtime);
+
+    expect(add.ok).toBe(false);
+    expect(list.ok).toBe(false);
+    expect(harness.getEvents()).toHaveLength(1);
+  });
+
+  it('rejects calendar events with invalid time ranges', async () => {
+    const harness = createRuntime();
+
+    const event = await executeAssistantTool(
+      'add_calendar_event',
+      { title: 'Reunião', dateKey: '2026-07-03', startTime: '18:00', endTime: '09:00' },
+      harness.runtime
+    );
+
+    expect(event.ok).toBe(false);
+    expect(harness.getEvents()).toHaveLength(1);
+  });
+
+  it('rejects empty calendar event updates', async () => {
+    const harness = createRuntime();
+
+    const update = await executeAssistantTool('update_calendar_event', { id: 'event-1' }, harness.runtime);
+
+    expect(update.ok).toBe(false);
+    expect(update.reason).toBe('empty_patch');
+    expect(harness.getEvents()[0]?.title).toBe('Dentista');
+  });
+});
+
+describe('assistant tool result contract', () => {
+  it('reports affectedItems and counts when adding a task', async () => {
+    const harness = createRuntime();
+
+    const add = await executeAssistantTool('add_task', { text: 'Comprar leite' }, harness.runtime);
+
+    expect(add.ok).toBe(true);
+    expect(add.changed).toBe(true);
+    expect(add.matchedCount).toBe(1);
+    expect(add.changedCount).toBe(1);
+    expect(add.reason).toBe('');
+    expect(add.affectedItems).toEqual([{ type: 'task', id: 'task-2', label: 'Comprar leite' }]);
+  });
+
+  it('reports the duplicate reason without changing state', async () => {
+    const harness = createRuntime();
+
+    await executeAssistantTool(
+      'add_calendar_event',
+      { title: 'Meu aniversário', dateKey: '2026-09-05', recurrence: 'yearly' },
+      harness.runtime
+    );
+    const duplicate = await executeAssistantTool(
+      'add_calendar_event',
+      { title: 'meu aniversario', dateKey: '2026-09-05', recurrence: 'yearly' },
+      harness.runtime
+    );
+
+    expect(duplicate.ok).toBe(true);
+    expect(duplicate.changed).toBe(false);
+    expect(duplicate.changedCount).toBe(0);
+    expect(duplicate.reason).toBe('duplicate');
+    expect(duplicate.affectedItems).toHaveLength(1);
+    expect(duplicate.affectedItems[0]?.type).toBe('event');
+  });
+
+  it('reports matched and changed counts for bulk deletions', async () => {
+    const harness = createRuntime();
+
+    await executeAssistantTool(
+      'add_calendar_event',
+      { title: 'Meu aniversário', dateKey: '2026-09-05', recurrence: 'yearly' },
+      harness.runtime
+    );
+
+    const deleted = await executeAssistantTool(
+      'delete_calendar_events',
+      { dateKey: '2027-09-05', recurring: true },
+      harness.runtime
+    );
+
+    expect(deleted.ok).toBe(true);
+    expect(deleted.changed).toBe(true);
+    expect(deleted.matchedCount).toBe(1);
+    expect(deleted.changedCount).toBe(1);
+    expect(deleted.affectedItems).toEqual([{ type: 'event', id: 'event-2', label: 'Meu aniversário' }]);
+  });
+
+  it('previews destructive task deletion with affectedItems and no state change', async () => {
+    const harness = createRuntime();
+
+    const preview = previewAssistantTool('delete_task', { id: 'task-1' }, harness.runtime);
+
+    expect(preview?.ok).toBe(true);
+    expect(preview?.changed).toBe(false);
+    expect(preview?.reason).toBe('needs_confirmation');
+    expect(preview?.affectedItems).toEqual([{ type: 'task', id: 'task-1', label: 'Revisar PR' }]);
+    expect(harness.getTasks()).toHaveLength(1);
+  });
+
+  it('reports not_found reasons for missing items', async () => {
+    const harness = createRuntime();
+
+    const complete = await executeAssistantTool('complete_task', { id: 'missing' }, harness.runtime);
+    const preview = previewAssistantTool('delete_calendar_event', { id: 'missing' }, harness.runtime);
+
+    expect(complete.reason).toBe('not_found');
+    expect(preview?.ok).toBe(false);
+    expect(preview?.reason).toBe('not_found');
+  });
+
+  it('reports no_change_needed when the state is already the desired one', async () => {
+    const harness = createRuntime();
+
+    const complete = await executeAssistantTool('complete_task', { id: 'task-1', completed: false }, harness.runtime);
+
+    expect(complete.ok).toBe(true);
+    expect(complete.changed).toBe(false);
+    expect(complete.reason).toBe('no_change_needed');
+    expect(complete.affectedItems).toHaveLength(1);
   });
 });

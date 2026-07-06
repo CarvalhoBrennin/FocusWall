@@ -1,7 +1,15 @@
-import type { CalendarColor, Priority } from './app.js';
+import type { CalendarColor, CalendarRecurrence, Priority } from './app.js';
 
 export type AssistantRole = 'user' | 'assistant';
-export type AssistantStatus = 'checking' | 'offline' | 'ready' | 'thinking' | 'executing' | 'error';
+export type AssistantStatus =
+  | 'checking'
+  | 'starting'
+  | 'offline'
+  | 'ready'
+  | 'thinking'
+  | 'executing'
+  | 'awaiting_confirmation'
+  | 'error';
 
 export type AssistantToolName =
   | 'get_context'
@@ -15,6 +23,7 @@ export type AssistantToolName =
   | 'add_calendar_event'
   | 'update_calendar_event'
   | 'delete_calendar_event'
+  | 'delete_calendar_events'
   | 'go_to_date'
   | 'go_to_today';
 
@@ -28,11 +37,52 @@ export interface AssistantToolCall {
   };
 }
 
+export type AssistantPlanSource = 'deterministic' | 'model_tool' | 'model_json' | 'confirmation';
+export type AssistantPlanRisk = 'low' | 'medium' | 'high';
+export type AssistantPlanStatus = 'ready' | 'needs_confirmation' | 'blocked';
+
+export interface AssistantPlanStep {
+  id: string;
+  tool: AssistantToolName;
+  args: AssistantToolArguments;
+  description: string;
+  risk: AssistantPlanRisk;
+}
+
+export interface AssistantPlan {
+  id: string;
+  source: AssistantPlanSource;
+  status: AssistantPlanStatus;
+  confidence: number;
+  risk: AssistantPlanRisk;
+  originalText: string;
+  steps: AssistantPlanStep[];
+}
+
+export interface AssistantPlanValidation {
+  ok: boolean;
+  needsConfirmation: boolean;
+  reason: string;
+  fixedArgs?: AssistantToolArguments;
+  question?: string;
+  confidence?: number;
+}
+
+export interface AssistantAffectedItem {
+  type: 'task' | 'event';
+  id: string;
+  label: string;
+}
+
 export interface AssistantToolResult {
   ok: boolean;
   tool: string;
   message: string;
-  changed?: boolean;
+  changed: boolean;
+  matchedCount: number;
+  changedCount: number;
+  reason: string;
+  affectedItems: AssistantAffectedItem[];
   data?: unknown;
 }
 
@@ -42,6 +92,14 @@ export interface AssistantActionLog {
   label: string;
   ok: boolean;
   changed: boolean;
+  /** Primary affected item ID, when available. Used to resolve references such as "isso". */
+  itemId?: string;
+}
+
+/** Option shown when a reference is ambiguous; the user reply selects the exact tool call. */
+export interface AssistantPendingChoice {
+  label: string;
+  call: AssistantToolCall;
 }
 
 export interface AssistantMessage {
@@ -50,6 +108,8 @@ export interface AssistantMessage {
   content: string;
   createdAt: string;
   actions?: AssistantActionLog[];
+  pendingToolCall?: AssistantToolCall;
+  pendingChoices?: AssistantPendingChoice[];
   error?: boolean;
   pending?: boolean;
 }
@@ -65,11 +125,17 @@ export interface AssistantContextTask {
 export interface AssistantContextEvent {
   id: string;
   title: string;
+  /** Visible occurrence date for recurring events; equal to the saved date for one-off events. */
   dateKey: string;
+  /** Saved base date for the event. Use only when moving the full recurring series. */
+  baseDateKey?: string;
+  /** Expanded occurrence date when it differs from the base date. */
+  occurrenceDateKey?: string;
   startTime?: string;
   endTime?: string;
   notes?: string;
   color?: CalendarColor;
+  recurrence?: CalendarRecurrence;
 }
 
 export interface AssistantContextSnapshot {
@@ -88,6 +154,8 @@ export interface AssistantContextSnapshot {
 export interface AssistantTurnResult {
   content: string;
   actions: AssistantActionLog[];
+  pendingToolCall?: AssistantToolCall;
+  pendingChoices?: AssistantPendingChoice[];
   stoppedByLimit?: boolean;
 }
 
@@ -135,6 +203,22 @@ export interface OllamaModelInfo {
 export interface OllamaHealth {
   online: boolean;
   models: OllamaModelInfo[];
+  error?: string;
+  baseUrl?: string;
+}
+
+export interface OllamaStartResult {
+  online: boolean;
+  started: boolean;
+  message: string;
+  error?: string;
+  baseUrl?: string;
+}
+
+export interface OllamaModelInstallResult {
+  installed: boolean;
+  model: string;
+  message: string;
   error?: string;
   baseUrl?: string;
 }

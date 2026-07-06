@@ -14,9 +14,11 @@
 
   function statusKey(value) {
     if (value === 'offline') return 'assistant.status.offline';
+    if (value === 'starting') return 'assistant.status.starting';
     if (value === 'ready') return 'assistant.status.ready';
     if (value === 'thinking') return 'assistant.status.thinking';
     if (value === 'executing') return 'assistant.status.executing';
+    if (value === 'awaiting_confirmation') return 'assistant.status.awaitingConfirmation';
     if (value === 'error') return 'assistant.status.error';
     return online ? 'assistant.status.online' : 'assistant.status.checking';
   }

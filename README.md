@@ -11,10 +11,11 @@ O projeto nasceu como um painel pessoal de produtividade e contexto rápido: tar
 - app desktop em Tauri 2
 - interface em Svelte 5
 - bloco de tarefas do dia com histórico
-- calendário mensal com eventos
+- calendário mensal com eventos simples e recorrentes (mensal/anual, útil para aniversários)
 - painel de arquivos locais (pastas conhecidas + navegação)
 - aba **Mídia** — now playing via SMTC (Windows), capas e controles
 - aba **Sistema** — CPU, RAM, temperatura e apps com janela visível
+- aba **Assistente** — comandos locais via Ollama, com inicialização automática no app desktop e contexto compacto para conversas longas
 - relógio em tempo real
 - card de câmbio BRL
 - seleção de monitor e autostart com Windows
@@ -84,10 +85,14 @@ npm run tauri:build
 - Rust toolchain
 - Visual Studio Build Tools com workload C++
 - WebView2
+- Ollama para a aba Assistente (`winget install --id Ollama.Ollama -e`)
+- Modelo local `qwen2.5:1.5b` para o assistente (`ollama pull qwen2.5:1.5b`)
 
 ## Bootstrapper
 
-O projeto inclui um bootstrapper opcional em `tools/bootstrapper/` para automatizar o setup do ambiente Windows. O executável `Instalar-Focus-Setup.exe` não fica versionado; ele deve ser gerado localmente quando necessário.
+O Assistente preserva os últimos turnos completos, inclui logs de ações executadas no histórico recente e envia um contexto compacto dos turnos mais antigos para manter continuidade em conversas longas. Quando faltar informação essencial para executar uma ação, o prompt orienta o modelo a perguntar antes de alterar tarefas ou eventos.
+
+O projeto inclui um bootstrapper opcional em `tools/bootstrapper/` para automatizar o setup do ambiente Windows. O executável `Instalar-Focus-Setup.exe` não fica versionado; ele deve ser gerado localmente quando necessário. O bootstrapper verifica WebView2, instala/verifica Ollama e baixa o modelo padrão `qwen2.5:1.5b` quando ele ainda não existe. Se o app for aberto sem o modelo local, a aba Assistente também oferece um botão para instalar o modelo padrão pelo próprio FocusWall.
 
 Para compilar o bootstrapper:
 
@@ -98,7 +103,7 @@ build-bootstrapper.bat
 ## Dados
 
 - preview web: `localStorage`
-- app desktop: `dashboard-state.json` no AppData do usuário (inclui favoritos e recentes de arquivos)
+- app desktop: `dashboard-state.json` no AppData do usuário (inclui eventos recorrentes, favoritos e recentes de arquivos)
 - notas neurais: campo `neuralNotes` no mesmo estado persistido
 - backup manual: exportação JSON nas configurações
 

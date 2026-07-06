@@ -25,15 +25,22 @@
   import {
     artworkToResolvedCover,
     clearCoverArtCache,
-  rememberResolvedCover,
-  getCachedResolvedCover
-} from '../../utils/cover-art.js';
+    rememberResolvedCover,
+    getCachedResolvedCover,
+    isEffectivelyHd,
+    isVideoCover
+  } from '../../utils/cover-art.js';
   import MediaNowPlaying from './MediaNowPlaying.svelte';
   import MediaEmptyState from './MediaEmptyState.svelte';
   import './media.css';
 
   const SETTLE_MIN_MS = 180;
   const SETTLE_MAX_MS = 4000;
+  const COVER_FETCH_DEBOUNCE_MS = 220;
+  const LOW_RES_RETRY_DELAYS_MS = [1200, 2400, 4800];
+  const BROWSER_APP_HINTS = ['chrome', 'brave', 'msedge', 'edge', 'firefox', 'opera', 'vivaldi', 'chromium'];
+  const MIN_PROMOTABLE_VIDEO_WIDTH = 640;
+  const MIN_PROMOTABLE_VIDEO_HEIGHT = 360;
 
   const BOOT_SNAPSHOT = {
     available: true,
@@ -71,6 +78,9 @@
   let displayCoverHeight = $state(0);
   let coverResolveId = 0;
   let coverDebounceTimer = 0;
+  let lowResRetryTimer = 0;
+  let coverRetryVersion = $state(0);
+  let lowResRetryCount = 0;
   let lastArtworkFetchKey = '';
   let lastCoverFingerprint = '';
   let lastDisplayTrackKey = '';
@@ -104,6 +114,7 @@
   const coverFingerprint = $derived(
     `${trackKey}|${snapshot?.coverArtWidth ?? 0}|${snapshot?.coverArtHeight ?? 0}`
   );
+  const artworkFetchFingerprint = $derived(`${coverFingerprint}|retry:${coverRetryVersion}`);
   const stateKind = $derived.by(() => {
     if (errorMsg && !snapshot) return 'error';
     if (loading && !snapshot) return 'loading';
@@ -115,7 +126,9 @@
     stateKind === 'loading' || stateKind === 'playing'
   );
   const isSettling = $derived(settlePhase !== 'ready');
-  const coverLoading = $derived(isSettling || (Boolean(displayCoverSrc) && !coverImageReady));
+  const coverLoading = $derived(
+    isSettling || artworkFetchInFlight || (Boolean(displayCoverSrc) && !coverImageReady)
+  );
   const coverUpgrading = $derived(artworkFetchInFlight && coverImageReady);
   const sceneSnapshot = $derived(
     stateKind === 'loading' ? BOOT_SNAPSHOT : snapshot ?? BOOT_SNAPSHOT
@@ -153,6 +166,7 @@
     stopMediaSessionPolling();
     cancelAnimationFrame(tickRaf);
     window.clearTimeout(coverDebounceTimer);
+    window.clearTimeout(lowResRetryTimer);
     window.clearTimeout(settleTimeoutId);
     window.clearTimeout(settleMinTimeoutId);
     cancelAlbumPaletteSchedule();
@@ -164,6 +178,33 @@
   function clearSettleTimers() {
     window.clearTimeout(settleTimeoutId);
     window.clearTimeout(settleMinTimeoutId);
+  }
+
+  function clearLowResRetry() {
+    window.clearTimeout(lowResRetryTimer);
+    lowResRetryTimer = 0;
+  }
+
+  function isLikelyBrowserSource(sourceAppId = '') {
+    const source = sourceAppId.toLowerCase();
+    return BROWSER_APP_HINTS.some((hint) => source.includes(hint));
+  }
+
+  function scheduleLowResRetry(snap, resolved, promotable) {
+    if (!isLikelyBrowserSource(snap?.sourceAppId || '')) return false;
+    if (promotable || !resolved?.lowRes) return false;
+
+    const delay = LOW_RES_RETRY_DELAYS_MS[lowResRetryCount];
+    if (!delay) return false;
+
+    lowResRetryCount += 1;
+    clearLowResRetry();
+    lowResRetryTimer = window.setTimeout(() => {
+      lowResRetryTimer = 0;
+      lastArtworkFetchKey = '';
+      coverRetryVersion += 1;
+    }, delay);
+    return true;
   }
 
   function forceReveal() {
@@ -218,6 +259,28 @@
     tryReveal();
   }
 
+  function isPromotableCover(width, height, lowRes = false) {
+    if (!width || !height) return !lowRes;
+    if (isVideoCover(width, height)) {
+      return width >= MIN_PROMOTABLE_VIDEO_WIDTH && height >= MIN_PROMOTABLE_VIDEO_HEIGHT;
+    }
+    return isEffectivelyHd(width, height) || !lowRes;
+  }
+
+  function setDisplayCover(src, width, height) {
+    displayCoverSrc = src;
+    displayCoverWidth = width || 0;
+    displayCoverHeight = height || 0;
+    coverImageReady = false;
+  }
+
+  function clearDisplayCover() {
+    displayCoverSrc = null;
+    displayCoverWidth = 0;
+    displayCoverHeight = 0;
+    coverImageReady = false;
+  }
+
   $effect(() => {
     if (!isTauri()) return;
     active;
@@ -265,11 +328,14 @@
   $effect(() => {
     if (!mediaAvailable) {
       window.clearTimeout(coverDebounceTimer);
+      clearLowResRetry();
       displayCoverSrc = null;
       displayCoverWidth = 0;
       displayCoverHeight = 0;
       lastCoverFingerprint = '';
       lastArtworkFetchKey = '';
+      coverRetryVersion = 0;
+      lowResRetryCount = 0;
       lastDisplayTrackKey = '';
       ghostCoverSrc = null;
       coverImageReady = false;
@@ -286,40 +352,36 @@
     }
 
     const fingerprint = coverFingerprint;
+    const fetchFingerprint = artworkFetchFingerprint;
     const thumbSrc = smtcCoverSrc;
     const key = trackKey;
     const width = coverArtWidth;
     const height = coverArtHeight;
+    const thumbPromotable = Boolean(thumbSrc) && isPromotableCover(width, height, true);
 
     if (key !== lastDisplayTrackKey) {
       lastDisplayTrackKey = key;
-      if (thumbSrc) {
-        displayCoverSrc = thumbSrc;
-        displayCoverWidth = width;
-        displayCoverHeight = height;
-        coverImageReady = false;
+      clearLowResRetry();
+      coverRetryVersion = 0;
+      lowResRetryCount = 0;
+      const cached = getCachedResolvedCover(snapshot);
+      if (cached?.src && !cached.lowRes) {
+        setDisplayCover(cached.src, cached.width || width, cached.height || height);
+      } else if (thumbSrc && thumbPromotable) {
+        setDisplayCover(thumbSrc, width, height);
       } else {
-        const cached = getCachedResolvedCover(snapshot);
-        if (cached?.src) {
-          displayCoverSrc = cached.src;
-          displayCoverWidth = cached.width || width;
-          displayCoverHeight = cached.height || height;
-          coverImageReady = false;
-        }
+        clearDisplayCover();
       }
       lastCoverFingerprint = fingerprint;
     } else if (fingerprint !== lastCoverFingerprint) {
       lastCoverFingerprint = fingerprint;
-      if (thumbSrc) {
-        displayCoverSrc = thumbSrc;
-        displayCoverWidth = width;
-        displayCoverHeight = height;
-        coverImageReady = false;
+      if (thumbSrc && thumbPromotable) {
+        setDisplayCover(thumbSrc, width, height);
       }
     }
 
-    if (fingerprint === lastArtworkFetchKey) return;
-    lastArtworkFetchKey = fingerprint;
+    if (fetchFingerprint === lastArtworkFetchKey) return;
+    lastArtworkFetchKey = fetchFingerprint;
 
     window.clearTimeout(coverDebounceTimer);
     const requestId = ++coverResolveId;
@@ -333,11 +395,18 @@
           if (requestId !== coverResolveId) return;
           const resolved = artworkToResolvedCover(artwork);
           rememberResolvedCover(snap, resolved);
-          if (resolved.src) {
-            displayCoverSrc = resolved.src;
-            displayCoverWidth = resolved.width || snap.coverArtWidth || 0;
-            displayCoverHeight = resolved.height || snap.coverArtHeight || 0;
-            coverImageReady = false;
+          const resolvedWidth = resolved.width || snap.coverArtWidth || 0;
+          const resolvedHeight = resolved.height || snap.coverArtHeight || 0;
+          const promotable = isPromotableCover(resolvedWidth, resolvedHeight, resolved.lowRes);
+          const retryScheduled = scheduleLowResRetry(snap, resolved, promotable);
+
+          if (!resolved.lowRes || promotable) {
+            lowResRetryCount = 0;
+            clearLowResRetry();
+          }
+
+          if (resolved.src && (!resolved.lowRes || promotable || (!retryScheduled && !displayCoverSrc))) {
+            setDisplayCover(resolved.src, resolvedWidth, resolvedHeight);
           }
         })
         .catch(() => {
@@ -348,7 +417,7 @@
           artworkFetchInFlight = false;
           tryReveal();
         });
-    }, 300);
+    }, COVER_FETCH_DEBOUNCE_MS);
 
     return () => {
       window.clearTimeout(coverDebounceTimer);
@@ -385,7 +454,6 @@
   });
 
   function applySnapshot(data) {
-    latestSnapshot = data;
     if (
       !data.coverArtBase64 &&
       snapshot?.coverArtBase64 &&
@@ -399,6 +467,8 @@
         coverArtMime: snapshot.coverArtMime
       };
     }
+
+    latestSnapshot = data;
 
     const prevSnap = snapshot;
     const trackChanged = !prevSnap || mediaTrackKey(prevSnap) !== mediaTrackKey(data);

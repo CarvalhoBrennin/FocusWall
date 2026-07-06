@@ -9,11 +9,13 @@
 3. O instalador:
    - Copia o aplicativo para `%LOCALAPPDATA%\FocusWall\`
    - Verifica/instala o WebView2 Runtime se necessario
+   - Verifica/instala o Ollama, usado pelo assistente local
+   - Baixa/verifica o modelo padrao `qwen2.5:1.5b`
    - Cria atalhos na Area de Trabalho e Menu Iniciar
    - Pergunta se quer iniciar com o Windows
 4. Pronto. Nao precisa de Node.js, Rust, nem Visual Studio.
 
-**Unica dependencia do usuario final:** WebView2 Runtime (ja pre-instalado no Windows 10 1809+ e Windows 11).
+**Dependencias do usuario final:** WebView2 Runtime (ja pre-instalado no Windows 10 1809+ e Windows 11), Ollama e o modelo local `qwen2.5:1.5b` para o assistente. O instalador tenta instalar o Ollama via `winget` quando necessario e baixa o modelo com `ollama pull qwen2.5:1.5b`. Se o modelo nao estiver instalado, a aba Assistente tambem permite acionar a instalacao pelo botao **Instalar modelo**.
 
 ### Metodo 2: Apenas o executavel
 
@@ -33,6 +35,8 @@ Requisitos no Windows:
 - Rust (https://www.rust-lang.org/tools/install)
 - Visual Studio Build Tools com workload "Desktop development with C++"
 - WebView2 Runtime
+- Ollama, para usar a aba Assistente (`winget install --id Ollama.Ollama -e`)
+- Modelo local `qwen2.5:1.5b` (`ollama pull qwen2.5:1.5b`)
 
 Verifique o ambiente:
 ```bash

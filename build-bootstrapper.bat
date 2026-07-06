@@ -12,6 +12,7 @@ if %errorlevel% neq 0 (
 )
 
 set "RELEASE_BIN=src-tauri\target\release\focus-desktop-dashboard.exe"
+for %%F in ("%RELEASE_BIN%") do set "RELEASE_BIN_NAME=%%~nxF"
 
 if not exist "%RELEASE_BIN%" (
     echo ERRO: Executavel compilado nao encontrado em %RELEASE_BIN%
@@ -59,13 +60,12 @@ echo Instalador portatil criado em: %CD%\%OUTDIR%\
 echo.
 echo Estrutura:
 echo   %OUTDIR%\Instalar-Focus-Setup.exe    (instalador)
-echo   %OUTDIR%\release\%~nxRELEASE_BIN%    (aplicativo)
+echo   %OUTDIR%\release\%RELEASE_BIN_NAME%    (aplicativo)
 echo.
 echo Para distribuir, compacte a pasta '%OUTDIR%' e envie o arquivo .zip.
 echo O usuario final so precisa executar 'Instalar-Focus-Setup.exe'.
 echo.
-echo A unica dependencia para o usuario final e o WebView2 Runtime,
-echo que ja vem pre-instalado no Windows 10 1809+ e Windows 11.
-echo O instalador baixa automaticamente se necessario.
+echo Dependencias do usuario final: WebView2 Runtime e Ollama.
+echo O instalador verifica e instala automaticamente via winget quando necessario.
 echo.
 pause

@@ -86,7 +86,7 @@ export function resolveBootstrapViewOffset(
 ): number {
   if (savedBase === todayDateKey && Number.isInteger(savedOffset)) {
     const min = -(CONFIG.HISTORY_RETENTION_DAYS - 1);
-    return Math.max(min, Math.min(VIEW.TODAY, savedOffset as number));
+    return Math.max(min, Math.min(CONFIG.FUTURE_VIEW_DAYS, savedOffset as number));
   }
   return VIEW.TODAY;
 }
@@ -143,7 +143,7 @@ export function setExecutionDateForDateKey(dateKey: string) {
   const current = parseDateKey(get(currentDateKey));
   const offset = Math.round((target.getTime() - current.getTime()) / CONFIG.MS_PER_DAY);
   const min = -(CONFIG.HISTORY_RETENTION_DAYS - 1);
-  viewOffsetDays.set(Math.max(min, Math.min(VIEW.TODAY, offset)));
+  viewOffsetDays.set(Math.max(min, Math.min(CONFIG.FUTURE_VIEW_DAYS, offset)));
   editingTaskId.set(null);
   persistStateDebounced();
 }
@@ -195,7 +195,7 @@ export function setAppStatus(message, variant = '', path = '') {
 export function setViewOffset(offset: number, options: { maxHistoryDays?: number } = {}) {
   const span = options.maxHistoryDays ?? CONFIG.HISTORY_VIEW_DAYS;
   const min = -(span - 1);
-  viewOffsetDays.set(Math.max(min, Math.min(VIEW.TODAY, Number(offset) || 0)));
+  viewOffsetDays.set(Math.max(min, Math.min(CONFIG.FUTURE_VIEW_DAYS, Number(offset) || 0)));
   editingTaskId.set(null);
   persistStateDebounced();
 }

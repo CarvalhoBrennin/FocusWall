@@ -142,17 +142,41 @@ export type MessageKey =
   | 'assistant.placeholder'
   | 'assistant.send'
   | 'assistant.sending'
+  | 'assistant.cancel'
   | 'assistant.offline'
+  | 'assistant.startEyebrow'
+  | 'assistant.startTitle'
+  | 'assistant.startBody'
+  | 'assistant.startButton'
+  | 'assistant.starting'
+  | 'assistant.startOk'
+  | 'assistant.modelMissingEyebrow'
+  | 'assistant.modelMissingTitle'
+  | 'assistant.modelMissingBody'
+  | 'assistant.modelMissingDetail'
+  | 'assistant.modelInstallButton'
+  | 'assistant.modelInstalling'
+  | 'assistant.modelInstallOk'
+  | 'assistant.modelInstallFailed'
   | 'assistant.error'
   | 'assistant.actionDone'
   | 'assistant.actionFailed'
+  | 'assistant.thinking.claudering'
+  | 'assistant.thinking.context'
+  | 'assistant.thinking.focusWall'
+  | 'assistant.thinking.preparing'
+  | 'assistant.thinking.processing'
   | 'assistant.status.checking'
   | 'assistant.status.online'
   | 'assistant.status.offline'
+  | 'assistant.status.starting'
   | 'assistant.status.ready'
   | 'assistant.status.thinking'
   | 'assistant.status.executing'
+  | 'assistant.status.awaitingConfirmation'
   | 'assistant.status.error'
+  | 'assistant.confirmYes'
+  | 'assistant.confirmNo'
   | 'neural.panelLabel'
   | 'neural.sidebarLabel'
   | 'neural.editorLabel'
@@ -357,17 +381,41 @@ const messages: Record<LocaleId, Record<MessageKey, string>> = {
     'assistant.placeholder': 'Peça uma ação no FocusWall...',
     'assistant.send': 'Enviar',
     'assistant.sending': 'Enviando...',
+    'assistant.cancel': 'Cancelar',
     'assistant.offline': 'Ollama offline. Abra o app Ollama ou execute "ollama serve" e clique em Atualizar.',
+    'assistant.startEyebrow': 'Serviço local',
+    'assistant.startTitle': 'O assistente precisa ser iniciado',
+    'assistant.startBody': 'O FocusWall não conseguiu acessar o Ollama local. Inicie o serviço para usar comandos por linguagem natural.',
+    'assistant.startButton': 'Iniciar assistente',
+    'assistant.starting': 'Iniciando...',
+    'assistant.startOk': 'Assistente iniciado.',
+    'assistant.modelMissingEyebrow': 'Modelo local',
+    'assistant.modelMissingTitle': 'Modelo do assistente não instalado',
+    'assistant.modelMissingBody': 'O Ollama está online, mas nenhum modelo compatível foi encontrado. Instale o modelo padrão para habilitar o assistente.',
+    'assistant.modelMissingDetail': 'Modelo esperado',
+    'assistant.modelInstallButton': 'Instalar modelo',
+    'assistant.modelInstalling': 'Instalando modelo...',
+    'assistant.modelInstallOk': 'Modelo do assistente instalado.',
+    'assistant.modelInstallFailed': 'Não foi possível instalar o modelo do assistente.',
     'assistant.error': 'Não foi possível concluir a resposta.',
     'assistant.actionDone': 'ação concluída',
     'assistant.actionFailed': 'ação falhou',
+    'assistant.thinking.claudering': 'claudering...',
+    'assistant.thinking.context': 'organizando contexto...',
+    'assistant.thinking.focusWall': 'consultando o FocusWall...',
+    'assistant.thinking.preparing': 'preparando resposta...',
+    'assistant.thinking.processing': 'pensando...',
     'assistant.status.checking': 'Verificando',
     'assistant.status.online': 'Online',
     'assistant.status.offline': 'Offline',
+    'assistant.status.starting': 'Iniciando',
     'assistant.status.ready': 'Pronto',
     'assistant.status.thinking': 'Pensando',
     'assistant.status.executing': 'Executando ação',
+    'assistant.status.awaitingConfirmation': 'Aguardando confirmação',
     'assistant.status.error': 'Erro',
+    'assistant.confirmYes': 'Sim, confirmar',
+    'assistant.confirmNo': 'Cancelar',
     'neural.panelLabel': 'Neural — notas conectadas',
     'neural.sidebarLabel': 'Notas neurais',
     'neural.editorLabel': 'Editor da nota neural',
@@ -574,17 +622,41 @@ const messages: Record<LocaleId, Record<MessageKey, string>> = {
     'assistant.placeholder': 'Ask for a FocusWall action...',
     'assistant.send': 'Send',
     'assistant.sending': 'Sending...',
+    'assistant.cancel': 'Cancel',
     'assistant.offline': 'Ollama offline. Open the Ollama app or run "ollama serve", then click Refresh.',
+    'assistant.startEyebrow': 'Local service',
+    'assistant.startTitle': 'The assistant needs to be started',
+    'assistant.startBody': 'FocusWall could not reach the local Ollama service. Start it to use natural-language commands.',
+    'assistant.startButton': 'Start assistant',
+    'assistant.starting': 'Starting...',
+    'assistant.startOk': 'Assistant started.',
+    'assistant.modelMissingEyebrow': 'Local model',
+    'assistant.modelMissingTitle': 'Assistant model is not installed',
+    'assistant.modelMissingBody': 'Ollama is online, but no compatible model was found. Install the default model to enable the assistant.',
+    'assistant.modelMissingDetail': 'Expected model',
+    'assistant.modelInstallButton': 'Install model',
+    'assistant.modelInstalling': 'Installing model...',
+    'assistant.modelInstallOk': 'Assistant model installed.',
+    'assistant.modelInstallFailed': 'Could not install the assistant model.',
     'assistant.error': 'Could not complete the response.',
     'assistant.actionDone': 'action completed',
     'assistant.actionFailed': 'action failed',
+    'assistant.thinking.claudering': 'claudering...',
+    'assistant.thinking.context': 'organizing context...',
+    'assistant.thinking.focusWall': 'checking FocusWall...',
+    'assistant.thinking.preparing': 'preparing response...',
+    'assistant.thinking.processing': 'thinking...',
     'assistant.status.checking': 'Checking',
     'assistant.status.online': 'Online',
     'assistant.status.offline': 'Offline',
+    'assistant.status.starting': 'Starting',
     'assistant.status.ready': 'Ready',
     'assistant.status.thinking': 'Thinking',
     'assistant.status.executing': 'Running action',
+    'assistant.status.awaitingConfirmation': 'Awaiting confirmation',
     'assistant.status.error': 'Error',
+    'assistant.confirmYes': 'Yes, confirm',
+    'assistant.confirmNo': 'Cancel',
     'neural.panelLabel': 'Neural — connected notes',
     'neural.sidebarLabel': 'Neural notes',
     'neural.editorLabel': 'Neural note editor',

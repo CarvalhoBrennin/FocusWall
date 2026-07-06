@@ -135,7 +135,7 @@
 
       e.preventDefault();
 
-      if ($viewOffsetDays < VIEW.TODAY) {
+      if ($viewOffsetDays < CONFIG.FUTURE_VIEW_DAYS) {
 
         setViewOffset($viewOffsetDays + 1);
 

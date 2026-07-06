@@ -71,7 +71,7 @@ describe('position anchor', () => {
     const prev = { baseMs: 30_000, atMs: 1_000 };
     // 1s later the bar is at ~31_000, but SMTC still reports 30_300 (drift).
     const anchor = reconcilePositionAnchor(
-      { ...prev },
+      prev,
       { ...playing, positionMs: 30_300 },
       { trackChanged: false, playStateChanged: false, nowMs: 2_000 }
     );

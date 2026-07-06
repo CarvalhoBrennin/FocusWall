@@ -41,6 +41,7 @@ goto LAUNCH_APP
 if not exist "%RELEASE_EXE%" goto TRY_INSTALLED
 if not exist "%DIST_INDEX%" goto NEED_BUILD
 echo Abrindo FocusWall...
+call :START_ASSISTANT
 start "" "%RELEASE_EXE%"
 exit /b 0
 
@@ -50,6 +51,7 @@ if /I "%~1"=="--release" goto NOT_FOUND
 :USE_INSTALLED
 if exist "%INSTALLED%" (
     echo Abrindo FocusWall instalado...
+    call :START_ASSISTANT
     start "" "%INSTALLED%"
     exit /b 0
 )
@@ -57,10 +59,46 @@ goto NOT_FOUND
 
 :DEV_MODE
 echo Modo desenvolvimento: iniciando Vite + Tauri...
+call :START_ASSISTANT
 call :ENSURE_NPM_DEPS
 if errorlevel 1 exit /b %ERRORLEVEL%
 call npm run tauri:dev
 exit /b %ERRORLEVEL%
+
+:START_ASSISTANT
+call :CHECK_OLLAMA_ONLINE
+if not errorlevel 1 exit /b 0
+call :RESOLVE_OLLAMA
+if errorlevel 1 exit /b 0
+echo Iniciando assistente local (Ollama)...
+start "" /B "%OLLAMA_CMD%" serve >NUL 2>NUL
+exit /b 0
+
+:CHECK_OLLAMA_ONLINE
+powershell -NoProfile -ExecutionPolicy Bypass -Command "try { Invoke-RestMethod -Uri 'http://127.0.0.1:11434/api/tags' -TimeoutSec 2 | Out-Null; exit 0 } catch { exit 1 }" >NUL 2>NUL
+exit /b %ERRORLEVEL%
+
+:RESOLVE_OLLAMA
+set "OLLAMA_CMD="
+where ollama >NUL 2>&1
+if not errorlevel 1 (
+    set "OLLAMA_CMD=ollama"
+    exit /b 0
+)
+if exist "%LOCALAPPDATA%\Programs\Ollama\ollama.exe" (
+    set "OLLAMA_CMD=%LOCALAPPDATA%\Programs\Ollama\ollama.exe"
+    exit /b 0
+)
+if exist "%ProgramFiles%\Ollama\ollama.exe" (
+    set "OLLAMA_CMD=%ProgramFiles%\Ollama\ollama.exe"
+    exit /b 0
+)
+if exist "%ProgramFiles(x86)%\Ollama\ollama.exe" (
+    set "OLLAMA_CMD=%ProgramFiles(x86)%\Ollama\ollama.exe"
+    exit /b 0
+)
+echo Assistente local nao encontrado. Instale o Ollama ou use o botao "Iniciar assistente" na aba Assistente.
+exit /b 1
 
 :CHECK_BUILD_STALE
 if not exist "%RELEASE_EXE%" exit /b 1

@@ -19,6 +19,33 @@ describe('state utils', () => {
     expect(state.ui.lastNeuralNoteId).toBeNull();
   });
 
+  it('preserves and normalizes calendar event recurrence', () => {
+    const state = normalizeState({
+      calendarEvents: [
+        {
+          id: 'event-1',
+          title: '  Aniversário da Ana  ',
+          dateKey: '2026-07-03',
+          recurrence: 'yearly',
+          createdAt: '2026-07-03T12:00:00.000Z',
+          updatedAt: '2026-07-03T12:00:00.000Z'
+        },
+        {
+          id: 'event-2',
+          title: 'Fechamento',
+          dateKey: '2026-07-15',
+          recurrence: 'bad',
+          createdAt: '2026-07-03T12:00:00.000Z',
+          updatedAt: '2026-07-03T12:00:00.000Z'
+        }
+      ]
+    });
+
+    expect(state.version).toBe(7);
+    expect(state.calendarEvents[0]?.recurrence).toBe('yearly');
+    expect(state.calendarEvents[1]?.recurrence).toBe('none');
+  });
+
   it('preserves and normalizes neural notes inside the app state', () => {
     const state = normalizeState({
       neuralNotes: [

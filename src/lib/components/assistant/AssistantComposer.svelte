@@ -6,13 +6,22 @@
     disabled = false,
     sending = false,
     onInput = () => {},
-    onSubmit = () => {}
+    onSubmit = () => {},
+    onCancel = () => {}
   } = $props();
 
   function submit() {
     const text = value.trim();
     if (!text || disabled || sending) return;
     onSubmit(text);
+  }
+
+  function handleButtonClick() {
+    if (sending) {
+      onCancel();
+      return;
+    }
+    submit();
   }
 
   function handleKeydown(event) {
@@ -37,18 +46,19 @@
     rows="3"
     value={value}
     placeholder={$t('assistant.placeholder')}
-    disabled={disabled}
+    disabled={disabled || sending}
     style="height: 5rem; min-height: 5rem; max-height: 5rem; resize: none;"
     oninput={(event) => onInput(event.currentTarget.value)}
     onkeydown={handleKeydown}
   ></textarea>
   <button
     class="primary-button"
-    type="submit"
-    disabled={!value.trim() || disabled || sending}
+    type="button"
+    disabled={sending ? false : (!value.trim() || disabled)}
+    onclick={handleButtonClick}
     style="height: 3rem; min-height: 3rem; max-height: 3rem; align-self: start;"
   >
-    {sending ? $t('assistant.sending') : $t('assistant.send')}
+    {sending ? $t('assistant.cancel') : $t('assistant.send')}
   </button>
 </form>
 

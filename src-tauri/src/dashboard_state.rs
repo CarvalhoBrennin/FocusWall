@@ -10,7 +10,7 @@ use tauri::{AppHandle, Manager};
 
 pub const STATE_FILE_NAME: &str = "dashboard-state.json";
 pub const CORRUPT_FILE_NAME: &str = "dashboard-state.corrupt.json";
-pub const STATE_VERSION: u8 = 6;
+pub const STATE_VERSION: u8 = 7;
 
 static STATE_WRITE_LOCK: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
 
@@ -58,6 +58,8 @@ pub struct CalendarEvent {
     pub notes: Option<String>,
     #[serde(default)]
     pub color: Option<String>,
+    #[serde(default)]
+    pub recurrence: Option<String>,
     pub created_at: String,
     pub updated_at: String,
 }

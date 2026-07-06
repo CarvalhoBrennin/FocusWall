@@ -3,6 +3,8 @@ import type {
   OllamaChatMessage,
   OllamaHealth,
   OllamaModelInfo,
+  OllamaModelInstallResult,
+  OllamaStartResult,
   OllamaStreamResult,
   OllamaToolDefinition
 } from '../types/assistant.js';
@@ -84,35 +86,35 @@ function applyResolvedBaseUrl(health: OllamaHealth): OllamaHealth {
 
 async function checkOllamaHealthViaFetch(signal?: AbortSignal): Promise<OllamaHealth> {
   const candidates = getBrowserBaseUrlCandidates();
+  let lastError = 'Ollama indisponível.';
 
-  const { controller, cleanup } = createAbortController(5000, signal);
-  try {
-    let lastError = 'Ollama indisponível.';
-    for (const baseUrl of candidates) {
-      try {
-        const response = await fetch(ollamaUrl('/api/tags', baseUrl), {
-          method: 'GET',
-          cache: 'no-store',
-          signal: controller.signal
-        });
-        if (!response.ok) {
-          lastError = `HTTP ${response.status}`;
-          continue;
-        }
-        const payload = await response.json();
-        return applyResolvedBaseUrl({
-          online: true,
-          models: normalizeModels(payload),
-          baseUrl
-        });
-      } catch (err) {
-        lastError = String((err as Error)?.message || err);
+  for (const baseUrl of candidates) {
+    const { controller, cleanup } = createAbortController(5000, signal);
+    try {
+      const response = await fetch(ollamaUrl('/api/tags', baseUrl), {
+        method: 'GET',
+        cache: 'no-store',
+        signal: controller.signal
+      });
+      if (!response.ok) {
+        lastError = `HTTP ${response.status}`;
+        continue;
       }
+      const payload = await response.json();
+      return applyResolvedBaseUrl({
+        online: true,
+        models: normalizeModels(payload),
+        baseUrl
+      });
+    } catch (err) {
+      lastError = String((err as Error)?.message || err);
+      if (signal?.aborted) break;
+    } finally {
+      cleanup();
     }
-    return { online: false, models: [], error: lastError };
-  } finally {
-    cleanup();
   }
+
+  return { online: false, models: [], error: lastError };
 }
 
 async function checkOllamaHealthViaTauri(): Promise<OllamaHealth> {
@@ -135,6 +137,59 @@ export async function checkOllamaHealth(signal?: AbortSignal): Promise<OllamaHea
     }
   }
   return checkOllamaHealthViaFetch(signal);
+}
+
+export async function startOllamaService(): Promise<OllamaStartResult> {
+  if (!isTauri()) {
+    return {
+      online: false,
+      started: false,
+      message: 'Inicialização automática disponível somente no app desktop.',
+      error: 'desktop-only'
+    };
+  }
+
+  try {
+    const result = await tauriInvoke<OllamaStartResult>('start_ollama_service', {
+      baseUrl: CONFIG.ASSISTANT.ollamaBaseUrl
+    });
+    if (result.baseUrl) resolvedBaseUrl = result.baseUrl;
+    return result;
+  } catch (err) {
+    return {
+      online: false,
+      started: false,
+      message: 'Não foi possível iniciar o assistente.',
+      error: String((err as Error)?.message || err)
+    };
+  }
+}
+
+export async function installOllamaModel(model = CONFIG.ASSISTANT.model): Promise<OllamaModelInstallResult> {
+  if (!isTauri()) {
+    return {
+      installed: false,
+      model,
+      message: 'Instalação de modelo disponível somente no app desktop.',
+      error: 'desktop-only'
+    };
+  }
+
+  try {
+    const result = await tauriInvoke<OllamaModelInstallResult>('install_ollama_model', {
+      model,
+      baseUrl: CONFIG.ASSISTANT.ollamaBaseUrl
+    });
+    if (result.baseUrl) resolvedBaseUrl = result.baseUrl;
+    return result;
+  } catch (err) {
+    return {
+      installed: false,
+      model,
+      message: 'Não foi possível instalar o modelo do assistente.',
+      error: String((err as Error)?.message || err)
+    };
+  }
 }
 
 function collectToolCalls(target: OllamaStreamResult, chunk: unknown) {
@@ -247,13 +302,44 @@ async function streamOllamaChatViaTauri(options: StreamChatOptions): Promise<Oll
 
   return new Promise((resolve, reject) => {
     const channel = new Channel<OllamaStreamChunk>();
-    const abort = () => reject(new DOMException('Aborted', 'AbortError'));
+    let settled = false;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+    const cleanup = () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      timeoutId = null;
+      options.signal?.removeEventListener('abort', abort);
+    };
+
+    const settleReject = (error: unknown) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      reject(error);
+    };
+
+    const settleResolve = () => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve(result);
+    };
+
+    const resetTimer = () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        settleReject(new Error('Tempo esgotado aguardando resposta do Ollama.'));
+      }, CONFIG.ASSISTANT.streamIdleTimeoutMs);
+    };
+
+    const abort = () => settleReject(new DOMException('Aborted', 'AbortError'));
 
     channel.onmessage = (chunk) => {
       if (options.signal?.aborted) {
         abort();
         return;
       }
+      resetTimer();
       applyStreamChunk(result, chunk.line, options.onContent);
     };
 
@@ -262,6 +348,7 @@ async function streamOllamaChatViaTauri(options: StreamChatOptions): Promise<Oll
       return;
     }
     options.signal?.addEventListener('abort', abort, { once: true });
+    resetTimer();
 
     tauriInvoke('ollama_chat_stream', {
       body: JSON.stringify({
@@ -276,14 +363,8 @@ async function streamOllamaChatViaTauri(options: StreamChatOptions): Promise<Oll
       baseUrl: options.baseUrl || resolvedBaseUrl,
       onChunk: channel
     })
-      .then(() => {
-        options.signal?.removeEventListener('abort', abort);
-        resolve(result);
-      })
-      .catch((err) => {
-        options.signal?.removeEventListener('abort', abort);
-        reject(err);
-      });
+      .then(settleResolve)
+      .catch(settleReject);
   });
 }
 

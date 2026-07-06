@@ -26,9 +26,9 @@
         "closable": true,
         "shadow": false,
         "transparent": false,
-        "visible": false,
-        "skipTaskbar": true,
-        "alwaysOnBottom": true,
+        "visible": true,
+        "skipTaskbar": false,
+        "alwaysOnBottom": false,
         "maximized": false
       }
     ],

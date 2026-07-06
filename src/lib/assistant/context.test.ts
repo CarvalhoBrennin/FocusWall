@@ -57,4 +57,27 @@ describe('createAssistantContextSnapshot', () => {
     expect(snapshot.tasks.map((task) => task.id)).toEqual(['task-1', 'task-2']);
     expect(snapshot.eventsToday.map((event) => event.id)).toEqual(['event-1', 'event-2']);
   });
+
+  it('includes recurring calendar event occurrences on the visible date', () => {
+    const state = createDefaultState();
+    state.calendarEvents = [
+      {
+        id: 'event-birthday',
+        title: 'Aniversário',
+        dateKey: '2020-07-03',
+        recurrence: 'yearly',
+        createdAt: '',
+        updatedAt: ''
+      }
+    ];
+
+    const snapshot = createAssistantContextSnapshot(state, '2026-07-03', 0);
+
+    expect(snapshot.eventsToday).toHaveLength(1);
+    expect(snapshot.eventsToday[0]?.id).toBe('event-birthday');
+    expect(snapshot.eventsToday[0]?.dateKey).toBe('2026-07-03');
+    expect(snapshot.eventsToday[0]?.baseDateKey).toBe('2020-07-03');
+    expect(snapshot.eventsToday[0]?.occurrenceDateKey).toBe('2026-07-03');
+    expect(snapshot.eventsToday[0]?.recurrence).toBe('yearly');
+  });
 });

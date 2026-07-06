@@ -1,7 +1,6 @@
 <script>
   import { onDestroy } from 'svelte';
   import MediaIcons from './icons/MediaIcons.svelte';
-  import MediaTrackSkeleton from './MediaTrackSkeleton.svelte';
   import { classifyCover, isVideoCover } from '../../utils/cover-art.js';
 
   let {
@@ -209,7 +208,10 @@
   {/if}
 
   {#if showShimmer}
-    <MediaTrackSkeleton variant="overlay" {reducedMotion} />
+    <div class="media-cover-loader" role="status" aria-live="polite">
+      <span class="media-cover-loader-ring" class:media-skeleton--static={reducedMotion} aria-hidden="true"></span>
+      <span class="sr-only">Carregando capa</span>
+    </div>
     <div class="media-art-cinematic-shimmer" class:media-skeleton--static={reducedMotion} aria-hidden="true"></div>
   {/if}
 
