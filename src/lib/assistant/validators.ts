@@ -11,6 +11,7 @@ import {
   normalizePriority,
   normalizeTimeValue
 } from '../utils/state.js';
+import { hasInvalidToolArguments } from './tools.js';
 import {
   getStringArg,
   hasSuspiciousCalendarTitle,
@@ -201,6 +202,9 @@ function validateTaskStep(step: AssistantPlanStep): AssistantPlanValidation {
 }
 
 function validateDateNavigationStep(step: AssistantPlanStep): AssistantPlanValidation {
+  if (step.tool === 'list_calendar_events' && !getStringArg(step.args, 'dateKey')) {
+    return validation(true, 'ok', { fixedArgs: step.args });
+  }
   if (step.tool !== 'go_to_date' && step.tool !== 'list_calendar_events' && step.tool !== 'delete_calendar_events') {
     return validation(true, 'ok', { fixedArgs: step.args });
   }
@@ -234,6 +238,15 @@ export function validateAssistantPlan(plan: AssistantPlan): PlanValidationResult
   let reason = 'ok';
 
   for (const step of plan.steps) {
+    if (hasInvalidToolArguments(step.args)) {
+      return {
+        plan: { ...plan, status: 'blocked', confidence, steps },
+        validation: validation(false, 'invalid_arguments', {
+          question: 'Os argumentos produzidos para a ação são inválidos. Reformule o pedido.'
+        })
+      };
+    }
+
     let stepValidation: AssistantPlanValidation;
     if (step.tool === 'add_calendar_event') {
       stepValidation = validateAddCalendarEventStep(step, plan.originalText);

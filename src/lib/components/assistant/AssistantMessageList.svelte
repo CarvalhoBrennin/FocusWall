@@ -13,7 +13,7 @@
       message.role === 'assistant' &&
       !message.pending &&
       isLastMessage(index) &&
-      (Boolean(message.pendingToolCall) || Boolean(message.pendingChoices?.length))
+      (Boolean(message.pendingPlan) || Boolean(message.pendingToolCall) || Boolean(message.pendingChoices?.length))
     );
   }
   let listEl = $state(null);
@@ -116,7 +116,7 @@
 
         {#if showQuickReplies(message, index)}
           <div class="assistant-quick-replies" role="group" aria-label={$t('assistant.status.awaitingConfirmation')}>
-            {#if message.pendingToolCall}
+            {#if message.pendingPlan || message.pendingToolCall}
               <button class="primary-button" type="button" disabled={disabled} onclick={() => onQuickReply('sim')}>
                 {$t('assistant.confirmYes')}
               </button>

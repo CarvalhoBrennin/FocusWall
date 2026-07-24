@@ -30,7 +30,7 @@ function createRuntime() {
 
   const runtime: AssistantToolRuntime = {
     getContext: () => ({
-      visibleDate: '2026-07-01',
+      visibleDate: navigatedDate || '2026-07-01',
       viewOffset: 0,
       taskCounts: { total: tasks.length, completed: tasks.filter((task) => task.completed).length, pending: 0, pinned: 0 },
       tasks,
@@ -105,11 +105,20 @@ function createRuntime() {
       events = events.filter((event) => event.id !== id);
       return events.length !== before;
     },
+    deleteCalendarEvents: async (ids) => {
+      const wanted = new Set(ids);
+      const deleted = events.filter((event) => wanted.has(event.id)).map((event) => event.id);
+      events = events.filter((event) => !wanted.has(event.id));
+      return deleted;
+    },
     goToDate: (dateKey) => {
       navigatedDate = dateKey;
+      return navigatedDate;
     },
     goToToday: () => {
       wentToday = true;
+      navigatedDate = '2026-07-01';
+      return navigatedDate;
     }
   };
 
@@ -138,7 +147,7 @@ describe('normalizeToolArguments', () => {
   it('accepts JSON strings and objects', () => {
     expect(normalizeToolArguments('{"id":"task-1"}')).toEqual({ id: 'task-1' });
     expect(normalizeToolArguments({ id: 'task-1' })).toEqual({ id: 'task-1' });
-    expect(normalizeToolArguments('bad')).toEqual({});
+    expect(normalizeToolArguments('bad')).toMatchObject({ __focusWallInvalidToolArguments: true });
   });
 });
 
@@ -184,12 +193,16 @@ describe('executeAssistantTool', () => {
       { title: 'Reunião', dateKey: '2026-07-02', startTime: '10:00' },
       harness.runtime
     );
-    await executeAssistantTool('go_to_date', { dateKey: '2026-07-02' }, harness.runtime);
-    await executeAssistantTool('go_to_today', {}, harness.runtime);
+    const navigated = await executeAssistantTool('go_to_date', { dateKey: '2026-07-02' }, harness.runtime);
 
     expect(event.ok).toBe(true);
     expect(harness.getEvents()[1]?.title).toBe('Reunião');
+    expect(navigated.ok).toBe(true);
     expect(harness.getNavigatedDate()).toBe('2026-07-02');
+
+    const today = await executeAssistantTool('go_to_today', {}, harness.runtime);
+    expect(today.ok).toBe(true);
+    expect(harness.getNavigatedDate()).toBe('2026-07-01');
     expect(harness.wentToday()).toBe(true);
   });
 
@@ -309,6 +322,39 @@ describe('executeAssistantTool', () => {
     expect(update.ok).toBe(false);
     expect(update.reason).toBe('empty_patch');
     expect(harness.getEvents()[0]?.title).toBe('Dentista');
+  });
+
+
+  it('does not duplicate equivalent tasks', async () => {
+    const harness = createRuntime();
+    const first = await executeAssistantTool('add_task', { text: 'Comprar leite', priority: 'medium' }, harness.runtime);
+    const duplicate = await executeAssistantTool('add_task', { text: 'comprar leite', priority: 'medium' }, harness.runtime);
+
+    expect(first.changed).toBe(true);
+    expect(duplicate.ok).toBe(true);
+    expect(duplicate.changed).toBe(false);
+    expect(duplicate.reason).toBe('duplicate');
+    expect(harness.getTasks()).toHaveLength(2);
+  });
+
+  it('does not claim success when a task mutation fails', async () => {
+    const harness = createRuntime();
+    harness.runtime.toggleTask = async () => false;
+
+    const result = await executeAssistantTool('complete_task', { id: 'task-1', completed: true }, harness.runtime);
+
+    expect(result.ok).toBe(false);
+    expect(result.changed).toBe(false);
+    expect(result.reason).toBe('store_error');
+    expect(harness.getTasks()[0]?.completed).toBe(false);
+  });
+
+  it('rejects malformed JSON tool arguments', async () => {
+    const harness = createRuntime();
+    const result = await executeAssistantTool('complete_task', '{bad-json', harness.runtime);
+
+    expect(result.ok).toBe(false);
+    expect(result.reason).toBe('invalid_arguments');
   });
 });
 

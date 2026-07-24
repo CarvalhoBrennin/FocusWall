@@ -25,6 +25,14 @@ import {
 
 export const calendarMonth = derived(data, ($d) => $d.ui?.calendarMonth ?? '');
 
+let calendarMutationQueue: Promise<void> = Promise.resolve();
+
+function enqueueCalendarMutation<T>(operation: () => Promise<T>): Promise<T> {
+  const run = calendarMutationQueue.then(operation, operation);
+  calendarMutationQueue = run.then(() => undefined, () => undefined);
+  return run;
+}
+
 export type TaskDayStats = {
   total: number;
   completed: number;
@@ -277,61 +285,90 @@ async function saveCalendarState(nextData: AppState, success: string, failure: s
   }
 }
 
-export async function addCalendarEvent(payload: Partial<CalendarEvent>): Promise<string | null> {
-  const now = new Date().toISOString();
-  const event = normalizeCalendarEvent({
-    ...payload,
-    id: createId('event'),
-    createdAt: now,
-    updatedAt: now
-  });
-  if (!event) return null;
-
-  const $data = get(data);
-  const nextData: AppState = {
-    ...$data,
-    calendarEvents: sortCalendarEvents([...getCalendarEvents($data), event], $data.ui?.locale)
-  };
-
-  const ok = await saveCalendarState(nextData, 'Evento salvo localmente.', 'Não foi possível salvar o evento.');
-  return ok ? event.id : null;
-}
-
-export async function updateCalendarEvent(id: string, patch: Partial<CalendarEvent>): Promise<boolean> {
-  const $data = get(data);
-  let changed = false;
-  const nextEvents = getCalendarEvents($data).map((event) => {
-    if (event.id !== id) return event;
-    const updated = normalizeCalendarEvent({
-      ...event,
-      ...patch,
-      id: event.id,
-      createdAt: event.createdAt,
-      updatedAt: new Date().toISOString()
+export function addCalendarEvent(payload: Partial<CalendarEvent>): Promise<string | null> {
+  return enqueueCalendarMutation(async () => {
+    const now = new Date().toISOString();
+    const event = normalizeCalendarEvent({
+      ...payload,
+      id: createId('event'),
+      createdAt: now,
+      updatedAt: now
     });
-    if (!updated) return event;
-    changed = true;
-    return updated;
-  });
-  if (!changed) return false;
+    if (!event) return null;
 
-  return saveCalendarState(
-    { ...$data, calendarEvents: sortCalendarEvents(nextEvents, $data.ui?.locale) },
-    'Evento atualizado localmente.',
-    'Não foi possível atualizar o evento.'
-  );
+    const $data = get(data);
+    const nextData: AppState = {
+      ...$data,
+      calendarEvents: sortCalendarEvents([...getCalendarEvents($data), event], $data.ui?.locale)
+    };
+
+    const ok = await saveCalendarState(nextData, 'Evento salvo localmente.', 'Não foi possível salvar o evento.');
+    return ok ? event.id : null;
+  });
 }
 
-export async function deleteCalendarEvent(id: string): Promise<boolean> {
-  const $data = get(data);
-  const nextEvents = getCalendarEvents($data).filter((event) => event.id !== id);
-  if (nextEvents.length === getCalendarEvents($data).length) return false;
+export function updateCalendarEvent(id: string, patch: Partial<CalendarEvent>): Promise<boolean> {
+  return enqueueCalendarMutation(async () => {
+    const $data = get(data);
+    let changed = false;
+    const nextEvents = getCalendarEvents($data).map((event) => {
+      if (event.id !== id) return event;
+      const updated = normalizeCalendarEvent({
+        ...event,
+        ...patch,
+        id: event.id,
+        createdAt: event.createdAt,
+        updatedAt: new Date().toISOString()
+      });
+      if (!updated) return event;
+      changed = true;
+      return updated;
+    });
+    if (!changed) return false;
 
-  return saveCalendarState(
-    { ...$data, calendarEvents: nextEvents },
-    'Evento excluído.',
-    'Não foi possível excluir o evento.'
-  );
+    return saveCalendarState(
+      { ...$data, calendarEvents: sortCalendarEvents(nextEvents, $data.ui?.locale) },
+      'Evento atualizado localmente.',
+      'Não foi possível atualizar o evento.'
+    );
+  });
+}
+
+export function deleteCalendarEvent(id: string): Promise<boolean> {
+  return enqueueCalendarMutation(async () => {
+    const $data = get(data);
+    const currentEvents = getCalendarEvents($data);
+    const nextEvents = currentEvents.filter((event) => event.id !== id);
+    if (nextEvents.length === currentEvents.length) return false;
+
+    return saveCalendarState(
+      { ...$data, calendarEvents: nextEvents },
+      'Evento excluído.',
+      'Não foi possível excluir o evento.'
+    );
+  });
+}
+
+/** Exclui um conjunto fechado de eventos em uma única gravação, evitando estado parcial. */
+export function deleteCalendarEvents(ids: string[]): Promise<string[]> {
+  return enqueueCalendarMutation(async () => {
+    const uniqueIds = [...new Set(ids.filter((id) => typeof id === 'string' && id.trim()))];
+    if (!uniqueIds.length) return [];
+
+    const idSet = new Set(uniqueIds);
+    const $data = get(data);
+    const currentEvents = getCalendarEvents($data);
+    const deletedIds = currentEvents.filter((event) => idSet.has(event.id)).map((event) => event.id);
+    if (!deletedIds.length) return [];
+
+    const nextEvents = currentEvents.filter((event) => !idSet.has(event.id));
+    const ok = await saveCalendarState(
+      { ...$data, calendarEvents: nextEvents },
+      deletedIds.length === 1 ? 'Evento excluído.' : `${deletedIds.length} eventos excluídos.`,
+      'Não foi possível excluir os eventos.'
+    );
+    return ok ? deletedIds : [];
+  });
 }
 
 export function getVisibleExecutionDateKey(): string {

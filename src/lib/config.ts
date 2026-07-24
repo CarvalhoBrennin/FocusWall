@@ -25,8 +25,14 @@ export const CONFIG = {
     ollamaBaseUrl: 'http://127.0.0.1:11434',
     model: 'qwen3:4b',
     modelPreferences: ['qwen3:4b', 'qwen2.5:3b', 'qwen2.5:1.5b'],
+    healthTimeoutMs: 5000,
     streamIdleTimeoutMs: 60000,
-    maxToolRounds: 5
+    requestTimeoutMs: 180000,
+    maxStreamBytes: 2 * 1024 * 1024,
+    maxStreamLineBytes: 256 * 1024,
+    maxToolRounds: 5,
+    maxToolCallsPerRound: 8,
+    maxToolCallsPerTurn: 12
   }
 };
 

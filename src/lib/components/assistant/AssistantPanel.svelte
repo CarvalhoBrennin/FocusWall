@@ -25,14 +25,17 @@
   let initialized = false;
   let abortController = null;
   let healthTimer = null;
+  let healthAbortController = null;
+  let healthRequestId = 0;
   let tokenFlushFrame = 0;
+  let tokenFlushUsesAnimationFrame = false;
   const pendingTokenBuffers = new Map();
   let startError = $state('');
   let modelInstallError = $state('');
   let modelInstalling = $state(false);
+  let selectedModel = $state(CONFIG.ASSISTANT.model);
 
-  const model = CONFIG.ASSISTANT.model;
-  const activeModel = $derived(pickAssistantModel(health.models, model));
+  const activeModel = $derived(selectedModel || CONFIG.ASSISTANT.model);
   const modelAvailable = $derived(!health.online || health.models.some((entry) => entry.name === activeModel));
   const showStartScreen = $derived(!health.online && (status === 'offline' || status === 'starting'));
   const showModelMissingScreen = $derived(health.online && !modelAvailable);
@@ -58,12 +61,34 @@
     });
   }
 
+  function applyHealth(nextHealth) {
+    health = nextHealth;
+    if (nextHealth.online) {
+      startError = '';
+      if (nextHealth.models.length && !nextHealth.models.some((entry) => entry.name === selectedModel)) {
+        selectedModel = pickAssistantModel(nextHealth.models, selectedModel);
+      }
+    }
+  }
+
   async function refreshHealth() {
     if (sending || modelInstalling || status === 'starting') return;
+    const requestId = ++healthRequestId;
+    healthAbortController?.abort();
+    healthAbortController = new AbortController();
     status = 'checking';
-    health = await checkOllamaHealth();
-    if (health.online) startError = '';
-    status = health.online ? 'ready' : 'offline';
+    try {
+      const nextHealth = await checkOllamaHealth(healthAbortController.signal);
+      if (requestId !== healthRequestId) return;
+      applyHealth(nextHealth);
+      status = nextHealth.online ? 'ready' : 'offline';
+    } catch (error) {
+      if (requestId !== healthRequestId || error?.name === 'AbortError') return;
+      applyHealth({ online: false, models: [], error: String(error?.message || error) });
+      status = 'offline';
+    } finally {
+      if (requestId === healthRequestId) healthAbortController = null;
+    }
   }
 
   async function startAssistant() {
@@ -74,8 +99,9 @@
     const result = await startOllamaService();
     if (result.error) startError = result.error;
 
-    health = await checkOllamaHealth();
-    if (health.online) {
+    const nextHealth = await checkOllamaHealth();
+    applyHealth(nextHealth);
+    if (nextHealth.online) {
       startError = '';
       status = 'ready';
       showToast(result.message || msg('assistant.startOk'));
@@ -96,8 +122,9 @@
       const result = await installOllamaModel(activeModel);
       if (result.error) modelInstallError = result.error;
 
-      health = await checkOllamaHealth();
-      if (health.online && health.models.some((entry) => entry.name === activeModel)) {
+      const nextHealth = await checkOllamaHealth();
+      applyHealth(nextHealth);
+      if (nextHealth.online && nextHealth.models.some((entry) => entry.name === activeModel)) {
         modelInstallError = '';
         showToast(result.message || msg('assistant.modelInstallOk'));
       } else if (!modelInstallError) {
@@ -137,13 +164,21 @@
 
   function scheduleTokenFlush() {
     if (tokenFlushFrame) return;
-    const schedule = typeof requestAnimationFrame === 'function'
+    tokenFlushUsesAnimationFrame = typeof requestAnimationFrame === 'function';
+    const schedule = tokenFlushUsesAnimationFrame
       ? requestAnimationFrame
       : (callback) => setTimeout(callback, 16);
     tokenFlushFrame = schedule(() => {
       tokenFlushFrame = 0;
       flushPendingTokens();
     });
+  }
+
+  function cancelScheduledTokenFlush() {
+    if (!tokenFlushFrame) return;
+    if (tokenFlushUsesAnimationFrame && typeof cancelAnimationFrame === 'function') cancelAnimationFrame(tokenFlushFrame);
+    else clearTimeout(tokenFlushFrame);
+    tokenFlushFrame = 0;
   }
 
   function appendToken(messageId, chunk) {
@@ -216,10 +251,11 @@
         ...message,
         content: message.content.trim() ? message.content : result.content,
         pendingToolCall: result.pendingToolCall,
+        pendingPlan: result.pendingPlan,
         pendingChoices: result.pendingChoices,
         pending: false
       }));
-      status = result.pendingToolCall || result.pendingChoices?.length
+      status = result.pendingPlan || result.pendingToolCall || result.pendingChoices?.length
         ? 'awaiting_confirmation'
         : health.online ? 'ready' : 'offline';
     } catch (err) {
@@ -227,7 +263,7 @@
       discardPendingTokens(assistantMessage.id);
       updateMessage(assistantMessage.id, (message) => ({
         ...message,
-        content: aborted ? '' : `${msg('assistant.error')} ${String(err?.message || err)}`,
+        content: aborted ? msg('assistant.cancelled') : `${msg('assistant.error')} ${String(err?.message || err)}`,
         pending: false,
         error: !aborted
       }));
@@ -256,6 +292,8 @@
 
   onDestroy(() => {
     abortController?.abort();
+    healthAbortController?.abort();
+    cancelScheduledTokenFlush();
     flushPendingTokens();
     stopHealthPolling();
   });
@@ -266,7 +304,9 @@
     {status}
     online={health.online}
     model={activeModel}
+    models={health.models}
     {modelAvailable}
+    onModelChange={(value) => { selectedModel = value; }}
     messageCount={messages.length}
     disabled={sending || modelInstalling || status === 'starting'}
     onRefresh={refreshHealth}

@@ -5,6 +5,7 @@ import type {
   AssistantPendingChoice,
   AssistantPlan,
   AssistantPlanSource,
+  AssistantToolArguments,
   AssistantToolCall,
   AssistantToolResult,
   AssistantTurnCallbacks,
@@ -127,49 +128,14 @@ function stripJsonFence(text: string): string {
   return fenced ? fenced[1].trim() : trimmed;
 }
 
-function findBalancedJson(text: string): string {
-  const source = stripJsonFence(text);
-  const start = source.search(/[\[{]/);
-  if (start < 0) return source;
-  const open = source[start];
-  const close = open === '{' ? '}' : ']';
-  let depth = 0;
-  let inString = false;
-  let escaped = false;
-
-  for (let i = start; i < source.length; i += 1) {
-    const char = source[i];
-    if (escaped) {
-      escaped = false;
-      continue;
-    }
-    if (char === '\\') {
-      escaped = true;
-      continue;
-    }
-    if (char === '"') {
-      inString = !inString;
-      continue;
-    }
-    if (inString) continue;
-    if (char === open) depth += 1;
-    if (char === close) depth -= 1;
-    if (depth === 0) return source.slice(start, i + 1);
-  }
-
-  return source.slice(start);
-}
-
 function parseJsonPayload(text: string): unknown | null {
-  const candidates = [stripJsonFence(text), findBalancedJson(text)];
-  for (const candidate of candidates) {
-    try {
-      return JSON.parse(candidate);
-    } catch {
-      // Try the next candidate.
-    }
+  const candidate = stripJsonFence(text);
+  if (!candidate || !/^[\[{]/.test(candidate) || !/[\]}]$/.test(candidate)) return null;
+  try {
+    return JSON.parse(candidate);
+  } catch {
+    return null;
   }
-  return null;
 }
 
 function toFallbackCall(entry: unknown): AssistantToolCall | null {
@@ -321,6 +287,10 @@ function isProtectedTool(name: string): boolean {
   return name === 'delete_task' || name === 'delete_calendar_event' || name === 'delete_calendar_events';
 }
 
+function isMutatingTool(name: string): boolean {
+  return !['get_context', 'list_tasks', 'list_calendar_events'].includes(name);
+}
+
 function parseReliableBirthdayToolCall(text: string): AssistantToolCall | null {
   if (!isBirthdayText(text)) return null;
   const dateKey = extractDateKeyFromText(text);
@@ -342,31 +312,22 @@ function parseReliableBirthdayToolCall(text: string): AssistantToolCall | null {
   };
 }
 
-function buildConfirmationRequest(call: AssistantToolCall): AssistantTurnResult | null {
-  const tool = getAssistantToolCallName(call);
-  if (!isProtectedTool(tool)) return null;
-
-  const preview = previewAssistantTool(tool, getAssistantToolCallArguments(call));
-  if (!preview) return null;
-
-  if (!preview.ok || preview.reason === 'not_found') {
-    return { content: preview.message, actions: [] };
-  }
-
-  const content = `${preview.message}\nResponda "sim" para executar ou "não" para cancelar.`;
-  return {
-    content,
-    actions: [],
-    pendingToolCall: call
-  };
+function getPreviousAssistantPendingPlan(messages: AssistantMessage[]): AssistantPlan | null {
+  return findPreviousAssistantMessage(messages)?.pendingPlan || null;
 }
 
-async function runDeterministicToolCall(
-  call: AssistantToolCall,
-  callbacks: AssistantTurnCallbacks,
-  originalText = ''
-): Promise<AssistantTurnResult> {
-  return runPlannedToolCalls([call], 'deterministic', originalText, callbacks);
+function createAbortError(): Error {
+  try {
+    return new DOMException('Operação cancelada.', 'AbortError');
+  } catch {
+    const error = new Error('Operação cancelada.');
+    error.name = 'AbortError';
+    return error;
+  }
+}
+
+function throwIfAborted(signal?: AbortSignal): void {
+  if (signal?.aborted) throw createAbortError();
 }
 
 function blockedPlanResult(message: string, callbacks: AssistantTurnCallbacks): AssistantTurnResult {
@@ -374,10 +335,72 @@ function blockedPlanResult(message: string, callbacks: AssistantTurnCallbacks): 
   return { content: message, actions: [] };
 }
 
+function freezeProtectedPlan(plan: AssistantPlan): {
+  plan: AssistantPlan;
+  previews: AssistantToolResult[];
+  error?: AssistantToolResult;
+} {
+  const previews: AssistantToolResult[] = [];
+  const steps = plan.steps.map((step) => {
+    if (!isProtectedTool(step.tool)) return step;
+    const preview = previewAssistantTool(step.tool, step.args);
+    if (!preview) return step;
+    if (!preview.ok || preview.reason === 'not_found') {
+      return step;
+    }
+    previews.push(preview);
+    if (step.tool === 'delete_calendar_events') {
+      return {
+        ...step,
+        args: {
+          ...step.args,
+          expectedIds: preview.affectedItems.map((item) => item.id)
+        }
+      };
+    }
+    return step;
+  });
+
+  for (const step of plan.steps) {
+    if (!isProtectedTool(step.tool)) continue;
+    const preview = previewAssistantTool(step.tool, step.args);
+    if (preview && (!preview.ok || preview.reason === 'not_found')) {
+      return { plan: { ...plan, steps }, previews, error: preview };
+    }
+  }
+  return { plan: { ...plan, steps }, previews };
+}
+
+function buildPlanConfirmationRequest(
+  plan: AssistantPlan,
+  validationQuestion: string | undefined,
+  callbacks: AssistantTurnCallbacks
+): AssistantTurnResult {
+  const frozen = freezeProtectedPlan(plan);
+  if (frozen.error) return blockedPlanResult(frozen.error.message, callbacks);
+
+  const previewLines = frozen.previews.map((preview) => preview.message.replace(/\s*Confirmar\??$/i, '').trim());
+  const question = validationQuestion || (previewLines.length ? 'Confirmar a execução desse plano?' : 'Quer que eu execute essa ação?');
+  const content = [
+    ...previewLines,
+    question,
+    'Responda "sim" para executar ou "não" para cancelar.'
+  ].filter(Boolean).join('\n');
+  callbacks.onStatus?.('awaiting_confirmation');
+  callbacks.onToken?.(content);
+  return {
+    content,
+    actions: [],
+    pendingPlan: frozen.plan,
+    ...(frozen.plan.steps.length === 1 ? { pendingToolCall: planStepToToolCall(frozen.plan.steps[0]) } : {})
+  };
+}
+
 async function executeValidatedPlan(
   plan: AssistantPlan,
   callbacks: AssistantTurnCallbacks,
-  confirmed = false
+  confirmed = false,
+  signal?: AbortSignal
 ): Promise<AssistantTurnResult> {
   const { plan: validatedPlan, validation } = validateAssistantPlan(plan);
   if (!validation.ok) {
@@ -387,40 +410,27 @@ async function executeValidatedPlan(
     );
   }
 
-  if (!confirmed) {
-    for (const step of validatedPlan.steps) {
-      const confirmation = buildConfirmationRequest(planStepToToolCall(step));
-      if (confirmation) {
-        if (confirmation.pendingToolCall) callbacks.onStatus?.('awaiting_confirmation');
-        callbacks.onToken?.(confirmation.content);
-        return confirmation;
-      }
-    }
-
-    if (validation.needsConfirmation) {
-      const pendingToolCall = planStepToToolCall(validatedPlan.steps[0]);
-      const content = `${validation.question || 'Quer que eu execute essa ação?'}\nResponda "sim" para executar ou "não" para cancelar.`;
-      callbacks.onStatus?.('awaiting_confirmation');
-      callbacks.onToken?.(content);
-      return { content, actions: [], pendingToolCall };
-    }
+  const protectedPlan = validatedPlan.steps.some((step) => isProtectedTool(step.tool));
+  if (!confirmed && (protectedPlan || validation.needsConfirmation)) {
+    return buildPlanConfirmationRequest(validatedPlan, validation.question, callbacks);
   }
 
   callbacks.onStatus?.('executing');
   const actions: AssistantActionLog[] = [];
   const messages: string[] = [];
   for (const step of validatedPlan.steps) {
+    throwIfAborted(signal);
     const toolResult = await executeAssistantTool(step.tool, step.args);
     const action = createActionLog(toolResult);
     actions.push(action);
     messages.push(toolResult.message);
     callbacks.onToolResult?.(action, toolResult);
+    if (!toolResult.ok) break;
   }
 
-  const ok = actions.every((action) => action.ok);
-  const prefix = confirmed ? 'Confirmado.' : 'Pronto.';
-  const content = ok ? `${prefix} ${messages.join(' ')}` : messages.join(' ');
-
+  const ok = actions.length === validatedPlan.steps.length && actions.every((action) => action.ok);
+  const prefix = confirmed && ok ? 'Confirmado.' : ok ? 'Pronto.' : '';
+  const content = [prefix, ...messages].filter(Boolean).join(' ');
   callbacks.onToken?.(content);
   return { content, actions };
 }
@@ -430,27 +440,62 @@ async function runPlannedToolCalls(
   source: AssistantPlanSource,
   originalText: string,
   callbacks: AssistantTurnCallbacks,
-  confirmed = false
+  confirmed = false,
+  signal?: AbortSignal
 ): Promise<AssistantTurnResult> {
   const plan = createAssistantPlanFromToolCalls(calls, source, originalText);
   if (!plan) {
     return blockedPlanResult('Não encontrei uma ferramenta segura para executar esse pedido.', callbacks);
   }
-  return executeValidatedPlan(plan, callbacks, confirmed);
+  return executeValidatedPlan(plan, callbacks, confirmed, signal);
 }
 
-export async function runAssistantTurn(
+async function runDeterministicToolCall(
+  call: AssistantToolCall,
+  callbacks: AssistantTurnCallbacks,
+  originalText = '',
+  signal?: AbortSignal
+): Promise<AssistantTurnResult> {
+  return runPlannedToolCalls([call], 'deterministic', originalText, callbacks, false, signal);
+}
+
+function stableValue(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(stableValue);
+  if (!value || typeof value !== 'object') return value;
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([key, entry]) => [key, stableValue(entry)])
+  );
+}
+
+function toolCallKey(call: AssistantToolCall): string {
+  return `${getAssistantToolCallName(call)}:${JSON.stringify(stableValue(getAssistantToolCallArguments(call)))}`;
+}
+
+function toolResultMessage(toolResult: AssistantToolResult): OllamaChatMessage {
+  return {
+    role: 'tool',
+    tool_name: toolResult.tool,
+    content: JSON.stringify(toolResult)
+  };
+}
+
+async function runAssistantTurnInternal(
   sessionMessages: AssistantMessage[],
   callbacks: AssistantTurnCallbacks = {},
   signal?: AbortSignal,
   model = CONFIG.ASSISTANT.model
 ): Promise<AssistantTurnResult> {
+  throwIfAborted(signal);
   const latestText = latestUserText(sessionMessages);
+  const pendingPlan = getPreviousAssistantPendingPlan(sessionMessages);
   const pendingToolCall = getPreviousAssistantPendingToolCall(sessionMessages);
-  if (pendingToolCall && isConfirmationText(latestText)) {
-    return runPlannedToolCalls([pendingToolCall], 'confirmation', latestText, callbacks, true);
+  if ((pendingPlan || pendingToolCall) && isConfirmationText(latestText)) {
+    if (pendingPlan) return executeValidatedPlan({ ...pendingPlan, source: 'confirmation' }, callbacks, true, signal);
+    return runPlannedToolCalls([pendingToolCall!], 'confirmation', latestText, callbacks, true, signal);
   }
-  if (pendingToolCall && isCancellationText(latestText)) {
+  if ((pendingPlan || pendingToolCall) && isCancellationText(latestText)) {
     const content = 'Cancelado. Nenhuma alteração foi feita.';
     callbacks.onToken?.(content);
     return { content, actions: [] };
@@ -465,7 +510,7 @@ export async function runAssistantTurn(
     }
     const selected = resolveChoiceSelection(pendingChoices, latestText);
     if (selected) {
-      return runPlannedToolCalls([selected], 'confirmation', latestText, callbacks, true);
+      return runPlannedToolCalls([selected], 'confirmation', latestText, callbacks, true, signal);
     }
     if (isConfirmationText(latestText)) {
       const content = `Preciso que você escolha uma das opções:\n${pendingChoices
@@ -484,7 +529,7 @@ export async function runAssistantTurn(
 
   const reliableBirthdayCall = parseReliableBirthdayToolCall(latestText);
   if (reliableBirthdayCall) {
-    return runDeterministicToolCall(reliableBirthdayCall, callbacks, latestText);
+    return runDeterministicToolCall(reliableBirthdayCall, callbacks, latestText, signal);
   }
 
   const deterministicIntent = resolveDeterministicAssistantIntent(sessionMessages, buildAssistantContextSnapshot(), {
@@ -500,13 +545,16 @@ export async function runAssistantTurn(
     return { content: deterministicIntent.content, actions: [], pendingChoices: deterministicIntent.choices };
   }
   if (deterministicIntent?.kind === 'tool_call') {
-    return runDeterministicToolCall(deterministicIntent.call, callbacks, latestText);
+    return runDeterministicToolCall(deterministicIntent.call, callbacks, latestText, signal);
   }
 
   const messages = buildAssistantChatMessages(sessionMessages);
   const actions: AssistantActionLog[] = [];
+  const executedMutations = new Set<string>();
+  let totalToolCalls = 0;
 
   for (let round = 0; round < CONFIG.ASSISTANT.maxToolRounds; round += 1) {
+    throwIfAborted(signal);
     callbacks.onStatus?.(round === 0 ? 'thinking' : 'executing');
     let streamedContent = '';
     const response = await streamOllamaChat({
@@ -525,20 +573,32 @@ export async function runAssistantTurn(
     const toolCalls = nativeCalls.length ? nativeCalls : fallbackCalls;
 
     if (!toolCalls.length) {
-      // A false "done" claim is blocked only when no real tool ran in this turn;
-      // after real actions, a final natural-language response is legitimate.
-      if (!actions.length && looksLikeUnsupportedActionClaim(response.content)) {
+      const finalContent = response.content.trim();
+      if (!actions.length && looksLikeUnsupportedActionClaim(finalContent)) {
         const content = 'Não executei nenhuma ação: o modelo afirmou ter feito algo sem chamar uma ferramenta real. Nada foi alterado. Envie o pedido novamente que eu executo pela ferramenta correta.';
         callbacks.onContentReset?.();
         callbacks.onToken?.(content);
         return { content, actions };
       }
-      return { content: response.content, actions };
+      if (!finalContent) {
+        const content = actions.length
+          ? `Pronto. ${actions.map((action) => action.label).join(' ')}`
+          : 'O Ollama encerrou a resposta sem conteúdo ou chamada de ferramenta. Tente novamente ou selecione outro modelo.';
+        callbacks.onContentReset?.();
+        callbacks.onToken?.(content);
+        return { content, actions };
+      }
+      return { content: finalContent, actions };
     }
 
-    if (streamedContent.trim()) {
+    if (streamedContent.trim()) callbacks.onContentReset?.();
+    if (toolCalls.length > CONFIG.ASSISTANT.maxToolCallsPerRound || totalToolCalls + toolCalls.length > CONFIG.ASSISTANT.maxToolCallsPerTurn) {
+      const content = 'Parei porque o modelo solicitou ações demais em uma única resposta. Divida o pedido em etapas menores.';
       callbacks.onContentReset?.();
+      callbacks.onToken?.(content);
+      return { content, actions, stoppedByLimit: true };
     }
+    totalToolCalls += toolCalls.length;
 
     messages.push({
       role: 'assistant',
@@ -547,9 +607,31 @@ export async function runAssistantTurn(
       tool_calls: toolCalls
     });
 
-    callbacks.onStatus?.('executing');
+    const uniqueCalls: AssistantToolCall[] = [];
+    const scheduledMutationKeys = new Set(executedMutations);
+    for (const call of toolCalls) {
+      const name = getAssistantToolCallName(call);
+      const key = toolCallKey(call);
+      if (isMutatingTool(name) && scheduledMutationKeys.has(key)) {
+        messages.push(toolResultMessage({
+          ok: true,
+          tool: name,
+          message: 'Chamada mutável idêntica ignorada porque já foi executada nesta interação.',
+          changed: false,
+          matchedCount: 0,
+          changedCount: 0,
+          reason: 'duplicate_call',
+          affectedItems: []
+        }));
+        continue;
+      }
+      uniqueCalls.push(call);
+      if (isMutatingTool(name)) scheduledMutationKeys.add(key);
+    }
+
+    if (!uniqueCalls.length) continue;
     const plan = createAssistantPlanFromToolCalls(
-      toolCalls,
+      uniqueCalls,
       nativeCalls.length ? 'model_tool' : 'model_json',
       latestText
     );
@@ -568,36 +650,27 @@ export async function runAssistantTurn(
       return { content, actions };
     }
 
-    for (const step of validatedPlan.steps) {
-      const call = planStepToToolCall(step);
-      const confirmation = buildConfirmationRequest(call);
-      if (confirmation) {
-        if (confirmation.pendingToolCall) callbacks.onStatus?.('awaiting_confirmation');
-        callbacks.onContentReset?.();
-        callbacks.onToken?.(confirmation.content);
-        return { ...confirmation, actions };
-      }
-    }
-
-    if (validation.needsConfirmation) {
-      const pendingToolCall = planStepToToolCall(validatedPlan.steps[0]);
-      const content = `${validation.question || 'Quer que eu execute essa ação?'}\nResponda "sim" para executar ou "não" para cancelar.`;
-      callbacks.onStatus?.('awaiting_confirmation');
+    if (validatedPlan.steps.some((step) => isProtectedTool(step.tool)) || validation.needsConfirmation) {
       callbacks.onContentReset?.();
-      callbacks.onToken?.(content);
-      return { content, actions, pendingToolCall };
+      const pending = buildPlanConfirmationRequest(validatedPlan, validation.question, callbacks);
+      return { ...pending, actions };
     }
 
+    callbacks.onStatus?.('executing');
     for (const step of validatedPlan.steps) {
+      throwIfAborted(signal);
+      const key = `${step.tool}:${JSON.stringify(stableValue(step.args))}`;
       const toolResult = await executeAssistantTool(step.tool, step.args);
       const action = createActionLog(toolResult);
       actions.push(action);
       callbacks.onToolResult?.(action, toolResult);
-      messages.push({
-        role: 'tool',
-        tool_name: step.tool,
-        content: JSON.stringify(toolResult)
-      });
+      messages.push(toolResultMessage(toolResult));
+      if (isMutatingTool(step.tool) && toolResult.ok) executedMutations.add(key);
+      if (!toolResult.ok) {
+        callbacks.onContentReset?.();
+        callbacks.onToken?.(toolResult.message);
+        return { content: toolResult.message, actions };
+      }
     }
   }
 
@@ -605,4 +678,28 @@ export async function runAssistantTurn(
   callbacks.onContentReset?.();
   callbacks.onToken?.(limitMessage);
   return { content: limitMessage, actions, stoppedByLimit: true };
+}
+
+let assistantTurnQueue: Promise<void> = Promise.resolve();
+const inFlightTurns = new Map<string, Promise<AssistantTurnResult>>();
+
+export function runAssistantTurn(
+  sessionMessages: AssistantMessage[],
+  callbacks: AssistantTurnCallbacks = {},
+  signal?: AbortSignal,
+  model = CONFIG.ASSISTANT.model
+): Promise<AssistantTurnResult> {
+  const latestUser = [...sessionMessages].reverse().find((message) => message.role === 'user');
+  const key = latestUser ? `${latestUser.id}:${latestUser.content}` : `anonymous:${sessionMessages.length}`;
+  const existing = inFlightTurns.get(key);
+  if (existing) return existing;
+
+  const operation = async () => runAssistantTurnInternal(sessionMessages, callbacks, signal, model);
+  const promise = assistantTurnQueue.then(operation, operation);
+  assistantTurnQueue = promise.then(() => undefined, () => undefined);
+  inFlightTurns.set(key, promise);
+  promise.finally(() => {
+    if (inFlightTurns.get(key) === promise) inFlightTurns.delete(key);
+  }).catch(() => undefined);
+  return promise;
 }

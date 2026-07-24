@@ -5,9 +5,11 @@
     status = 'checking',
     online = false,
     model = '',
+    models = [],
     modelAvailable = false,
     messageCount = 0,
     disabled = false,
+    onModelChange = () => {},
     onRefresh = () => {},
     onClear = () => {}
   } = $props();
@@ -34,7 +36,23 @@
     ></span>
     <div>
       <strong>{$t(statusKey(status))}</strong>
-      <span class:model-missing={online && !modelAvailable}>{$t('assistant.model')}: {model}</span>
+      {#if online && models.length}
+        <label class="assistant-model-picker">
+          <span class="sr-only">{$t('assistant.model')}</span>
+          <select
+            aria-label={$t('assistant.model')}
+            value={model}
+            disabled={disabled}
+            onchange={(event) => onModelChange(event.currentTarget.value)}
+          >
+            {#each models as entry (entry.name)}
+              <option value={entry.name}>{entry.name}</option>
+            {/each}
+          </select>
+        </label>
+      {:else}
+        <span class:model-missing={online && !modelAvailable}>{$t('assistant.model')}: {model}</span>
+      {/if}
     </div>
   </div>
 

@@ -487,3 +487,17 @@
     transform: translateY(-0.18rem);
   }
 }
+
+.assistant-model-picker select {
+  max-width: 220px;
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.14));
+  border-radius: 8px;
+  background: var(--surface-raised, rgba(255, 255, 255, 0.06));
+  color: inherit;
+  padding: 4px 28px 4px 8px;
+  font: inherit;
+}
+
+.assistant-model-picker select:disabled {
+  opacity: 0.65;
+}

@@ -159,8 +159,16 @@ let ratesInFlight = false;
 let ratesAbortController: AbortController | null = null;
 let saveDebounceId: ReturnType<typeof setTimeout> | null = null;
 let saveGeneration = 0;
+let taskMutationQueue: Promise<void> = Promise.resolve();
 let bootstrapPromise: Promise<void> | null = null;
 let ratesTickCount = 0;
+
+
+function enqueueTaskMutation<T>(operation: () => Promise<T>): Promise<T> {
+  const run = taskMutationQueue.then(operation, operation);
+  taskMutationQueue = run.then(() => undefined, () => undefined);
+  return run;
+}
 
 function buildRateMeta(iso, prefix) {
   const d = new Date(iso);
@@ -471,109 +479,117 @@ export function onFullscreenPause(shouldPause) {
   }
 }
 
-export async function addTask(text, priority) {
-  const t = normalizeTaskText(text);
-  if (!t) return null;
+export function addTask(text, priority): Promise<string | null> {
+  return enqueueTaskMutation(async () => {
+    const t = normalizeTaskText(text);
+    if (!t) return null;
 
-  const $data = get(data);
-  const $current = get(currentDateKey);
-  const $viewOffset = get(viewOffsetDays);
-  const dk = getVisibleDateKey($current, $viewOffset);
-  const tasks = getTasksByDate($data, dk).map(cloneTask);
-  const now = new Date().toISOString();
-  const newTask = {
-    id: createId(),
-    text: t,
-    completed: false,
-    pinned: false,
-    priority: normalizePriority(priority),
-    createdAt: now,
-    updatedAt: now
-  };
+    const $data = get(data);
+    const $current = get(currentDateKey);
+    const $viewOffset = get(viewOffsetDays);
+    const dk = getVisibleDateKey($current, $viewOffset);
+    const tasks = getTasksByDate($data, dk).map(cloneTask);
+    const now = new Date().toISOString();
+    const newTask = {
+      id: createId(),
+      text: t,
+      completed: false,
+      pinned: false,
+      priority: normalizePriority(priority),
+      createdAt: now,
+      updatedAt: now
+    };
 
-  tasks.splice(getPinnedCount(tasks), 0, newTask);
-  const tbd = { ...$data.tasksByDate, [dk]: tasks };
-  const nextData = mergePersistedState({
-    ...$data,
-    tasksByDate: tbd
+    tasks.splice(getPinnedCount(tasks), 0, newTask);
+    const tbd = { ...$data.tasksByDate, [dk]: tasks };
+    const nextData = mergePersistedState({
+      ...$data,
+      tasksByDate: tbd
+    });
+
+    try {
+      await storage.saveState(nextData);
+      data.set(nextData);
+      setAppStatus('Tarefa salva localmente.', 'live', get(appDataPath));
+      lastAddedTaskId.set(newTask.id);
+      setTimeout(() => lastAddedTaskId.update((id) => (id === newTask.id ? null : id)), CONFIG.TASK_HIGHLIGHT_MS);
+      return newTask.id;
+    } catch {
+      setAppStatus('Não foi possível salvar a tarefa.', 'error', get(appDataPath));
+      return null;
+    }
   });
-
-  try {
-    await storage.saveState(nextData);
-    data.set(nextData);
-    setAppStatus('Tarefa salva localmente.', 'live', get(appDataPath));
-    lastAddedTaskId.set(newTask.id);
-    setTimeout(() => lastAddedTaskId.update((id) => (id === newTask.id ? null : id)), CONFIG.TASK_HIGHLIGHT_MS);
-    return newTask.id;
-  } catch {
-    setAppStatus('Não foi possível salvar a tarefa.', 'error', get(appDataPath));
-    return null;
-  }
 }
 
-export async function updateTask(taskId, updater) {
-  const $data = get(data);
-  const $current = get(currentDateKey);
-  const $viewOffset = get(viewOffsetDays);
-  const dk = getVisibleDateKey($current, $viewOffset);
-  const tasks = getTasksByDate($data, dk).map(cloneTask);
-  const prev = [...tasks];
+export function updateTask(taskId, updater): Promise<boolean> {
+  return enqueueTaskMutation(async () => {
+    const $data = get(data);
+    const $current = get(currentDateKey);
+    const $viewOffset = get(viewOffsetDays);
+    const dk = getVisibleDateKey($current, $viewOffset);
+    const tasks = getTasksByDate($data, dk).map(cloneTask);
 
-  let changed = false;
-  const next = tasks.map((t) => {
-    if (t.id !== taskId) return t;
-    const c = cloneTask(t);
-    updater(c);
-    changed = true;
-    return c;
+    let changed = false;
+    const next = tasks.map((t) => {
+      if (t.id !== taskId) return t;
+      const c = cloneTask(t);
+      updater(c);
+      changed = true;
+      return c;
+    });
+
+    if (!changed) return false;
+    const nextData = mergePersistedState({ ...$data, tasksByDate: { ...$data.tasksByDate, [dk]: next } });
+    try {
+      await storage.saveState(nextData);
+      data.set(nextData);
+      return true;
+    } catch {
+      setAppStatus('Não foi possível atualizar a tarefa.', 'error', get(appDataPath));
+      return false;
+    }
   });
-
-  if (!changed) return;
-  const nextData = mergePersistedState({ ...$data, tasksByDate: { ...$data.tasksByDate, [dk]: next } });
-  try {
-    await storage.saveState(nextData);
-    data.set(nextData);
-  } catch {
-    data.set({ ...$data, tasksByDate: { ...$data.tasksByDate, [dk]: prev } });
-  }
 }
 
-export async function updateVisibleTaskList(mutator) {
-  const $data = get(data);
-  const $current = get(currentDateKey);
-  const $viewOffset = get(viewOffsetDays);
-  const dk = getVisibleDateKey($current, $viewOffset);
-  const tasks = getTasksByDate($data, dk).map(cloneTask);
-  const next = tasks.map(cloneTask);
-  if (!mutator(next)) return;
+export function updateVisibleTaskList(mutator): Promise<boolean> {
+  return enqueueTaskMutation(async () => {
+    const $data = get(data);
+    const $current = get(currentDateKey);
+    const $viewOffset = get(viewOffsetDays);
+    const dk = getVisibleDateKey($current, $viewOffset);
+    const tasks = getTasksByDate($data, dk).map(cloneTask);
+    const next = tasks.map(cloneTask);
+    if (!mutator(next)) return false;
 
-  const prev = [...tasks];
-  const nextData = mergePersistedState({ ...$data, tasksByDate: { ...$data.tasksByDate, [dk]: next } });
-  try {
-    await storage.saveState(nextData);
-    data.set(nextData);
-  } catch {
-    data.set({ ...$data, tasksByDate: { ...$data.tasksByDate, [dk]: prev } });
-  }
+    const nextData = mergePersistedState({ ...$data, tasksByDate: { ...$data.tasksByDate, [dk]: next } });
+    try {
+      await storage.saveState(nextData);
+      data.set(nextData);
+      return true;
+    } catch {
+      setAppStatus('Não foi possível atualizar as tarefas.', 'error', get(appDataPath));
+      return false;
+    }
+  });
 }
 
-export async function toggleTask(id) {
-  await updateTask(id, (t) => {
+export function toggleTask(id): Promise<boolean> {
+  return updateTask(id, (t) => {
     t.completed = !t.completed;
     t.updatedAt = new Date().toISOString();
   });
 }
 
-export async function cycleTaskPriority(id) {
-  await updateTask(id, (t) => {
+export function cycleTaskPriority(id): Promise<boolean> {
+  return updateTask(id, (t) => {
     const i = PRIORITY_ORDER.indexOf(t.priority);
     t.priority = PRIORITY_ORDER[(i + 1) % PRIORITY_ORDER.length];
     t.updatedAt = new Date().toISOString();
   });
 }
 
-export async function toggleTaskPin(id) {
-  await updateVisibleTaskList((tasks) => {
+export function toggleTaskPin(id): Promise<boolean> {
+  return updateVisibleTaskList((tasks) => {
     const i = findTaskIndex(tasks, id);
     if (i === -1) return false;
     const t = tasks[i];
@@ -585,8 +601,8 @@ export async function toggleTaskPin(id) {
   });
 }
 
-export async function moveTask(id, dir) {
-  await updateVisibleTaskList((tasks) => {
+export function moveTask(id, dir): Promise<boolean> {
+  return updateVisibleTaskList((tasks) => {
     const i = findTaskIndex(tasks, id);
     const t = i + dir;
     if (i === -1 || t < 0 || t >= tasks.length || tasks[i].pinned !== tasks[t].pinned) return false;
@@ -598,56 +614,66 @@ export async function moveTask(id, dir) {
   });
 }
 
-export async function commitTaskEdit(id, nextText) {
+export async function commitTaskEdit(id, nextText): Promise<boolean> {
   const t = normalizeTaskText(nextText);
   editingTaskId.set(null);
-  if (!t) return;
-  await updateTask(id, (task) => {
+  if (!t) return false;
+  return updateTask(id, (task) => {
     task.text = t;
     task.updatedAt = new Date().toISOString();
   });
 }
 
-export async function deleteTask(id, onUndo) {
-  const $data = get(data);
-  const $current = get(currentDateKey);
-  const $viewOffset = get(viewOffsetDays);
-  const dk = getVisibleDateKey($current, $viewOffset);
-  const tasks = getTasksByDate($data, dk);
-  const i = findTaskIndex(tasks, id);
-  if (i === -1) return;
+export function deleteTask(id, onUndo): Promise<boolean> {
+  return enqueueTaskMutation(async () => {
+    const $data = get(data);
+    const $current = get(currentDateKey);
+    const $viewOffset = get(viewOffsetDays);
+    const dk = getVisibleDateKey($current, $viewOffset);
+    const tasks = getTasksByDate($data, dk);
+    const i = findTaskIndex(tasks, id);
+    if (i === -1) return false;
 
-  const deletedTask = cloneTask(tasks[i]);
-  const deletedIndex = i;
-  const pinnedCountBefore = getPinnedCount(tasks);
-  const prev = tasks.map(cloneTask);
-  const next = prev.slice();
-  next.splice(i, 1);
+    const deletedTask = cloneTask(tasks[i]);
+    const deletedIndex = i;
+    const pinnedCountBefore = getPinnedCount(tasks);
+    const next = tasks.map(cloneTask);
+    next.splice(i, 1);
 
-  editingTaskId.update((ed) => (ed === id ? null : ed));
-  const nextData = mergePersistedState({ ...$data, tasksByDate: { ...$data.tasksByDate, [dk]: next } });
+    editingTaskId.update((ed) => (ed === id ? null : ed));
+    const nextData = mergePersistedState({ ...$data, tasksByDate: { ...$data.tasksByDate, [dk]: next } });
 
-  try {
-    await storage.saveState(nextData);
-    data.set(nextData);
-    if (onUndo) {
-      onUndo(() => {
-        const $d = get(data);
-        const current = getTasksByDate($d, dk).map(cloneTask);
-        const pc = getPinnedCount(current);
-        const insertAt = deletedTask.pinned
-          ? Math.min(deletedIndex, pc)
-          : pc + Math.min(Math.max(0, deletedIndex - pinnedCountBefore), current.length - pc);
-        current.splice(insertAt, 0, deletedTask);
-        const restored = mergePersistedState({ ...$d, tasksByDate: { ...$d.tasksByDate, [dk]: current } });
-        storage.saveState(restored).then(() => data.set(restored)).catch(() => {
-          setAppStatus('Não foi possível restaurar a tarefa.', 'error', get(appDataPath));
+    try {
+      await storage.saveState(nextData);
+      data.set(nextData);
+      if (onUndo) {
+        onUndo(() => {
+          enqueueTaskMutation(async () => {
+            const $d = get(data);
+            const current = getTasksByDate($d, dk).map(cloneTask);
+            const pc = getPinnedCount(current);
+            const insertAt = deletedTask.pinned
+              ? Math.min(deletedIndex, pc)
+              : pc + Math.min(Math.max(0, deletedIndex - pinnedCountBefore), current.length - pc);
+            current.splice(insertAt, 0, deletedTask);
+            const restored = mergePersistedState({ ...$d, tasksByDate: { ...$d.tasksByDate, [dk]: current } });
+            try {
+              await storage.saveState(restored);
+              data.set(restored);
+              return true;
+            } catch {
+              setAppStatus('Não foi possível restaurar a tarefa.', 'error', get(appDataPath));
+              return false;
+            }
+          });
         });
-      });
+      }
+      return true;
+    } catch {
+      setAppStatus('Não foi possível excluir a tarefa.', 'error', get(appDataPath));
+      return false;
     }
-  } catch {
-    data.set($data);
-  }
+  });
 }
 
 export async function clearTodayTasks(onConfirm) {

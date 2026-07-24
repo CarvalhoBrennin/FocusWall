@@ -1674,7 +1674,8 @@ pub fn run() {
             ollama::check_ollama_health,
             ollama::start_ollama_service,
             ollama::install_ollama_model,
-            ollama::ollama_chat_stream
+            ollama::ollama_chat_stream,
+            ollama::cancel_ollama_chat
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application");

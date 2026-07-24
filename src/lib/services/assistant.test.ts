@@ -154,6 +154,10 @@ describe('parseFallbackToolCalls', () => {
     expect(parseFallbackToolCalls('Sem ação.')).toEqual([]);
     expect(parseFallbackToolCalls('{"action":"shell","args":{}}')).toEqual([]);
   });
+
+  it('rejects fallback JSON embedded in prose', () => {
+    expect(parseFallbackToolCalls('Vou executar: {"action":"add_task","args":{"text":"Oculta"}} agora.')).toEqual([]);
+  });
   it('adds compact context for older conversation turns', () => {
     const messages: AssistantMessage[] = Array.from({ length: 22 }, (_, index) => ({
       id: `user-${index}`,
@@ -339,6 +343,78 @@ describe('resolveChoiceSelection', () => {
   });
 });
 
+describe('model tool execution safeguards', () => {
+  it('executes an identical mutable tool call only once per turn', async () => {
+    const duplicateCall = { function: { name: 'add_task', arguments: { text: 'Revisar contrato', priority: 'high' } } };
+    streamOllamaChatMock
+      .mockResolvedValueOnce({ content: '', thinking: '', toolCalls: [duplicateCall, duplicateCall] })
+      .mockResolvedValueOnce({ content: 'Concluído.', thinking: '', toolCalls: [] });
+
+    const result = await runAssistantTurn([{
+      id: 'user-duplicate-call',
+      role: 'user',
+      content: 'adicione a tarefa solicitada',
+      createdAt: '2026-07-03T00:00:00.000Z'
+    }]);
+
+    expect(result.actions).toHaveLength(1);
+    expect(result.actions[0]?.tool).toBe('add_task');
+  });
+
+  it('returns a useful error when the model ends without content or tools', async () => {
+    streamOllamaChatMock.mockResolvedValueOnce({ content: '', thinking: '', toolCalls: [] });
+
+    const result = await runAssistantTurn([{
+      id: 'user-empty-model',
+      role: 'user',
+      content: 'me ajude com isso',
+      createdAt: '2026-07-03T00:00:00.000Z'
+    }]);
+
+    expect(result.actions).toEqual([]);
+    expect(result.content).toContain('encerrou a resposta sem conteúdo');
+  });
+
+  it('preserves every step of a fallback plan through confirmation', async () => {
+    streamOllamaChatMock.mockResolvedValueOnce({
+      content: '{"actions":[{"action":"add_task","args":{"text":"Tarefa A"}},{"action":"add_task","args":{"text":"Tarefa B"}}]}',
+      thinking: '',
+      toolCalls: []
+    });
+    const request: AssistantMessage = {
+      id: 'user-plan',
+      role: 'user',
+      content: 'execute este plano',
+      createdAt: '2026-07-03T00:00:00.000Z'
+    };
+
+    const preview = await runAssistantTurn([request]);
+    expect(preview.pendingPlan?.steps).toHaveLength(2);
+    expect(preview.actions).toEqual([]);
+
+    const confirmed = await runAssistantTurn([
+      request,
+      {
+        id: 'assistant-plan',
+        role: 'assistant',
+        content: preview.content,
+        createdAt: '2026-07-03T00:00:01.000Z',
+        pendingPlan: preview.pendingPlan
+      },
+      {
+        id: 'user-confirm-plan',
+        role: 'user',
+        content: 'sim',
+        createdAt: '2026-07-03T00:00:02.000Z'
+      }
+    ]);
+
+    expect(confirmed.actions).toHaveLength(2);
+    expect(confirmed.actions.every((action) => action.ok)).toBe(true);
+    expect(streamOllamaChatMock).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe('pending confirmation flow', () => {
   const pendingDeleteMessage: AssistantMessage = {
     id: 'assistant-1',
@@ -431,6 +507,54 @@ describe('pending confirmation flow', () => {
     expect(confirmTurn.actions[0]?.changed).toBe(true);
     expect(confirmTurn.content).toContain('Confirmado.');
     expect(confirmTurn.content).toContain('Aniversário da minha mãe');
+  });
+
+  it('deletes only the event IDs frozen during confirmation preview', async () => {
+    const year = new Date().getFullYear();
+    const first = await executeAssistantTool('add_calendar_event', {
+      title: 'Evento recorrente original',
+      dateKey: `${year}-07-11`,
+      recurrence: 'yearly'
+    });
+    expect(first.ok).toBe(true);
+
+    const request: AssistantMessage = {
+      id: 'user-frozen-delete',
+      role: 'user',
+      content: 'remove todos os eventos recorrentes de julho dia 11',
+      createdAt: '2026-07-03T00:00:00.000Z'
+    };
+    const preview = await runAssistantTurn([request]);
+    expect(preview.pendingPlan?.steps[0]?.args.expectedIds).toEqual([first.affectedItems[0]?.id]);
+
+    const later = await executeAssistantTool('add_calendar_event', {
+      title: 'Evento criado depois da confirmação',
+      dateKey: `${year}-07-11`,
+      recurrence: 'yearly'
+    });
+    expect(later.ok).toBe(true);
+
+    const confirmed = await runAssistantTurn([
+      request,
+      {
+        id: 'assistant-frozen-delete',
+        role: 'assistant',
+        content: preview.content,
+        createdAt: '2026-07-03T00:00:01.000Z',
+        pendingPlan: preview.pendingPlan
+      },
+      {
+        id: 'user-confirm-frozen-delete',
+        role: 'user',
+        content: 'sim',
+        createdAt: '2026-07-03T00:00:02.000Z'
+      }
+    ]);
+
+    expect(confirmed.actions).toHaveLength(1);
+    const remaining = await executeAssistantTool('list_calendar_events', { dateKey: `${year}-07-11` });
+    expect(remaining.affectedItems.map((item) => item.id)).toContain(later.affectedItems[0]?.id);
+    expect(remaining.affectedItems.map((item) => item.id)).not.toContain(first.affectedItems[0]?.id);
   });
 
   it('executes the selected pending choice by number without calling the model', async () => {

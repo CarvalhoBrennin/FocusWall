@@ -143,6 +143,7 @@ export type MessageKey =
   | 'assistant.send'
   | 'assistant.sending'
   | 'assistant.cancel'
+  | 'assistant.cancelled'
   | 'assistant.offline'
   | 'assistant.startEyebrow'
   | 'assistant.startTitle'
@@ -382,6 +383,7 @@ const messages: Record<LocaleId, Record<MessageKey, string>> = {
     'assistant.send': 'Enviar',
     'assistant.sending': 'Enviando...',
     'assistant.cancel': 'Cancelar',
+    'assistant.cancelled': 'Resposta cancelada.',
     'assistant.offline': 'Ollama offline. Abra o app Ollama ou execute "ollama serve" e clique em Atualizar.',
     'assistant.startEyebrow': 'Serviço local',
     'assistant.startTitle': 'O assistente precisa ser iniciado',
@@ -623,6 +625,7 @@ const messages: Record<LocaleId, Record<MessageKey, string>> = {
     'assistant.send': 'Send',
     'assistant.sending': 'Sending...',
     'assistant.cancel': 'Cancel',
+    'assistant.cancelled': 'Response cancelled.',
     'assistant.offline': 'Ollama offline. Open the Ollama app or run "ollama serve", then click Refresh.',
     'assistant.startEyebrow': 'Local service',
     'assistant.startTitle': 'The assistant needs to be started',

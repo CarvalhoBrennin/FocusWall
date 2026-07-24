@@ -40,4 +40,5 @@ commands.allow = [
   "start_ollama_service",
   "install_ollama_model",
   "ollama_chat_stream",
+  "cancel_ollama_chat",
 ]

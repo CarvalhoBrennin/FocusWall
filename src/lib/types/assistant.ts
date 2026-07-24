@@ -109,6 +109,8 @@ export interface AssistantMessage {
   createdAt: string;
   actions?: AssistantActionLog[];
   pendingToolCall?: AssistantToolCall;
+  /** Full validated plan awaiting one explicit confirmation. */
+  pendingPlan?: AssistantPlan;
   pendingChoices?: AssistantPendingChoice[];
   error?: boolean;
   pending?: boolean;
@@ -155,6 +157,8 @@ export interface AssistantTurnResult {
   content: string;
   actions: AssistantActionLog[];
   pendingToolCall?: AssistantToolCall;
+  /** Full validated plan awaiting one explicit confirmation. */
+  pendingPlan?: AssistantPlan;
   pendingChoices?: AssistantPendingChoice[];
   stoppedByLimit?: boolean;
 }

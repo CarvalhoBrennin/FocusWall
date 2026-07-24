@@ -19,12 +19,14 @@ import {
   toggleTaskPin,
   updateTask,
   visibleTasks,
+  visibleDateKey,
   data
 } from '../stores/app-store.js';
 import {
   addCalendarEvent,
   calendarEventOccursOnDate,
   deleteCalendarEvent,
+  deleteCalendarEvents,
   getCalendarEvents,
   getEventsForDateKey,
   updateCalendarEvent
@@ -48,15 +50,16 @@ export interface AssistantToolRuntime {
   getCalendarEvents: () => CalendarEvent[];
   getEventsForDate: (dateKey: string) => CalendarEvent[];
   addTask: (text: string, priority: Priority) => Promise<string | null>;
-  toggleTask: (id: string) => Promise<void>;
-  deleteTask: (id: string) => Promise<void>;
-  updateTask: (id: string, updater: (task: Task) => void) => Promise<void>;
-  toggleTaskPin: (id: string) => Promise<void>;
+  toggleTask: (id: string) => Promise<boolean | void>;
+  deleteTask: (id: string) => Promise<boolean | void>;
+  updateTask: (id: string, updater: (task: Task) => void) => Promise<boolean | void>;
+  toggleTaskPin: (id: string) => Promise<boolean | void>;
   addCalendarEvent: (payload: Partial<CalendarEvent>) => Promise<string | null>;
   updateCalendarEvent: (id: string, patch: Partial<CalendarEvent>) => Promise<boolean>;
   deleteCalendarEvent: (id: string) => Promise<boolean>;
-  goToDate: (dateKey: string) => void;
-  goToToday: () => void;
+  deleteCalendarEvents?: (ids: string[]) => Promise<string[]>;
+  goToDate: (dateKey: string) => string | void;
+  goToToday: () => string | void;
 }
 
 const priorityProperty = {
@@ -307,8 +310,15 @@ export const focusWallAssistantRuntime: AssistantToolRuntime = {
   addCalendarEvent: (payload) => addCalendarEvent(payload),
   updateCalendarEvent: (id, patch) => updateCalendarEvent(id, patch),
   deleteCalendarEvent: (id) => deleteCalendarEvent(id),
-  goToDate: (dateKey) => setExecutionDateForDateKey(dateKey),
-  goToToday: () => setViewOffset(VIEW.TODAY)
+  deleteCalendarEvents: (ids) => deleteCalendarEvents(ids),
+  goToDate: (dateKey) => {
+    setExecutionDateForDateKey(dateKey);
+    return get(visibleDateKey);
+  },
+  goToToday: () => {
+    setViewOffset(VIEW.TODAY);
+    return get(visibleDateKey);
+  }
 };
 
 export function getAssistantToolDefinitions(): OllamaToolDefinition[] {
@@ -319,16 +329,28 @@ export function isAssistantToolName(name: string): name is AssistantToolName {
   return assistantToolDefinitions.some((tool) => tool.function.name === name);
 }
 
+export const INVALID_TOOL_ARGUMENTS_KEY = '__focusWallInvalidToolArguments';
+
 export function normalizeToolArguments(args: unknown): AssistantToolArguments {
   if (typeof args === 'string') {
     try {
       const parsed = JSON.parse(args);
-      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+        ? parsed as AssistantToolArguments
+        : { [INVALID_TOOL_ARGUMENTS_KEY]: true };
     } catch {
-      return {};
+      return { [INVALID_TOOL_ARGUMENTS_KEY]: true };
     }
   }
-  return args && typeof args === 'object' && !Array.isArray(args) ? args as AssistantToolArguments : {};
+  return args && typeof args === 'object' && !Array.isArray(args)
+    ? args as AssistantToolArguments
+    : args == null
+      ? {}
+      : { [INVALID_TOOL_ARGUMENTS_KEY]: true };
+}
+
+export function hasInvalidToolArguments(args: AssistantToolArguments): boolean {
+  return args[INVALID_TOOL_ARGUMENTS_KEY] === true;
 }
 
 export function getAssistantToolCallName(call: AssistantToolCall): string {
@@ -463,14 +485,18 @@ function findCalendarEventsForDeletion(args: AssistantToolArguments, runtime: As
     return {
       dateKey,
       matches: [],
-      error: result('delete_calendar_events', false, 'Recorrência inválida. Use none, monthly ou yearly.', { reason: 'invalid_recurrence' })
+      error: result('delete_calendar_events', false, 'Recorrência inválida. Use none, weekly, monthly ou yearly.', { reason: 'invalid_recurrence' })
     };
   }
 
+  const expectedIds = Array.isArray(args.expectedIds)
+    ? new Set(args.expectedIds.filter((id): id is string => typeof id === 'string' && Boolean(id.trim())))
+    : null;
   const titleFilter = normalizeComparableTitle(getStringArg(args, 'title'));
   const recurringOnly = getBooleanArg(args, 'recurring') === true;
   const recurrence = rawRecurrence ? normalizeCalendarRecurrence(rawRecurrence) : '';
   const matches = runtime.getCalendarEvents().filter((event) => {
+    if (expectedIds && !expectedIds.has(event.id)) return false;
     if (!calendarEventOccursOnDate(event, dateKey)) return false;
     if (recurringOnly && (event.recurrence || 'none') === 'none') return false;
     if (recurrence && (event.recurrence || 'none') !== recurrence) return false;
@@ -498,6 +524,17 @@ async function executeAddTask(args: AssistantToolArguments, runtime: AssistantTo
   const text = normalizeTaskText(getStringArg(args, 'text'));
   if (!text) return result('add_task', false, 'Informe o texto da tarefa.', { reason: 'invalid_text' });
   const priority = normalizePriority(getStringArg(args, 'priority')) as Priority;
+  const duplicate = runtime.getTasks().find(
+    (task) => normalizeTaskText(task.text).toLocaleLowerCase() === text.toLocaleLowerCase() && task.priority === priority
+  );
+  if (duplicate) {
+    return result('add_task', true, `A tarefa já existia: ${duplicate.text}.`, {
+      data: { task: serializeTask(duplicate), duplicate: true },
+      matchedCount: 1,
+      reason: 'duplicate',
+      affectedItems: [taskItem(duplicate)]
+    });
+  }
   const id = await runtime.addTask(text, priority);
   if (!id) return result('add_task', false, 'Não foi possível criar a tarefa.', { reason: 'store_error' });
   return result('add_task', true, `Tarefa adicionada: ${text}.`, {
@@ -524,8 +561,13 @@ async function executeCompleteTask(
       { data: { task: serializeTask(task) }, matchedCount: 1, reason: 'no_change_needed', affectedItems: [taskItem(task)] }
     );
   }
-  await runtime.toggleTask(id);
+  const mutationOk = await runtime.toggleTask(id);
+  if (mutationOk === false) return result('complete_task', false, 'Não foi possível atualizar a tarefa.', { reason: 'store_error' });
   const nextCompleted = desired ?? !task.completed;
+  const persisted = findTask(runtime, id);
+  if (!persisted || persisted.completed !== nextCompleted) {
+    return result('complete_task', false, 'A tarefa não confirmou a alteração solicitada.', { reason: 'state_mismatch' });
+  }
   return result(
     'complete_task',
     true,
@@ -538,7 +580,10 @@ async function executeDeleteTask(args: AssistantToolArguments, runtime: Assistan
   const id = getStringArg(args, 'id');
   const task = findTask(runtime, id);
   if (!task) return result('delete_task', false, 'Tarefa não encontrada.', { reason: 'not_found' });
-  await runtime.deleteTask(id);
+  const mutationOk = await runtime.deleteTask(id);
+  if (mutationOk === false || findTask(runtime, id)) {
+    return result('delete_task', false, 'Não foi possível excluir a tarefa.', { reason: 'store_error' });
+  }
   return result('delete_task', true, `Tarefa excluída: ${task.text}.`, {
     data: { task: serializeTask(task) },
     changed: true,
@@ -567,10 +612,13 @@ async function executeSetTaskPriority(
       affectedItems: [taskItem(task)]
     });
   }
-  await runtime.updateTask(id, (draft) => {
+  const mutationOk = await runtime.updateTask(id, (draft) => {
     draft.priority = priority;
     draft.updatedAt = new Date().toISOString();
   });
+  if (mutationOk === false || findTask(runtime, id)?.priority !== priority) {
+    return result('set_task_priority', false, 'Não foi possível alterar a prioridade.', { reason: 'store_error' });
+  }
   return result('set_task_priority', true, `Prioridade alterada para ${priority}.`, {
     data: { id, priority },
     changed: true,
@@ -592,8 +640,12 @@ async function executePinTask(args: AssistantToolArguments, runtime: AssistantTo
       { data: { task: serializeTask(task) }, matchedCount: 1, reason: 'no_change_needed', affectedItems: [taskItem(task)] }
     );
   }
-  await runtime.toggleTaskPin(id);
+  const mutationOk = await runtime.toggleTaskPin(id);
+  if (mutationOk === false) return result('pin_task', false, 'Não foi possível alterar a fixação da tarefa.', { reason: 'store_error' });
   const nextPinned = desired ?? !task.pinned;
+  if (findTask(runtime, id)?.pinned !== nextPinned) {
+    return result('pin_task', false, 'A tarefa não confirmou a alteração solicitada.', { reason: 'state_mismatch' });
+  }
   return result(
     'pin_task',
     true,
@@ -645,7 +697,7 @@ async function executeAddCalendarEvent(
   }
   const rawRecurrence = getStringArg(args, 'recurrence');
   if (rawRecurrence && !isValidCalendarRecurrence(rawRecurrence)) {
-    return result('add_calendar_event', false, 'Recorrência inválida. Use none, monthly ou yearly.', { reason: 'invalid_recurrence' });
+    return result('add_calendar_event', false, 'Recorrência inválida. Use none, weekly, monthly ou yearly.', { reason: 'invalid_recurrence' });
   }
   const color = normalizeCalendarColor(rawColor);
   const recurrence = normalizeCalendarRecurrence(rawRecurrence);
@@ -722,7 +774,7 @@ async function executeUpdateCalendarEvent(
   if ('recurrence' in args) {
     const rawRecurrence = getStringArg(args, 'recurrence');
     if (rawRecurrence && !isValidCalendarRecurrence(rawRecurrence)) {
-      return result('update_calendar_event', false, 'Recorrência inválida. Use none, monthly ou yearly.', { reason: 'invalid_recurrence' });
+      return result('update_calendar_event', false, 'Recorrência inválida. Use none, weekly, monthly ou yearly.', { reason: 'invalid_recurrence' });
     }
     patch.recurrence = normalizeCalendarRecurrence(rawRecurrence);
   }
@@ -733,6 +785,10 @@ async function executeUpdateCalendarEvent(
 
   const ok = await runtime.updateCalendarEvent(id, patch);
   if (!ok) return result('update_calendar_event', false, 'Não foi possível atualizar o evento.', { reason: 'store_error' });
+  const persisted = findCalendarEvent(runtime, id);
+  if (!persisted || Object.entries(patch).some(([key, value]) => (persisted as unknown as Record<string, unknown>)[key] !== value)) {
+    return result('update_calendar_event', false, 'O evento não confirmou a alteração solicitada.', { reason: 'state_mismatch' });
+  }
   return result('update_calendar_event', true, `Evento atualizado: ${event.title}.`, {
     data: { id, patch },
     changed: true,
@@ -749,7 +805,7 @@ async function executeDeleteCalendarEvent(
   const event = findCalendarEvent(runtime, id);
   if (!event) return result('delete_calendar_event', false, 'Evento não encontrado.', { reason: 'not_found' });
   const ok = await runtime.deleteCalendarEvent(id);
-  if (!ok) return result('delete_calendar_event', false, 'Não foi possível excluir o evento.', { reason: 'store_error' });
+  if (!ok || findCalendarEvent(runtime, id)) return result('delete_calendar_event', false, 'Não foi possível excluir o evento.', { reason: 'store_error' });
   return result('delete_calendar_event', true, `Evento excluído: ${event.title}.`, {
     data: { event: serializeEvent(event) },
     changed: true,
@@ -772,17 +828,29 @@ async function executeDeleteCalendarEvents(
     });
   }
 
-  const deleted: CalendarEvent[] = [];
-  for (const event of matches) {
-    const ok = await runtime.deleteCalendarEvent(event.id);
-    if (ok) deleted.push(event);
+  const requestedIds = matches.map((event) => event.id);
+  let deletedIds: string[] = [];
+  if (runtime.deleteCalendarEvents) {
+    deletedIds = await runtime.deleteCalendarEvents(requestedIds);
+  } else {
+    for (const event of matches) {
+      const ok = await runtime.deleteCalendarEvent(event.id);
+      if (ok) deletedIds.push(event.id);
+    }
   }
+  const deletedIdSet = new Set(deletedIds);
+  const deleted = matches.filter((event) => deletedIdSet.has(event.id) && !findCalendarEvent(runtime, event.id));
 
-  if (!deleted.length) {
-    return result('delete_calendar_events', false, 'Não foi possível remover os eventos encontrados.', {
-      data: { dateKey },
+  if (deleted.length !== matches.length) {
+    return result('delete_calendar_events', false, deleted.length
+      ? `A remoção foi parcial: ${deleted.length} de ${matches.length} evento(s).`
+      : 'Não foi possível remover os eventos encontrados.', {
+      data: { dateKey, deleted: deleted.map(serializeEvent) },
+      changed: deleted.length > 0,
       matchedCount: matches.length,
-      reason: 'store_error'
+      changedCount: deleted.length,
+      reason: deleted.length ? 'partial_failure' : 'store_error',
+      affectedItems: deleted.map(eventItem)
     });
   }
 
@@ -804,13 +872,18 @@ async function executeDeleteCalendarEvents(
 async function executeGoToDate(args: AssistantToolArguments, runtime: AssistantToolRuntime): Promise<AssistantToolResult> {
   const dateKey = normalizeDateKey(getStringArg(args, 'dateKey'));
   if (!dateKey) return result('go_to_date', false, 'Informe uma data válida no formato YYYY-MM-DD.', { reason: 'invalid_date' });
-  runtime.goToDate(dateKey);
-  return result('go_to_date', true, `Data visível alterada para ${dateKey}.`, { data: { dateKey }, changed: true });
+  const before = runtime.getContext().visibleDate;
+  const actual = runtime.goToDate(dateKey) || runtime.getContext().visibleDate;
+  if (actual !== dateKey) {
+    return result('go_to_date', false, `A data solicitada está fora do intervalo navegável. Data mantida em ${actual}.`, { data: { requested: dateKey, actual }, reason: 'date_out_of_range' });
+  }
+  return result('go_to_date', true, `Data visível alterada para ${dateKey}.`, { data: { dateKey }, changed: before !== actual });
 }
 
 async function executeGoToToday(runtime: AssistantToolRuntime): Promise<AssistantToolResult> {
-  runtime.goToToday();
-  return result('go_to_today', true, 'Data visível alterada para hoje.', { changed: true });
+  const before = runtime.getContext().visibleDate;
+  const actual = runtime.goToToday() || runtime.getContext().visibleDate;
+  return result('go_to_today', true, before === actual ? 'A data visível já era hoje.' : 'Data visível alterada para hoje.', { data: { dateKey: actual }, changed: before !== actual, reason: before === actual ? 'no_change_needed' : '' });
 }
 
 export function previewAssistantTool(
@@ -819,6 +892,9 @@ export function previewAssistantTool(
   runtime: AssistantToolRuntime = focusWallAssistantRuntime
 ): AssistantToolResult | null {
   const args = normalizeToolArguments(rawArgs);
+  if (hasInvalidToolArguments(args)) {
+    return result(name || 'unknown_tool', false, 'Argumentos da ferramenta estão em formato inválido.', { reason: 'invalid_arguments' });
+  }
 
   if (name === 'delete_task') {
     const id = getStringArg(args, 'id');
@@ -887,6 +963,9 @@ export async function executeAssistantTool(
   runtime: AssistantToolRuntime = focusWallAssistantRuntime
 ): Promise<AssistantToolResult> {
   const args = normalizeToolArguments(rawArgs);
+  if (hasInvalidToolArguments(args)) {
+    return result(name || 'unknown_tool', false, 'Argumentos da ferramenta estão em formato inválido.', { reason: 'invalid_arguments' });
+  }
 
   switch (name) {
     case 'get_context':
