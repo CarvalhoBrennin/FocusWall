@@ -27,32 +27,36 @@ function createRuntime() {
   ];
   let navigatedDate = '';
   let wentToday = false;
+  /** Tasks stored on dates other than the visible one. */
+  const tasksByDate: Record<string, Task[]> = {};
 
   const runtime: AssistantToolRuntime = {
     getContext: () => ({
       visibleDate: navigatedDate || '2026-07-01',
       viewOffset: 0,
+      today: '2026-07-01',
+      todayWeekday: 'quarta-feira',
+      dateHints: {},
       taskCounts: { total: tasks.length, completed: tasks.filter((task) => task.completed).length, pending: 0, pinned: 0 },
       tasks,
       eventsToday: events
     }),
-    getTasks: () => tasks,
+    getTasks: (dateKey) => (dateKey ? tasksByDate[dateKey] || [] : tasks),
     getCalendarEvents: () => events,
     getEventsForDate: (dateKey) => events.filter((event) => event.dateKey === dateKey),
-    addTask: async (text, priority) => {
-      const id = `task-${tasks.length + 1}`;
-      tasks = [
-        ...tasks,
-        {
-          id,
-          text,
-          completed: false,
-          pinned: false,
-          priority,
-          createdAt: '',
-          updatedAt: ''
-        }
-      ];
+    addTask: async (text, priority, dateKey) => {
+      const id = `task-${tasks.length + Object.values(tasksByDate).flat().length + 1}`;
+      const created = {
+        id,
+        text,
+        completed: false,
+        pinned: false,
+        priority,
+        createdAt: '',
+        updatedAt: ''
+      };
+      if (dateKey) tasksByDate[dateKey] = [...(tasksByDate[dateKey] || []), created];
+      else tasks = [...tasks, created];
       return id;
     },
     toggleTask: async (id) => {
@@ -448,5 +452,138 @@ describe('assistant tool result contract', () => {
     expect(complete.changed).toBe(false);
     expect(complete.reason).toBe('no_change_needed');
     expect(complete.affectedItems).toHaveLength(1);
+  });
+});
+
+describe('list_calendar_events cross-date title search', () => {
+  it('finds an event on another date by title when dateKey is omitted', async () => {
+    const harness = createRuntime();
+    await executeAssistantTool('add_calendar_event', { title: 'Reunião com Ana', dateKey: '2026-09-12' }, harness.runtime);
+
+    const found = await executeAssistantTool('list_calendar_events', { title: 'reunião com ana' }, harness.runtime);
+
+    expect(found.matchedCount).toBe(1);
+    expect(found.affectedItems[0]?.label).toBe('Reunião com Ana');
+  });
+
+  it('still scopes to the visible date when dateKey is given, even with a duplicate title elsewhere', async () => {
+    const harness = createRuntime();
+    await executeAssistantTool('add_calendar_event', { title: 'Reunião com Ana', dateKey: '2026-09-12' }, harness.runtime);
+    await executeAssistantTool('add_calendar_event', { title: 'Reunião com Ana', dateKey: '2026-07-01' }, harness.runtime);
+
+    const found = await executeAssistantTool('list_calendar_events', { dateKey: '2026-07-01', title: 'Ana' }, harness.runtime);
+
+    expect(found.matchedCount).toBe(1);
+    expect(found.data).toMatchObject({ dateKey: '2026-07-01' });
+  });
+
+  it('returns nothing for a title that does not exist anywhere, instead of falling back to the visible date', async () => {
+    const harness = createRuntime();
+    await executeAssistantTool('add_calendar_event', { title: 'Reunião com Ana', dateKey: '2026-09-12' }, harness.runtime);
+
+    const found = await executeAssistantTool('list_calendar_events', { title: 'Consulta inexistente' }, harness.runtime);
+
+    expect(found.matchedCount).toBe(0);
+  });
+
+  it('keeps listing the visible date when neither dateKey nor title is given', async () => {
+    const harness = createRuntime();
+    const found = await executeAssistantTool('list_calendar_events', {}, harness.runtime);
+    expect(found.data).toMatchObject({ dateKey: '2026-07-01' });
+  });
+});
+
+describe('update_calendar_event persistence check', () => {
+  it('accepts an update the store normalized instead of reporting a mismatch', async () => {
+    const harness = createRuntime();
+    const normalizing: AssistantToolRuntime = {
+      ...harness.runtime,
+      updateCalendarEvent: async (id, patch) =>
+        // The real store trims and sentence-cases what it saves.
+        harness.runtime.updateCalendarEvent(id, {
+          ...patch,
+          ...(patch.title ? { title: `  ${patch.title}  `.trim() } : {})
+        })
+    };
+
+    const updated = await executeAssistantTool(
+      'update_calendar_event',
+      { id: 'event-1', title: 'Dentista da manhã' },
+      normalizing
+    );
+
+    expect(updated.ok).toBe(true);
+    expect(updated.reason).not.toBe('state_mismatch');
+    expect(updated.changed).toBe(true);
+  });
+
+  it('still reports a mismatch when the store kept the old value', async () => {
+    const harness = createRuntime();
+    const ignoring: AssistantToolRuntime = {
+      ...harness.runtime,
+      updateCalendarEvent: async () => true
+    };
+
+    const updated = await executeAssistantTool(
+      'update_calendar_event',
+      { id: 'event-1', title: 'Outro titulo completamente diferente' },
+      ignoring
+    );
+
+    expect(updated.ok).toBe(false);
+    expect(updated.reason).toBe('state_mismatch');
+  });
+});
+
+describe('tasks on an explicit date', () => {
+  it('creates a task on another date without moving the visible one', async () => {
+    const harness = createRuntime();
+
+    const created = await executeAssistantTool(
+      'add_task',
+      { text: 'Revisar contrato', priority: 'high', dateKey: '2026-08-20' },
+      harness.runtime
+    );
+
+    expect(created.ok).toBe(true);
+    expect(created.changed).toBe(true);
+    expect(created.message).toContain('2026-08-20');
+    // The visible date must be untouched: no navigation, no extra task there.
+    expect(harness.getTasks()).toHaveLength(1);
+    expect(harness.getNavigatedDate()).toBe('');
+    expect(harness.runtime.getTasks('2026-08-20')).toHaveLength(1);
+  });
+
+  it('lists tasks of another date', async () => {
+    const harness = createRuntime();
+    await executeAssistantTool('add_task', { text: 'Revisar contrato', dateKey: '2026-08-20' }, harness.runtime);
+
+    const listed = await executeAssistantTool('list_tasks', { dateKey: '2026-08-20' }, harness.runtime);
+    const visible = await executeAssistantTool('list_tasks', {}, harness.runtime);
+
+    expect(listed.matchedCount).toBe(1);
+    expect(listed.message).toContain('2026-08-20');
+    expect(visible.matchedCount).toBe(1);
+    expect(visible.affectedItems[0]?.label).toBe('Revisar PR');
+  });
+
+  it('rejects an invalid task date instead of silently using the visible one', async () => {
+    const harness = createRuntime();
+
+    const created = await executeAssistantTool('add_task', { text: 'Revisar contrato', dateKey: '20/08' }, harness.runtime);
+
+    expect(created.ok).toBe(false);
+    expect(created.reason).toBe('invalid_date');
+    expect(harness.getTasks()).toHaveLength(1);
+  });
+
+  it('allows the same task text on a different date', async () => {
+    const harness = createRuntime();
+
+    const duplicateSameDay = await executeAssistantTool('add_task', { text: 'Revisar PR' }, harness.runtime);
+    const otherDay = await executeAssistantTool('add_task', { text: 'Revisar PR', dateKey: '2026-08-20' }, harness.runtime);
+
+    expect(duplicateSameDay.reason).toBe('duplicate');
+    expect(otherDay.changed).toBe(true);
   });
 });

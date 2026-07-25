@@ -23,8 +23,17 @@ export const CONFIG = {
   EXCHANGE_RETRY_BASE_MS: 1000,
   ASSISTANT: {
     ollamaBaseUrl: 'http://127.0.0.1:11434',
-    model: 'qwen3:4b',
-    modelPreferences: ['qwen3:4b', 'qwen2.5:3b', 'qwen2.5:1.5b'],
+    // qwen3:8b measured both more accurate on multi-step tool sequences and
+    // ~2.5x faster than qwen3:4b on this hardware (RX 7600, 8GB VRAM) — see
+    // assistant.live.test.ts. Falls back down the list if not installed.
+    model: 'qwen3:8b',
+    modelPreferences: ['qwen3:8b', 'qwen3:4b', 'qwen2.5:3b', 'qwen2.5:1.5b'],
+    temperature: 0.2,
+    /**
+     * Ollama defaults to 4096 and truncates from the front, which drops the
+     * system prompt once the tool definitions and the state snapshot are added.
+     */
+    numCtx: 8192,
     healthTimeoutMs: 5000,
     streamIdleTimeoutMs: 60000,
     requestTimeoutMs: 180000,

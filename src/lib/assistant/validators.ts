@@ -179,10 +179,15 @@ function validateTaskStep(step: AssistantPlanStep): AssistantPlanValidation {
     const text = getStringArg(args, 'text');
     if (!text) return validation(false, 'invalid_text', { question: 'Qual tarefa devo criar?' });
     const priority = getStringArg(args, 'priority');
+    const rawDateKey = getStringArg(args, 'dateKey');
+    if (rawDateKey && !normalizeDateKey(rawDateKey)) {
+      return validation(false, 'invalid_date', { question: 'Para qual data devo criar essa tarefa?' });
+    }
     return validation(true, 'ok', {
       fixedArgs: {
         ...args,
         text,
+        ...(rawDateKey ? { dateKey: normalizeDateKey(rawDateKey) } : {}),
         priority: validPriorities.has(priority) ? priority : normalizePriority(priority)
       }
     });

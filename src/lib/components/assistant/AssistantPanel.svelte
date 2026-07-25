@@ -76,12 +76,18 @@
     const requestId = ++healthRequestId;
     healthAbortController?.abort();
     healthAbortController = new AbortController();
-    status = 'checking';
+    lastHealthCheckAt = Date.now();
+    // A pending confirmation survives a health check: overwriting the status
+    // would hide the quick replies the user still has to answer.
+    const awaitingConfirmation = status === 'awaiting_confirmation';
+    if (!awaitingConfirmation) status = 'checking';
     try {
       const nextHealth = await checkOllamaHealth(healthAbortController.signal);
       if (requestId !== healthRequestId) return;
       applyHealth(nextHealth);
-      status = nextHealth.online ? 'ready' : 'offline';
+      if (!awaitingConfirmation || !nextHealth.online) {
+        status = nextHealth.online ? 'ready' : 'offline';
+      }
     } catch (error) {
       if (requestId !== healthRequestId || error?.name === 'AbortError') return;
       applyHealth({ online: false, models: [], error: String(error?.message || error) });
@@ -135,13 +141,20 @@
     }
   }
 
+  const OFFLINE_POLL_MS = 8000;
+  // Also re-check while online, but rarely: otherwise a crashed Ollama only
+  // surfaces when the next message fails.
+  const ONLINE_POLL_MS = 30000;
+  let lastHealthCheckAt = 0;
+
   function startHealthPolling() {
     stopHealthPolling();
     healthTimer = setInterval(() => {
-      if (!active || sending || status === 'starting' || status === 'checking') return;
-      if (health.online) return;
+      if (!active || sending || modelInstalling || status === 'starting' || status === 'checking') return;
+      const interval = health.online ? ONLINE_POLL_MS : OFFLINE_POLL_MS;
+      if (Date.now() - lastHealthCheckAt < interval) return;
       refreshHealth();
-    }, 8000);
+    }, OFFLINE_POLL_MS);
   }
 
   function stopHealthPolling() {
@@ -253,6 +266,7 @@
         pendingToolCall: result.pendingToolCall,
         pendingPlan: result.pendingPlan,
         pendingChoices: result.pendingChoices,
+        limited: Boolean(result.stoppedByLimit),
         pending: false
       }));
       status = result.pendingPlan || result.pendingToolCall || result.pendingChoices?.length

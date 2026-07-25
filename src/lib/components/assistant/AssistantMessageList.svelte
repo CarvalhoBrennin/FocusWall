@@ -1,6 +1,7 @@
 <script>
   import { onDestroy, tick } from 'svelte';
   import { t } from '../../i18n/index.js';
+  import { renderAssistantMarkdown } from '../../assistant/markdown.js';
 
   let { messages = [], disabled = false, onQuickReply = () => {} } = $props();
 
@@ -41,10 +42,20 @@
     thinkingTimer = null;
   }
 
+  const AUTOSCROLL_THRESHOLD_PX = 80;
+
+  function isNearBottom() {
+    if (!listEl) return true;
+    return listEl.scrollHeight - listEl.scrollTop - listEl.clientHeight <= AUTOSCROLL_THRESHOLD_PX;
+  }
+
   $effect(() => {
     messages.map((message) => `${message.id}:${message.content.length}:${message.actions?.length || 0}`).join('|');
+    // Only follow the stream when the user is already at the bottom; otherwise
+    // reading earlier messages would be interrupted on every token.
+    const shouldFollow = isNearBottom();
     tick().then(() => {
-      if (listEl) listEl.scrollTop = listEl.scrollHeight;
+      if (listEl && shouldFollow) listEl.scrollTop = listEl.scrollHeight;
     });
   });
 
@@ -80,17 +91,21 @@
       <article
         class={`assistant-message assistant-message--${message.role}`}
         class:is-error={message.error}
+        class:is-limited={message.limited}
         class:is-pending={message.pending}
       >
         <header>
           <strong>{roleLabel(message.role)}</strong>
           {#if message.pending}
             <span>{thinkingText()}</span>
+          {:else if message.limited}
+            <span>{$t('assistant.stoppedByLimit')}</span>
           {/if}
         </header>
 
         {#if message.content.trim()}
-          <pre>{message.content}</pre>
+          <!-- renderAssistantMarkdown escapes the model output before formatting it. -->
+          <div class="assistant-message-body">{@html renderAssistantMarkdown(message.content)}</div>
         {:else if message.pending}
           <div class="assistant-thinking-line" aria-label={$t('assistant.status.thinking')}>
             <span class="assistant-thinking-glow" aria-hidden="true"></span>

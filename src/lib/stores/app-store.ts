@@ -10,6 +10,7 @@ import {
   normalizeTaskText,
   normalizePriority,
   normalizeMonthKey,
+  normalizeDateKey,
   getLocalDateKey,
   getBrazilDateKey,
   getMonthKeyFromDateKey,
@@ -45,7 +46,7 @@ export function getVisibleDateKey(currentDateKey, viewOffsetDays) {
   return getLocalDateKey(addDays(parseDateKey(currentDateKey), viewOffsetDays));
 }
 
-function getTasksByDate(data: AppState, dk: string) {
+export function getTasksByDate(data: AppState, dk: string) {
   return Array.isArray(data.tasksByDate?.[dk]) ? data.tasksByDate[dk] : [];
 }
 
@@ -479,7 +480,12 @@ export function onFullscreenPause(shouldPause) {
   }
 }
 
-export function addTask(text, priority): Promise<string | null> {
+/**
+ * Creates a task on the visible date, or on `targetDateKey` when given. The
+ * explicit date exists for the assistant: "cria uma tarefa pra amanhã" must not
+ * have to navigate the panel first.
+ */
+export function addTask(text, priority, targetDateKey = ''): Promise<string | null> {
   return enqueueTaskMutation(async () => {
     const t = normalizeTaskText(text);
     if (!t) return null;
@@ -487,7 +493,7 @@ export function addTask(text, priority): Promise<string | null> {
     const $data = get(data);
     const $current = get(currentDateKey);
     const $viewOffset = get(viewOffsetDays);
-    const dk = getVisibleDateKey($current, $viewOffset);
+    const dk = normalizeDateKey(targetDateKey) || getVisibleDateKey($current, $viewOffset);
     const tasks = getTasksByDate($data, dk).map(cloneTask);
     const now = new Date().toISOString();
     const newTask = {

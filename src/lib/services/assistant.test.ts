@@ -1,7 +1,9 @@
+import { get } from 'svelte/store';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AssistantMessage, AssistantPendingChoice } from '../types/assistant.js';
 import { currentDateKey, data, viewOffsetDays } from '../stores/app-store.js';
 import { executeAssistantTool } from '../assistant/tools.js';
+import { setAssistantDebugEnabled } from '../assistant/debug.js';
 import { createDefaultState } from '../utils/state.js';
 import {
   buildAssistantChatMessages,
@@ -32,6 +34,15 @@ vi.mock('./storage.js', async (importOriginal) => {
   };
 });
 
+/** Bulk deletion stops at the confirmation gate, so the model runs a single round. */
+function queueProtectedDeleteCall(args: Record<string, unknown>): void {
+  streamOllamaChatMock.mockResolvedValueOnce({
+    content: '',
+    thinking: '',
+    toolCalls: [{ function: { name: 'delete_calendar_events', arguments: args } }]
+  });
+}
+
 beforeEach(() => {
   streamOllamaChatMock.mockReset();
   currentDateKey.set('2026-07-05');
@@ -40,7 +51,23 @@ beforeEach(() => {
 });
 
 describe('assistant planning flow', () => {
-  it('creates a yearly birthday event directly from a natural request', async () => {
+  it('forces yearly recurrence and accent color on birthdays the model under-specifies', async () => {
+    streamOllamaChatMock
+      .mockResolvedValueOnce({
+        content: '',
+        thinking: '',
+        toolCalls: [
+          {
+            function: {
+              name: 'add_calendar_event',
+              // No recurrence and no color: validators.ts has to repair both.
+              arguments: { title: 'Aniversário da minha mãe', dateKey: '2026-07-11' }
+            }
+          }
+        ]
+      })
+      .mockResolvedValueOnce({ content: 'Pronto.', thinking: '', toolCalls: [] });
+
     const result = await runAssistantTurn([
       {
         id: 'user-birthday-mom',
@@ -50,27 +77,16 @@ describe('assistant planning flow', () => {
       }
     ]);
 
-    expect(streamOllamaChatMock).not.toHaveBeenCalled();
     expect(result.actions).toHaveLength(1);
     expect(result.actions[0]?.tool).toBe('add_calendar_event');
-    expect(result.content).toContain('Aniversário da minha mãe');
-    expect(result.content).toContain('Evento criado');
-  });
 
-  it('creates a yearly birthday event from short birthday wording', async () => {
-    const result = await runAssistantTurn([
-      {
-        id: 'user-birthday-joao',
-        role: 'user',
-        content: 'Niver do João dia 03/09 todo ano',
-        createdAt: '2026-07-03T00:00:00.000Z'
-      }
-    ]);
-
-    expect(streamOllamaChatMock).not.toHaveBeenCalled();
-    expect(result.actions).toHaveLength(1);
-    expect(result.actions[0]?.tool).toBe('add_calendar_event');
-    expect(result.content).toContain('Aniversário do João');
+    const created = get(data).calendarEvents[0];
+    expect(created).toMatchObject({
+      title: 'Aniversário da minha mãe',
+      dateKey: '2026-07-11',
+      recurrence: 'yearly',
+      color: 'accent'
+    });
   });
 
   it('sanitizes suspicious model calendar titles before saving', async () => {
@@ -477,9 +493,9 @@ describe('pending confirmation flow', () => {
       createdAt: '2026-07-03T00:00:00.000Z'
     };
 
+    queueProtectedDeleteCall({ dateKey: `${year}-07-11`, recurring: true });
     const previewTurn = await runAssistantTurn([request]);
 
-    expect(streamOllamaChatMock).not.toHaveBeenCalled();
     expect(previewTurn.actions).toEqual([]);
     expect(previewTurn.pendingToolCall?.function.name).toBe('delete_calendar_events');
     expect(previewTurn.content).toContain('Confirmar');
@@ -502,7 +518,6 @@ describe('pending confirmation flow', () => {
       }
     ]);
 
-    expect(streamOllamaChatMock).not.toHaveBeenCalled();
     expect(confirmTurn.actions).toHaveLength(1);
     expect(confirmTurn.actions[0]?.changed).toBe(true);
     expect(confirmTurn.content).toContain('Confirmado.');
@@ -524,6 +539,7 @@ describe('pending confirmation flow', () => {
       content: 'remove todos os eventos recorrentes de julho dia 11',
       createdAt: '2026-07-03T00:00:00.000Z'
     };
+    queueProtectedDeleteCall({ dateKey: `${year}-07-11`, recurring: true });
     const preview = await runAssistantTurn([request]);
     expect(preview.pendingPlan?.steps[0]?.args.expectedIds).toEqual([first.affectedItems[0]?.id]);
 
@@ -667,5 +683,146 @@ describe('pending confirmation flow', () => {
 
     expect(result.actions).toEqual([]);
     expect(streamOllamaChatMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not treat a sentence that merely starts with a yes word as confirmation', async () => {
+    streamOllamaChatMock.mockResolvedValueOnce({
+      content: 'Aqui está a lista.',
+      thinking: '',
+      toolCalls: []
+    });
+
+    const result = await runAssistantTurn(conversationWithReply('ok, mas antes me mostra a lista'));
+
+    expect(result.actions).toEqual([]);
+    expect(streamOllamaChatMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not delete when the reply is a new question starting with a yes word', async () => {
+    const year = new Date().getFullYear();
+    const seeded = await executeAssistantTool('add_calendar_event', {
+      title: 'Consulta no dentista',
+      dateKey: `${year}-07-04`
+    });
+    expect(seeded.ok).toBe(true);
+
+    const listBefore = await executeAssistantTool('list_calendar_events', { dateKey: `${year}-07-04` });
+
+    // The reply is a brand new question, so it reaches the model instead of
+    // confirming the pending deletion.
+    streamOllamaChatMock.mockResolvedValueOnce({
+      content: 'Não encontrei nenhuma reunião amanhã.',
+      thinking: '',
+      toolCalls: []
+    });
+
+    await runAssistantTurn(conversationWithReply('vai ter reunião amanhã?'));
+
+    const listAfter = await executeAssistantTool('list_calendar_events', { dateKey: `${year}-07-04` });
+    expect(listAfter.matchedCount).toBe(listBefore.matchedCount);
+  });
+
+  it('still executes a destructive plan on a plain "sim."', async () => {
+    const result = await runAssistantTurn(conversationWithReply('Sim.'));
+
+    expect(streamOllamaChatMock).not.toHaveBeenCalled();
+    expect(result.actions).toHaveLength(1);
+    expect(result.actions[0]?.tool).toBe('delete_calendar_events');
+  });
+});
+
+describe('cross-round mutation safeguards', () => {
+  it('does not repeat an identical mutable call across tool rounds', async () => {
+    // The validators rewrite add_calendar_event arguments (they inject color and
+    // recurrence), so the dedup key has to come from the original call.
+    const repeatedCall = {
+      function: {
+        name: 'add_calendar_event',
+        arguments: { title: 'Reunião de equipe', dateKey: '2026-07-12' }
+      }
+    };
+    streamOllamaChatMock
+      .mockResolvedValueOnce({ content: '', thinking: '', toolCalls: [repeatedCall] })
+      .mockResolvedValueOnce({ content: '', thinking: '', toolCalls: [repeatedCall] })
+      .mockResolvedValueOnce({ content: 'Pronto.', thinking: '', toolCalls: [] });
+
+    const result = await runAssistantTurn([{
+      id: 'user-cross-round',
+      role: 'user',
+      content: 'agenda o que combinamos',
+      createdAt: '2026-07-03T00:00:00.000Z'
+    }]);
+
+    expect(result.actions).toHaveLength(1);
+    expect(result.actions[0]?.tool).toBe('add_calendar_event');
+
+    const events = await executeAssistantTool('list_calendar_events', { dateKey: '2026-07-12' });
+    expect(events.matchedCount).toBe(1);
+  });
+
+  it('traces which path a turn took when debugging is enabled', async () => {
+    const logged: string[] = [];
+    const info = vi.spyOn(console, 'info').mockImplementation((message) => {
+      logged.push(String(message));
+    });
+    setAssistantDebugEnabled(true);
+
+    try {
+      await runAssistantTurn([{
+        id: 'user-trace-nav',
+        role: 'user',
+        content: 'volta pra hoje',
+        createdAt: '2026-07-03T00:00:00.000Z'
+      }]);
+
+      streamOllamaChatMock.mockResolvedValueOnce({ content: 'Claro.', thinking: '', toolCalls: [] });
+      await runAssistantTurn([{
+        id: 'user-trace-model',
+        role: 'user',
+        content: 'me explica o que você faz',
+        createdAt: '2026-07-03T00:00:00.000Z'
+      }]);
+    } finally {
+      setAssistantDebugEnabled(null);
+      info.mockRestore();
+    }
+
+    expect(logged[0]).toContain('path=deterministic');
+    expect(logged[0]).toContain('go_to_today');
+    expect(logged[1]).toContain('path=model');
+    expect(logged[1]).toContain('rounds=1');
+  });
+
+  it('stays silent when debugging is disabled', async () => {
+    const info = vi.spyOn(console, 'info').mockImplementation(() => {});
+    try {
+      await runAssistantTurn([{
+        id: 'user-no-trace',
+        role: 'user',
+        content: 'volta pra hoje',
+        createdAt: '2026-07-03T00:00:00.000Z'
+      }]);
+      expect(info).not.toHaveBeenCalled();
+    } finally {
+      info.mockRestore();
+    }
+  });
+
+  it('keeps an informative answer about completed tasks intact', async () => {
+    streamOllamaChatMock.mockResolvedValueOnce({
+      content: 'Você tem 2 tarefas concluídas hoje e 1 evento agendado.',
+      thinking: '',
+      toolCalls: []
+    });
+
+    const result = await runAssistantTurn([{
+      id: 'user-read-answer',
+      role: 'user',
+      content: 'me dá um resumo do dia',
+      createdAt: '2026-07-03T00:00:00.000Z'
+    }]);
+
+    expect(result.actions).toEqual([]);
+    expect(result.content).toBe('Você tem 2 tarefas concluídas hoje e 1 evento agendado.');
   });
 });

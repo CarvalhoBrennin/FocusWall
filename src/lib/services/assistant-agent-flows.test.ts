@@ -45,6 +45,30 @@ function assistantMessage(content: string, index: number, extra: Partial<Assista
   };
 }
 
+/**
+ * Queues a model turn that calls one tool and then answers in text. Non
+ * destructive tools run straight away, so the orchestrator asks the model again
+ * with the tool result before finishing the turn.
+ */
+function queueToolCall(name: string, args: Record<string, unknown>, finalText = 'Pronto.'): void {
+  streamOllamaChatMock
+    .mockResolvedValueOnce({
+      content: '',
+      thinking: '',
+      toolCalls: [{ function: { name, arguments: args } }]
+    })
+    .mockResolvedValueOnce({ content: finalText, thinking: '', toolCalls: [] });
+}
+
+/** Destructive tools stop at the confirmation gate, so only one round happens. */
+function queueProtectedToolCall(name: string, args: Record<string, unknown>): void {
+  streamOllamaChatMock.mockResolvedValueOnce({
+    content: '',
+    thinking: '',
+    toolCalls: [{ function: { name, arguments: args } }]
+  });
+}
+
 beforeEach(() => {
   streamOllamaChatMock.mockReset();
   currentDateKey.set('2026-07-05');
@@ -55,11 +79,13 @@ beforeEach(() => {
 describe('direct assistant agent flows', () => {
   it('adds, lists, previews deletion, confirms deletion, and leaves no birthday event behind', async () => {
     const createRequest = userMessage('Aniversário da minha mãe é dia 11 de julho adicione um evento recorrente pra isso', 1);
+    // The model omits recurrence and color; validators.ts must still force the
+    // yearly/accent pair for a birthday.
+    queueToolCall('add_calendar_event', { title: 'Aniversário da minha mãe', dateKey: '2026-07-11' });
     const created = await runAssistantTurn([createRequest]);
 
-    expect(streamOllamaChatMock).not.toHaveBeenCalled();
     expect(created.actions[0]?.tool).toBe('add_calendar_event');
-    expect(created.content).toContain('Aniversário da minha mãe');
+    expect(created.actions[0]?.label).toContain('Aniversário da minha mãe');
 
     let events = get(data).calendarEvents;
     expect(events).toHaveLength(1);
@@ -70,6 +96,7 @@ describe('direct assistant agent flows', () => {
     });
 
     const listRequest = userMessage('liste os eventos do dia 11 de julho', 2);
+    queueToolCall('list_calendar_events', { dateKey: '2026-07-11' });
     const listed = await runAssistantTurn([
       createRequest,
       assistantMessage(created.content, 1, { actions: created.actions }),
@@ -77,9 +104,10 @@ describe('direct assistant agent flows', () => {
     ]);
 
     expect(listed.actions[0]?.tool).toBe('list_calendar_events');
-    expect(listed.content).toContain('1 evento');
+    expect(listed.actions[0]?.label).toContain('1 evento');
 
     const deleteRequest = userMessage('remove todos os eventos recorrentes de julho dia 11', 3);
+    queueProtectedToolCall('delete_calendar_events', { dateKey: '2026-07-11', recurring: true });
     const preview = await runAssistantTurn([
       createRequest,
       assistantMessage(created.content, 1, { actions: created.actions }),
@@ -108,6 +136,7 @@ describe('direct assistant agent flows', () => {
 
   it('adds a generic event, moves it to another date and time, then refuses an invalid move', async () => {
     const addRequest = userMessage('agende um evento Reunião com Ana dia 12/07 às 10h', 1);
+    queueToolCall('add_calendar_event', { title: 'Reunião com Ana', dateKey: '2026-07-12', startTime: '10:00' });
     const added = await runAssistantTurn([addRequest]);
 
     expect(added.actions[0]?.tool).toBe('add_calendar_event');
@@ -118,6 +147,11 @@ describe('direct assistant agent flows', () => {
     });
 
     const moveRequest = userMessage('muda a reunião com Ana para dia 13/07 às 11h', 2);
+    queueToolCall('update_calendar_event', {
+      id: get(data).calendarEvents[0].id,
+      dateKey: '2026-07-13',
+      startTime: '11:00'
+    });
     const moved = await runAssistantTurn([
       addRequest,
       assistantMessage(added.content, 1, { actions: added.actions }),
@@ -166,6 +200,7 @@ describe('direct assistant agent flows', () => {
 
   it('adds a task, completes it, pins it, asks before deleting it, then deletes it after confirmation', async () => {
     const addTaskRequest = userMessage('adiciona uma tarefa Comprar leite', 1);
+    queueToolCall('add_task', { text: 'Comprar leite', priority: 'medium' });
     const added = await runAssistantTurn([addTaskRequest]);
 
     expect(added.actions[0]?.tool).toBe('add_task');
@@ -224,7 +259,9 @@ describe('direct assistant agent flows', () => {
   });
 
   it('asks the user to choose when a task reference is ambiguous, then executes the selected option', async () => {
+    queueToolCall('add_task', { text: 'Revisar contrato do cliente A', priority: 'medium' });
     await runAssistantTurn([userMessage('adiciona uma tarefa Revisar contrato do cliente A', 1)]);
+    queueToolCall('add_task', { text: 'Revisar contrato do cliente B', priority: 'medium' });
     await runAssistantTurn([userMessage('adiciona uma tarefa Revisar contrato do cliente B', 2)]);
 
     const ambiguousRequest = userMessage('marca revisar contrato como concluída', 3);
@@ -248,6 +285,7 @@ describe('direct assistant agent flows', () => {
 
   it('changes task priority, reopens it, unpins it, and lists tasks through direct commands', async () => {
     const addTaskRequest = userMessage('adiciona uma tarefa Enviar relatorio', 1);
+    queueToolCall('add_task', { text: 'Enviar relatorio', priority: 'medium' });
     const added = await runAssistantTurn([addTaskRequest]);
 
     expect(added.actions[0]?.tool).toBe('add_task');
@@ -309,20 +347,24 @@ describe('direct assistant agent flows', () => {
     task = (get(data).tasksByDate['2026-07-05'] || [])[0];
     expect(task.pinned).toBe(false);
 
+    queueToolCall('list_tasks', {});
     const listed = await runAssistantTurn([userMessage('liste minhas tarefas', 7)]);
 
     expect(listed.actions[0]?.tool).toBe('list_tasks');
-    expect(listed.content).toContain('1 tarefa');
+    expect(listed.actions[0]?.label).toContain('1 tarefa');
   });
 
   it('cancels a single event deletion, then confirms it on a second request', async () => {
     const addRequest = userMessage('agende um evento Consulta medica dia 14/07 as 09h', 1);
+    queueToolCall('add_calendar_event', { title: 'Consulta medica', dateKey: '2026-07-14', startTime: '09:00' });
     const added = await runAssistantTurn([addRequest]);
 
     expect(added.actions[0]?.tool).toBe('add_calendar_event');
     expect(get(data).calendarEvents).toHaveLength(1);
 
+    const eventId = get(data).calendarEvents[0].id;
     const deleteRequest = userMessage('apaga o evento consulta medica', 2);
+    queueProtectedToolCall('delete_calendar_event', { id: eventId });
     const preview = await runAssistantTurn([
       addRequest,
       assistantMessage(added.content, 1, { actions: added.actions }),
@@ -343,6 +385,7 @@ describe('direct assistant agent flows', () => {
     expect(canceled.content).toContain('Cancelado');
     expect(get(data).calendarEvents).toHaveLength(1);
 
+    queueProtectedToolCall('delete_calendar_event', { id: eventId });
     const secondPreview = await runAssistantTurn([
       addRequest,
       assistantMessage(added.content, 1, { actions: added.actions }),
@@ -356,6 +399,20 @@ describe('direct assistant agent flows', () => {
 
     expect(confirmed.actions[0]?.tool).toBe('delete_calendar_event');
     expect(get(data).calendarEvents).toHaveLength(0);
+  });
+
+  it('creates a task on a future date without moving the visible date', async () => {
+    queueToolCall('add_task', { text: 'Revisar contrato', priority: 'high', dateKey: '2026-07-06' });
+    const created = await runAssistantTurn([userMessage('cria uma tarefa pra amanhã: revisar contrato', 1)]);
+
+    expect(created.actions[0]?.tool).toBe('add_task');
+
+    const state = get(data);
+    expect(state.tasksByDate['2026-07-06']).toHaveLength(1);
+    expect(state.tasksByDate['2026-07-06'][0]).toMatchObject({ text: 'Revisar contrato', priority: 'high' });
+    // The panel stays where it was.
+    expect(state.tasksByDate['2026-07-05'] || []).toHaveLength(0);
+    expect(get(viewOffsetDays)).toBe(0);
   });
 
   it('navigates to a requested date and returns to today without using the model', async () => {

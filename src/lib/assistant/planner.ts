@@ -12,6 +12,27 @@ function createPlanId(): string {
   return `plan-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
 }
 
+/** Recursively sorts object keys so equivalent arguments serialize identically. */
+function stableValue(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(stableValue);
+  if (!value || typeof value !== 'object') return value;
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([key, entry]) => [key, stableValue(entry)])
+  );
+}
+
+/**
+ * Identity of a tool call, used to detect duplicates. Always computed from the
+ * raw call: validators rewrite arguments (add_calendar_event gains color and
+ * recurrence), so a key taken after validation would never match the next
+ * round's incoming call.
+ */
+export function toolCallKey(call: AssistantToolCall): string {
+  return `${getAssistantToolCallName(call)}:${JSON.stringify(stableValue(getAssistantToolCallArguments(call)))}`;
+}
+
 function toolRisk(tool: AssistantToolName): AssistantPlanRisk {
   if (tool === 'delete_task' || tool === 'delete_calendar_event' || tool === 'delete_calendar_events') return 'high';
   if (tool === 'update_calendar_event' || tool === 'complete_task' || tool === 'set_task_priority' || tool === 'pin_task') return 'medium';
@@ -80,7 +101,8 @@ export function createAssistantPlanFromToolCalls(
       tool,
       args: getAssistantToolCallArguments(call),
       description: describeToolStep(tool),
-      risk: stepRisk
+      risk: stepRisk,
+      sourceKey: toolCallKey(call)
     });
   }
 

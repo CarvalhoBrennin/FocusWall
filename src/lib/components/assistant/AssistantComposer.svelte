@@ -26,6 +26,8 @@
 
   function handleKeydown(event) {
     if (event.key === 'Enter' && !event.shiftKey) {
+      // Still swallow Enter while a turn runs, so the draft is not lost to a
+      // submit that would be rejected anyway.
       event.preventDefault();
       submit();
     }
@@ -46,7 +48,7 @@
     rows="3"
     value={value}
     placeholder={$t('assistant.placeholder')}
-    disabled={disabled || sending}
+    disabled={disabled}
     style="height: 5rem; min-height: 5rem; max-height: 5rem; resize: none;"
     oninput={(event) => onInput(event.currentTarget.value)}
     onkeydown={handleKeydown}

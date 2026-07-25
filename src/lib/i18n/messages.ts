@@ -162,6 +162,7 @@ export type MessageKey =
   | 'assistant.error'
   | 'assistant.actionDone'
   | 'assistant.actionFailed'
+  | 'assistant.stoppedByLimit'
   | 'assistant.thinking.claudering'
   | 'assistant.thinking.context'
   | 'assistant.thinking.focusWall'
@@ -402,6 +403,7 @@ const messages: Record<LocaleId, Record<MessageKey, string>> = {
     'assistant.error': 'Não foi possível concluir a resposta.',
     'assistant.actionDone': 'ação concluída',
     'assistant.actionFailed': 'ação falhou',
+    'assistant.stoppedByLimit': 'interrompido pelo limite de ações',
     'assistant.thinking.claudering': 'claudering...',
     'assistant.thinking.context': 'organizando contexto...',
     'assistant.thinking.focusWall': 'consultando o FocusWall...',
@@ -644,6 +646,7 @@ const messages: Record<LocaleId, Record<MessageKey, string>> = {
     'assistant.error': 'Could not complete the response.',
     'assistant.actionDone': 'action completed',
     'assistant.actionFailed': 'action failed',
+    'assistant.stoppedByLimit': 'stopped by the action limit',
     'assistant.thinking.claudering': 'claudering...',
     'assistant.thinking.context': 'organizing context...',
     'assistant.thinking.focusWall': 'checking FocusWall...',

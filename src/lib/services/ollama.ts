@@ -297,13 +297,7 @@ async function streamOllamaChatViaFetch(options: StreamChatOptions): Promise<Oll
       cache: 'no-store',
       headers: { 'content-type': 'application/json' },
       signal: abortState.controller.signal,
-      body: JSON.stringify({
-        model: options.model || CONFIG.ASSISTANT.model,
-        messages: options.messages,
-        tools: options.tools || [],
-        stream: true,
-        options: { temperature: 0.2 }
-      })
+      body: JSON.stringify(buildChatRequestBody(options))
     });
 
     if (!response.ok) {
@@ -365,6 +359,29 @@ async function streamOllamaChatViaFetch(options: StreamChatOptions): Promise<Oll
     if (reader) await reader.cancel().catch(() => undefined);
     abortState.cleanup();
   }
+}
+
+/**
+ * Single source of truth for the chat payload shared by both transports.
+ *
+ * Deliberately does not send `think`. Measured against the local qwen3:4b,
+ * `think: false` does not stop the model from reasoning — it moves the reasoning
+ * out of the separate `thinking` field and into `content`, so every read answer
+ * started with English chain-of-thought ("Okay, the user is asking..."). Leaving
+ * the field unset keeps Ollama isolating it into `thinking`, which collectContent
+ * routes away from the UI.
+ */
+function buildChatRequestBody(options: StreamChatOptions): Record<string, unknown> {
+  return {
+    model: options.model || CONFIG.ASSISTANT.model,
+    messages: options.messages,
+    tools: options.tools || [],
+    stream: true,
+    options: {
+      temperature: CONFIG.ASSISTANT.temperature,
+      num_ctx: CONFIG.ASSISTANT.numCtx
+    }
+  };
 }
 
 function createRequestId(): string {
@@ -446,13 +463,7 @@ async function streamOllamaChatViaTauri(options: StreamChatOptions): Promise<Oll
 
     tauriInvoke('ollama_chat_stream', {
       requestId,
-      body: JSON.stringify({
-        model: options.model || CONFIG.ASSISTANT.model,
-        messages: options.messages,
-        tools: options.tools || [],
-        stream: true,
-        options: { temperature: 0.2 }
-      }),
+      body: JSON.stringify(buildChatRequestBody(options)),
       baseUrl: options.baseUrl || resolvedBaseUrl,
       idleTimeoutMs: CONFIG.ASSISTANT.streamIdleTimeoutMs,
       requestTimeoutMs: CONFIG.ASSISTANT.requestTimeoutMs,

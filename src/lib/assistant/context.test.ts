@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createDefaultState } from '../utils/state.js';
-import { createAssistantContextSnapshot } from './context.js';
+import { buildAssistantContextMessage, createAssistantContextSnapshot } from './context.js';
 
 describe('createAssistantContextSnapshot', () => {
   it('summarizes visible tasks and calendar events', () => {
@@ -79,5 +79,30 @@ describe('createAssistantContextSnapshot', () => {
     expect(snapshot.eventsToday[0]?.baseDateKey).toBe('2020-07-03');
     expect(snapshot.eventsToday[0]?.occurrenceDateKey).toBe('2026-07-03');
     expect(snapshot.eventsToday[0]?.recurrence).toBe('yearly');
+  });
+
+  it('exposes the real current date and resolved relative dates', () => {
+    const snapshot = createAssistantContextSnapshot(createDefaultState(), '2026-07-01', 0);
+    const today = new Date();
+    const expectedToday = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    const expectedTomorrow = new Date(today);
+    expectedTomorrow.setDate(expectedTomorrow.getDate() + 1);
+
+    // today is independent of the visible date the panel happens to be showing.
+    expect(snapshot.today).toBe(expectedToday);
+    expect(snapshot.visibleDate).toBe('2026-07-01');
+    expect(snapshot.dateHints['amanhã']).toBe(
+      `${expectedTomorrow.getFullYear()}-${String(expectedTomorrow.getMonth() + 1).padStart(2, '0')}-${String(expectedTomorrow.getDate()).padStart(2, '0')}`
+    );
+    expect(Object.keys(snapshot.dateHints).length).toBeGreaterThan(5);
+  });
+
+  it('serializes the context compactly', () => {
+    const message = buildAssistantContextMessage(
+      createAssistantContextSnapshot(createDefaultState(), '2026-07-01', 0)
+    );
+
+    expect(message).toContain('Contexto atual do FocusWall:');
+    expect(message).not.toContain('\n  ');
   });
 });

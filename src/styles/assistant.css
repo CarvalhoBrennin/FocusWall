@@ -217,6 +217,11 @@
   border-left-color: rgba(181, 92, 80, 0.82);
 }
 
+/* Hitting the tool-call limit is not a failure, so it reads as a warning. */
+.assistant-message.is-limited {
+  border-left-color: rgba(196, 154, 74, 0.82);
+}
+
 .assistant-message header {
   display: flex;
   align-items: center;
@@ -239,7 +244,8 @@
   font-size: 0.64rem;
 }
 
-.assistant-message pre {
+.assistant-message pre,
+.assistant-message-body {
   margin: 0;
   color: var(--light-main);
   font-family: var(--font-mono);
@@ -247,6 +253,40 @@
   line-height: 1.55;
   overflow-wrap: anywhere;
   white-space: pre-wrap;
+}
+
+.assistant-message-body p {
+  margin: 0;
+}
+
+.assistant-message-body p + p,
+.assistant-message-body p + ul,
+.assistant-message-body ul + p {
+  margin-top: 0.5rem;
+}
+
+.assistant-message-body ul {
+  margin: 0;
+  padding-left: 1.1rem;
+  /* The container is pre-wrap; list markup already carries its own breaks. */
+  white-space: normal;
+}
+
+.assistant-message-body li + li {
+  margin-top: 0.2rem;
+}
+
+.assistant-message-body strong {
+  color: var(--light-strong, var(--light-main));
+  font-weight: 700;
+}
+
+.assistant-message-body code {
+  padding: 0.05rem 0.28rem;
+  border-radius: 0.2rem;
+  background: rgba(255, 255, 255, 0.08);
+  font-family: var(--font-mono);
+  font-size: 0.98em;
 }
 
 .assistant-cursor {

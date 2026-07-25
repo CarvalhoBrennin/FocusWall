@@ -13,6 +13,7 @@ import type {
 import {
   addTask,
   deleteTask,
+  getTasksByDate,
   setExecutionDateForDateKey,
   setViewOffset,
   toggleTask,
@@ -46,10 +47,11 @@ import {
 
 export interface AssistantToolRuntime {
   getContext: () => AssistantContextSnapshot;
-  getTasks: () => Task[];
+  /** Tasks of `dateKey`, or of the visible date when omitted. */
+  getTasks: (dateKey?: string) => Task[];
   getCalendarEvents: () => CalendarEvent[];
   getEventsForDate: (dateKey: string) => CalendarEvent[];
-  addTask: (text: string, priority: Priority) => Promise<string | null>;
+  addTask: (text: string, priority: Priority, dateKey?: string) => Promise<string | null>;
   toggleTask: (id: string) => Promise<boolean | void>;
   deleteTask: (id: string) => Promise<boolean | void>;
   updateTask: (id: string, updater: (task: Task) => void) => Promise<boolean | void>;
@@ -110,21 +112,27 @@ const assistantToolDefinitions: OllamaToolDefinition[] = [
     type: 'function',
     function: {
       name: 'list_tasks',
-      description: 'Lista as tarefas da data visível no painel de execução.',
-      parameters: { type: 'object', properties: {} }
+      description: 'Lista tarefas de uma data. Se dateKey for omitido, usa a data visível.',
+      parameters: {
+        type: 'object',
+        properties: {
+          dateKey: dateKeyProperty
+        }
+      }
     }
   },
   {
     type: 'function',
     function: {
       name: 'add_task',
-      description: 'Cria uma tarefa na data visível.',
+      description: 'Cria uma tarefa. Se dateKey for omitido, usa a data visível.',
       parameters: {
         type: 'object',
         required: ['text'],
         properties: {
           text: { type: 'string', description: 'Texto da tarefa.' },
-          priority: priorityProperty
+          priority: priorityProperty,
+          dateKey: dateKeyProperty
         }
       }
     }
@@ -192,11 +200,12 @@ const assistantToolDefinitions: OllamaToolDefinition[] = [
     type: 'function',
     function: {
       name: 'list_calendar_events',
-      description: 'Lista eventos de uma data. Se dateKey for omitido, usa a data visível.',
+      description: 'Lista eventos. Com dateKey, lista os eventos daquele dia (aceita filtrar também por title). Sem dateKey mas com title, busca esse evento em todas as datas — use este modo para achar o ID antes de update_calendar_event ou delete_calendar_event quando você não sabe em qual dia o evento está. Sem dateKey e sem title, lista a data visível.',
       parameters: {
         type: 'object',
         properties: {
-          dateKey: dateKeyProperty
+          dateKey: dateKeyProperty,
+          title: { type: 'string', description: 'Filtra por título (aceita correspondência parcial e por aproximação).' }
         }
       }
     }
@@ -299,10 +308,10 @@ const assistantToolDefinitions: OllamaToolDefinition[] = [
 
 export const focusWallAssistantRuntime: AssistantToolRuntime = {
   getContext: buildAssistantContextSnapshot,
-  getTasks: () => get(visibleTasks) || [],
+  getTasks: (dateKey?: string) => (dateKey ? getTasksByDate(get(data), dateKey) : get(visibleTasks) || []),
   getCalendarEvents: () => getCalendarEvents(get(data)),
   getEventsForDate: (dateKey: string) => getEventsForDateKey(dateKey),
-  addTask: (text, priority) => addTask(text, priority),
+  addTask: (text, priority, dateKey) => addTask(text, priority, dateKey),
   toggleTask: (id) => toggleTask(id),
   deleteTask: (id) => deleteTask(id, undefined),
   updateTask: (id, updater) => updateTask(id, updater),
@@ -511,10 +520,19 @@ async function executeGetContext(runtime: AssistantToolRuntime): Promise<Assista
   return result('get_context', true, 'Contexto carregado.', { data: runtime.getContext() });
 }
 
-async function executeListTasks(runtime: AssistantToolRuntime): Promise<AssistantToolResult> {
-  const tasks = runtime.getTasks();
-  return result('list_tasks', true, `${tasks.length} tarefa(s) na data visível.`, {
-    data: { tasks: tasks.map(serializeTask) },
+async function executeListTasks(
+  args: AssistantToolArguments,
+  runtime: AssistantToolRuntime
+): Promise<AssistantToolResult> {
+  const rawDateKey = getStringArg(args, 'dateKey');
+  const dateKey = rawDateKey ? normalizeDateKey(rawDateKey) : '';
+  if (rawDateKey && !dateKey) {
+    return result('list_tasks', false, 'Informe uma data válida no formato YYYY-MM-DD.', { reason: 'invalid_date' });
+  }
+  const tasks = runtime.getTasks(dateKey || undefined);
+  const where = dateKey ? `em ${dateKey}` : 'na data visível';
+  return result('list_tasks', true, `${tasks.length} tarefa(s) ${where}.`, {
+    data: { dateKey: dateKey || runtime.getContext().visibleDate, tasks: tasks.map(serializeTask) },
     matchedCount: tasks.length,
     affectedItems: tasks.map(taskItem)
   });
@@ -523,8 +541,14 @@ async function executeListTasks(runtime: AssistantToolRuntime): Promise<Assistan
 async function executeAddTask(args: AssistantToolArguments, runtime: AssistantToolRuntime): Promise<AssistantToolResult> {
   const text = normalizeTaskText(getStringArg(args, 'text'));
   if (!text) return result('add_task', false, 'Informe o texto da tarefa.', { reason: 'invalid_text' });
+  const rawDateKey = getStringArg(args, 'dateKey');
+  const dateKey = rawDateKey ? normalizeDateKey(rawDateKey) : '';
+  if (rawDateKey && !dateKey) {
+    return result('add_task', false, 'Informe uma data válida no formato YYYY-MM-DD.', { reason: 'invalid_date' });
+  }
   const priority = normalizePriority(getStringArg(args, 'priority')) as Priority;
-  const duplicate = runtime.getTasks().find(
+  // Duplicates are per day: the same task text on another date is legitimate.
+  const duplicate = runtime.getTasks(dateKey || undefined).find(
     (task) => normalizeTaskText(task.text).toLocaleLowerCase() === text.toLocaleLowerCase() && task.priority === priority
   );
   if (duplicate) {
@@ -535,10 +559,11 @@ async function executeAddTask(args: AssistantToolArguments, runtime: AssistantTo
       affectedItems: [taskItem(duplicate)]
     });
   }
-  const id = await runtime.addTask(text, priority);
+  const id = await runtime.addTask(text, priority, dateKey || undefined);
   if (!id) return result('add_task', false, 'Não foi possível criar a tarefa.', { reason: 'store_error' });
-  return result('add_task', true, `Tarefa adicionada: ${text}.`, {
-    data: { id, text, priority },
+  const suffix = dateKey ? ` em ${dateKey}` : '';
+  return result('add_task', true, `Tarefa adicionada${suffix}: ${text}.`, {
+    data: { id, text, priority, dateKey: dateKey || runtime.getContext().visibleDate },
     changed: true,
     matchedCount: 1,
     affectedItems: [{ type: 'task', id, label: text }]
@@ -654,15 +679,36 @@ async function executePinTask(args: AssistantToolArguments, runtime: AssistantTo
   );
 }
 
+function eventMatchesTitleFilter(event: CalendarEvent, titleFilter: string): boolean {
+  const normalizedTitle = normalizeComparableTitle(event.title);
+  const normalizedFilter = normalizeComparableTitle(titleFilter);
+  return normalizedTitle.includes(normalizedFilter) || fuzzyIncludes(event.title, titleFilter);
+}
+
 async function executeListCalendarEvents(
   args: AssistantToolArguments,
   runtime: AssistantToolRuntime
 ): Promise<AssistantToolResult> {
   const context = runtime.getContext();
   const rawDateKey = getStringArg(args, 'dateKey');
+  const titleFilter = getStringArg(args, 'title');
+
+  // Without a date, list_calendar_events used to be scoped to the visible day
+  // only, so an event on any other date was unreachable: the model had no ID
+  // to pass to update/delete, and the context snapshot only exposes today.
+  // A title search across every saved event closes that gap.
+  if (!rawDateKey && titleFilter) {
+    const matches = runtime.getCalendarEvents().filter((event) => eventMatchesTitleFilter(event, titleFilter));
+    return result('list_calendar_events', true, `${matches.length} evento(s) encontrado(s) com "${titleFilter}".`, {
+      data: { title: titleFilter, events: matches.map(serializeEvent) },
+      matchedCount: matches.length,
+      affectedItems: matches.map(eventItem)
+    });
+  }
+
   const dateKey = rawDateKey ? normalizeDateKey(rawDateKey) : context.visibleDate;
   if (!dateKey) return result('list_calendar_events', false, 'Informe uma data válida no formato YYYY-MM-DD.', { reason: 'invalid_date' });
-  const events = runtime.getEventsForDate(dateKey);
+  const events = runtime.getEventsForDate(dateKey).filter((event) => !titleFilter || eventMatchesTitleFilter(event, titleFilter));
   return result('list_calendar_events', true, `${events.length} evento(s) em ${dateKey}.`, {
     data: { dateKey, events: events.map(serializeEvent) },
     matchedCount: events.length,
@@ -727,6 +773,24 @@ async function executeAddCalendarEvent(
   });
 }
 
+/**
+ * Confirms the store kept the patch. Compared loosely on purpose: the store
+ * normalizes what it saves (trimming a title, dropping an empty time), and a
+ * strict equality check reported a failure for an update that did land.
+ */
+function patchWasPersisted(persisted: CalendarEvent, patch: Partial<CalendarEvent>): boolean {
+  const saved = persisted as unknown as Record<string, unknown>;
+  return Object.entries(patch).every(([key, value]) => {
+    const current = saved[key];
+    if (typeof value === 'string' && typeof current === 'string') {
+      return normalizeComparableTitle(current) === normalizeComparableTitle(value);
+    }
+    // undefined and '' both mean "cleared" for optional fields such as times.
+    if (value === undefined || value === '') return current === undefined || current === '';
+    return current === value;
+  });
+}
+
 async function executeUpdateCalendarEvent(
   args: AssistantToolArguments,
   runtime: AssistantToolRuntime
@@ -786,7 +850,7 @@ async function executeUpdateCalendarEvent(
   const ok = await runtime.updateCalendarEvent(id, patch);
   if (!ok) return result('update_calendar_event', false, 'Não foi possível atualizar o evento.', { reason: 'store_error' });
   const persisted = findCalendarEvent(runtime, id);
-  if (!persisted || Object.entries(patch).some(([key, value]) => (persisted as unknown as Record<string, unknown>)[key] !== value)) {
+  if (!persisted || !patchWasPersisted(persisted, patch)) {
     return result('update_calendar_event', false, 'O evento não confirmou a alteração solicitada.', { reason: 'state_mismatch' });
   }
   return result('update_calendar_event', true, `Evento atualizado: ${event.title}.`, {
@@ -971,7 +1035,7 @@ export async function executeAssistantTool(
     case 'get_context':
       return executeGetContext(runtime);
     case 'list_tasks':
-      return executeListTasks(runtime);
+      return executeListTasks(args, runtime);
     case 'add_task':
       return executeAddTask(args, runtime);
     case 'complete_task':

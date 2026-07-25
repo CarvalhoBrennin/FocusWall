@@ -47,6 +47,11 @@ export interface AssistantPlanStep {
   args: AssistantToolArguments;
   description: string;
   risk: AssistantPlanRisk;
+  /**
+   * Identity of the originating tool call, computed before validation rewrites
+   * the arguments. Used to suppress duplicate mutations across tool rounds.
+   */
+  sourceKey?: string;
 }
 
 export interface AssistantPlan {
@@ -143,6 +148,11 @@ export interface AssistantContextEvent {
 export interface AssistantContextSnapshot {
   visibleDate: string;
   viewOffset: number;
+  /** Real current date, so the model can resolve relative dates on its own. */
+  today: string;
+  todayWeekday: string;
+  /** Pre-resolved pt-BR date expressions: "amanhã" -> "2026-07-25". */
+  dateHints: Record<string, string>;
   taskCounts: {
     total: number;
     completed: number;
