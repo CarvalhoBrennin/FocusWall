@@ -56,6 +56,64 @@ export type MessageKey =
   | 'tasks.nextDay'
   | 'tasks.desktop'
   | 'tasks.performance'
+  | 'system.loading'
+  | 'system.desktopOnly'
+  | 'system.paused'
+  | 'system.pausedTitle'
+  | 'system.pausedBody'
+  | 'system.collectionFailed'
+  | 'system.errorTitle'
+  | 'system.loadFailed'
+  | 'system.retry'
+  | 'system.snapshotReady'
+  | 'system.partialSnapshot'
+  | 'system.partialDetails'
+  | 'system.capturedAt'
+  | 'system.overview'
+  | 'system.cpu'
+  | 'system.memory'
+  | 'system.disk'
+  | 'system.network'
+  | 'system.gpu'
+  | 'system.unavailable'
+  | 'system.noData'
+  | 'system.logicalProcessors'
+  | 'system.hardware'
+  | 'system.processor'
+  | 'system.frequency'
+  | 'system.physicalCores'
+  | 'system.availableMemory'
+  | 'system.storage'
+  | 'system.disks'
+  | 'system.read'
+  | 'system.write'
+  | 'system.noDiskData'
+  | 'system.connectivity'
+  | 'system.download'
+  | 'system.upload'
+  | 'system.noNetworkData'
+  | 'system.graphics'
+  | 'system.usage'
+  | 'system.dedicatedMemory'
+  | 'system.noGpuData'
+  | 'system.machine'
+  | 'system.operatingSystem'
+  | 'system.uptime'
+  | 'system.totalMemory'
+  | 'system.sensors'
+  | 'system.temperatures'
+  | 'system.activity'
+  | 'system.processes'
+  | 'system.processCount'
+  | 'system.processCountLimited'
+  | 'system.processSearchScope'
+  | 'system.searchProcesses'
+  | 'system.searchPlaceholder'
+  | 'system.noProcesses'
+  | 'system.process'
+  | 'system.type'
+  | 'system.application'
+  | 'system.systemProcess'
   | 'tasks.nowPlaying'
   | 'tasks.operator'
   | 'tasks.knowledge'
@@ -297,6 +355,64 @@ const messages: Record<LocaleId, Record<MessageKey, string>> = {
     'tasks.nextDay': 'Dia seguinte',
     'tasks.desktop': 'Desktop',
     'tasks.performance': 'Desempenho',
+    'system.loading': 'Coletando um novo retrato do sistema...',
+    'system.desktopOnly': 'As métricas do sistema estão disponíveis apenas no aplicativo desktop.',
+    'system.paused': 'Coleta pausada',
+    'system.pausedTitle': 'O sistema está em espera.',
+    'system.pausedBody': 'Retome o FocusWall para iniciar uma leitura pontual e atualizada deste computador.',
+    'system.collectionFailed': 'Falha na coleta',
+    'system.errorTitle': 'Não foi possível ler o sistema.',
+    'system.loadFailed': 'A coleta de métricas não pôde ser concluída.',
+    'system.retry': 'Tentar novamente',
+    'system.snapshotReady': 'Snapshot concluído',
+    'system.partialSnapshot': 'Snapshot parcial',
+    'system.partialDetails': 'Detalhes de disponibilidade',
+    'system.capturedAt': 'Capturado às',
+    'system.overview': 'Visão geral do sistema',
+    'system.cpu': 'CPU',
+    'system.memory': 'Memória',
+    'system.disk': 'Disco',
+    'system.network': 'Rede',
+    'system.gpu': 'GPU',
+    'system.unavailable': 'Não disponível',
+    'system.noData': 'Sem dados',
+    'system.logicalProcessors': 'processadores lógicos',
+    'system.hardware': 'Hardware',
+    'system.processor': 'Processador',
+    'system.frequency': 'Frequência',
+    'system.physicalCores': 'Núcleos físicos',
+    'system.availableMemory': 'Memória disponível',
+    'system.storage': 'Armazenamento',
+    'system.disks': 'Volumes',
+    'system.read': 'Leitura',
+    'system.write': 'Gravação',
+    'system.noDiskData': 'Nenhum volume pôde ser lido.',
+    'system.connectivity': 'Conectividade',
+    'system.download': 'Download',
+    'system.upload': 'Upload',
+    'system.noNetworkData': 'Nenhuma interface de rede ativa foi detectada.',
+    'system.graphics': 'Gráficos',
+    'system.usage': 'Uso',
+    'system.dedicatedMemory': 'Memória dedicada',
+    'system.noGpuData': 'A GPU não expõe métricas compatíveis.',
+    'system.machine': 'Máquina',
+    'system.operatingSystem': 'Sistema operacional',
+    'system.uptime': 'Tempo em atividade',
+    'system.totalMemory': 'Memória total',
+    'system.sensors': 'Sensores',
+    'system.temperatures': 'Temperaturas',
+    'system.activity': 'Atividade atual',
+    'system.processes': 'Processos',
+    'system.processCount': '{count} processos',
+    'system.processCountLimited': '{shown} de {total} processos mais ativos',
+    'system.processSearchScope': 'A busca considera os processos carregados neste retrato.',
+    'system.searchProcesses': 'Pesquisar processos',
+    'system.searchPlaceholder': 'Buscar por nome, executável ou PID',
+    'system.noProcesses': 'Nenhum processo corresponde à busca.',
+    'system.process': 'Processo',
+    'system.type': 'Tipo',
+    'system.application': 'Aplicativo',
+    'system.systemProcess': 'Sistema',
     'tasks.nowPlaying': 'Tocando agora',
     'tasks.operator': 'Operador local',
     'tasks.knowledge': 'Conhecimento conectado',
@@ -540,6 +656,64 @@ const messages: Record<LocaleId, Record<MessageKey, string>> = {
     'tasks.nextDay': 'Next day',
     'tasks.desktop': 'Desktop',
     'tasks.performance': 'Performance',
+    'system.loading': 'Collecting a new system snapshot...',
+    'system.desktopOnly': 'System metrics are available only in the desktop application.',
+    'system.paused': 'Collection paused',
+    'system.pausedTitle': 'System collection is standing by.',
+    'system.pausedBody': 'Resume FocusWall to start a fresh, one-time reading of this computer.',
+    'system.collectionFailed': 'Collection failed',
+    'system.errorTitle': 'The system could not be read.',
+    'system.loadFailed': 'The metrics collection could not be completed.',
+    'system.retry': 'Try again',
+    'system.snapshotReady': 'Snapshot completed',
+    'system.partialSnapshot': 'Partial snapshot',
+    'system.partialDetails': 'Availability details',
+    'system.capturedAt': 'Captured at',
+    'system.overview': 'System overview',
+    'system.cpu': 'CPU',
+    'system.memory': 'Memory',
+    'system.disk': 'Disk',
+    'system.network': 'Network',
+    'system.gpu': 'GPU',
+    'system.unavailable': 'Unavailable',
+    'system.noData': 'No data',
+    'system.logicalProcessors': 'logical processors',
+    'system.hardware': 'Hardware',
+    'system.processor': 'Processor',
+    'system.frequency': 'Frequency',
+    'system.physicalCores': 'Physical cores',
+    'system.availableMemory': 'Available memory',
+    'system.storage': 'Storage',
+    'system.disks': 'Volumes',
+    'system.read': 'Read',
+    'system.write': 'Write',
+    'system.noDiskData': 'No volumes could be read.',
+    'system.connectivity': 'Connectivity',
+    'system.download': 'Download',
+    'system.upload': 'Upload',
+    'system.noNetworkData': 'No active network interface was detected.',
+    'system.graphics': 'Graphics',
+    'system.usage': 'Usage',
+    'system.dedicatedMemory': 'Dedicated memory',
+    'system.noGpuData': 'The GPU does not expose compatible metrics.',
+    'system.machine': 'Machine',
+    'system.operatingSystem': 'Operating system',
+    'system.uptime': 'Uptime',
+    'system.totalMemory': 'Total memory',
+    'system.sensors': 'Sensors',
+    'system.temperatures': 'Temperatures',
+    'system.activity': 'Current activity',
+    'system.processes': 'Processes',
+    'system.processCount': '{count} processes',
+    'system.processCountLimited': '{shown} of {total} most active processes',
+    'system.processSearchScope': 'Search considers the processes loaded in this snapshot.',
+    'system.searchProcesses': 'Search processes',
+    'system.searchPlaceholder': 'Search by name, executable, or PID',
+    'system.noProcesses': 'No process matches the search.',
+    'system.process': 'Process',
+    'system.type': 'Type',
+    'system.application': 'Application',
+    'system.systemProcess': 'System',
     'tasks.nowPlaying': 'Now playing',
     'tasks.operator': 'Local operator',
     'tasks.knowledge': 'Connected knowledge',

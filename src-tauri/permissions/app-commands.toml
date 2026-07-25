@@ -31,6 +31,7 @@ commands.allow = [
   "get_desktop_path",
   "get_well_known_folders",
   "get_system_snapshot",
+  "cancel_system_snapshot",
   "get_media_snapshot",
   "get_media_artwork",
   "media_toggle_playback",

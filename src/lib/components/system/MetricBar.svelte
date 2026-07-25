@@ -1,89 +1,122 @@
 <script>
-  const {
+  let {
     label,
-    percent = 0,
+    value,
+    percent = null,
     detail = '',
-    warnAt = 90
+    tone = 'accent'
   } = $props();
 
-  const clamped = $derived(Math.max(0, Math.min(100, percent)));
-  const isWarn = $derived(clamped >= warnAt);
+  const clamped = $derived(
+    percent === null || !Number.isFinite(percent)
+      ? null
+      : Math.max(0, Math.min(100, percent))
+  );
 </script>
 
-<div class="metric-bar" class:is-warn={isWarn}>
-  <div class="metric-bar-head">
-    <span class="metric-bar-label">{label}</span>
-    <span class="metric-bar-value">{Math.round(clamped)}%</span>
+<article class="metric-card" data-tone={tone}>
+  <div class="metric-card-head">
+    <span class="metric-card-label">{label}</span>
+    <span class="metric-card-signal" aria-hidden="true"></span>
   </div>
+  <strong class="metric-card-value">{value}</strong>
   <div
-    class="metric-bar-track"
-    role="progressbar"
-    aria-label="{label}"
-    aria-valuenow={Math.round(clamped)}
-    aria-valuemin="0"
-    aria-valuemax="100"
+    class="metric-card-track"
+    class:is-unavailable={clamped === null}
+    role={clamped === null ? undefined : 'progressbar'}
+    aria-label={label}
+    aria-valuenow={clamped === null ? undefined : Math.round(clamped)}
+    aria-valuemin={clamped === null ? undefined : 0}
+    aria-valuemax={clamped === null ? undefined : 100}
   >
-    <span class="metric-bar-fill" style:width="{clamped}%"></span>
+    {#if clamped !== null}
+      <span class="metric-card-fill" style:width={`${clamped}%`}></span>
+    {/if}
   </div>
-  {#if detail}
-    <p class="metric-bar-detail" title={detail}>{detail}</p>
-  {/if}
-</div>
+  <p class="metric-card-detail" title={detail}>{detail}</p>
+</article>
 
 <style>
-  .metric-bar {
+  .metric-card {
+    --metric-color: var(--accent);
+    position: relative;
     display: flex;
     flex-direction: column;
-    gap: 0.35rem;
+    gap: 0.55rem;
+    min-width: 0;
+    padding: 0.9rem;
+    background:
+      linear-gradient(145deg, color-mix(in srgb, var(--metric-color) 8%, transparent), transparent 62%),
+      var(--panel-bg-soft);
+    border-right: 1px solid var(--control-border-soft);
+    overflow: hidden;
   }
 
-  .metric-bar-head {
+  .metric-card[data-tone='cool'] { --metric-color: #72a4ad; }
+  .metric-card[data-tone='warm'] { --metric-color: #ba8c66; }
+  .metric-card[data-tone='violet'] { --metric-color: #9682b8; }
+  .metric-card[data-tone='olive'] { --metric-color: var(--accent-olive); }
+
+  .metric-card-head {
     display: flex;
-    align-items: baseline;
+    align-items: center;
     justify-content: space-between;
     gap: 0.5rem;
   }
 
-  .metric-bar-label {
-    font-size: 0.72rem;
-    font-weight: 800;
-    letter-spacing: 0.1em;
+  .metric-card-label {
+    font-size: 0.64rem;
+    font-weight: 850;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
     color: var(--light-soft);
   }
 
-  .metric-bar-value {
-    font-size: 0.88rem;
-    font-weight: 800;
+  .metric-card-signal {
+    width: 0.42rem;
+    height: 0.42rem;
+    background: var(--metric-color);
+    box-shadow: 0 0 0.65rem color-mix(in srgb, var(--metric-color) 45%, transparent);
+  }
+
+  .metric-card-value {
+    font-size: clamp(1.35rem, 2vw, 2rem);
+    line-height: 1;
+    font-weight: 750;
+    letter-spacing: -0.04em;
     color: var(--light-strong);
   }
 
-  .metric-bar.is-warn .metric-bar-value {
-    color: var(--danger, #c45c5c);
-  }
-
-  .metric-bar-track {
-    height: 0.55rem;
-    border: 1px solid var(--control-border);
+  .metric-card-track {
+    height: 0.25rem;
     background: var(--control-bg);
     overflow: hidden;
   }
 
-  .metric-bar-fill {
+  .metric-card-track.is-unavailable {
+    background: repeating-linear-gradient(
+      90deg,
+      var(--control-bg) 0 0.4rem,
+      transparent 0.4rem 0.65rem
+    );
+  }
+
+  .metric-card-fill {
     display: block;
     height: 100%;
-    background: linear-gradient(90deg, var(--accent-olive), var(--accent));
-    transition: width 0.35s ease;
+    background: var(--metric-color);
+    box-shadow: 0 0 0.7rem color-mix(in srgb, var(--metric-color) 45%, transparent);
   }
 
-  .metric-bar.is-warn .metric-bar-fill {
-    background: linear-gradient(90deg, var(--danger, #8b4545), var(--danger, #c45c5c));
-  }
-
-  .metric-bar-detail {
-    margin: 0;
-    font-size: 0.76rem;
-    font-weight: 700;
+  .metric-card-detail {
+    margin: auto 0 0;
+    min-width: 0;
+    overflow: hidden;
     color: var(--light-soft);
+    font-size: 0.7rem;
+    font-weight: 650;
+    line-height: 1.25;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 </style>

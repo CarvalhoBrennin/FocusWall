@@ -1666,6 +1666,7 @@ pub fn run() {
             get_desktop_path,
             get_well_known_folders,
             metrics::get_system_snapshot,
+            metrics::cancel_system_snapshot,
             media::get_media_snapshot,
             media::get_media_artwork,
             media::media_toggle_playback,

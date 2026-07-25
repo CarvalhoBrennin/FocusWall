@@ -2,6 +2,7 @@
   import TaskHeader from './TaskHeader.svelte';
   import Composer from './Composer.svelte';
   import TaskList from './TaskList.svelte';
+  import SystemSkeleton from './system/SystemSkeleton.svelte';
   import { panelTab } from '../stores/ui-store.js';
   import { visibleTasks } from '../stores/app-store.js';
   import {
@@ -13,7 +14,6 @@
 
   let calendarMounted = $state(false);
   let filesMounted = $state(false);
-  let systemMounted = $state(false);
   let mediaMounted = $state(false);
   let assistantMounted = $state(false);
   let opencodeMounted = $state(false);
@@ -49,7 +49,6 @@
     }
 
     if ($panelTab === 'system') {
-      systemMounted = true;
       if (!SystemPanel) {
         import('./system/SystemPanel.svelte').then((mod) => {
           SystemPanel = mod.default;
@@ -164,17 +163,20 @@
         </div>
       {/if}
 
-      {#if systemMounted && SystemPanel}
+      {#if $panelTab === 'system'}
         <div
           id="system-panel"
           class="panel-view"
-          class:is-active={$panelTab === 'system'}
+          class:is-active={true}
           role="tabpanel"
           aria-labelledby="system-tab"
-          tabindex={$panelTab === 'system' ? 0 : -1}
-          aria-hidden={$panelTab !== 'system'}
+          tabindex="0"
         >
-          <SystemPanel active={$panelTab === 'system'} />
+          {#if SystemPanel}
+            <SystemPanel />
+          {:else}
+            <SystemSkeleton />
+          {/if}
         </div>
       {/if}
 

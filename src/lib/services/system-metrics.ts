@@ -1,16 +1,30 @@
 import { tauriInvoke } from '../utils/tauri.js';
 
-export type SystemMetrics = {
-  cpuPercent: number;
-  memoryUsedMb: number;
-  memoryTotalMb: number;
-  memoryPercent: number;
+export type AvailabilityInfo = {
+  disks: boolean;
+  network: boolean;
+  gpu: boolean;
+  temperatures: boolean;
 };
 
-export type HardwareInfo = {
-  cpuName: string;
-  totalMemoryMb: number;
+export type CpuInfo = {
+  usagePercent: number;
+  name: string;
+  frequencyMhz: number;
+  physicalCores: number;
+  logicalCores: number;
+};
+
+export type MemoryInfo = {
+  usedBytes: number;
+  availableBytes: number;
+  totalBytes: number;
+  usagePercent: number;
+};
+
+export type SystemInfo = {
   osName: string;
+  uptimeSeconds: number;
 };
 
 export type TemperatureInfo = {
@@ -18,179 +32,337 @@ export type TemperatureInfo = {
   gpuCelsius: number | null;
 };
 
-export type AppProcessRow = {
+export type DiskInfo = {
+  name: string;
+  mountPoint: string;
+  fileSystem: string;
+  kind: string;
+  totalBytes: number;
+  usedBytes: number;
+  usagePercent: number;
+  readBytesPerSecond: number;
+  writeBytesPerSecond: number;
+};
+
+export type NetworkInfo = {
+  adapter: string;
+  downloadBytesPerSecond: number;
+  uploadBytesPerSecond: number;
+};
+
+export type GpuInfo = {
+  name: string;
+  usagePercent: number | null;
+  memoryTotalBytes: number | null;
+  temperatureCelsius: number | null;
+};
+
+export type ProcessRow = {
   name: string;
   exe: string;
   pid: number;
-  instanceCount: number;
   cpuPercent: number;
-  memoryMb: number;
+  memoryBytes: number;
+  readBytesPerSecond: number;
+  writeBytesPerSecond: number;
+  isSystem: boolean;
 };
+
+export type SnapshotWarning = 'disksUnavailable';
 
 export type SystemSnapshot = {
-  metrics: SystemMetrics;
-  hardware: HardwareInfo;
+  capturedAt: string;
+  availability: AvailabilityInfo;
+  warnings: SnapshotWarning[];
+  cpu: CpuInfo;
+  memory: MemoryInfo;
+  system: SystemInfo;
   temperature: TemperatureInfo;
-  apps: AppProcessRow[];
+  disks: DiskInfo[];
+  network: NetworkInfo[];
+  gpus: GpuInfo[];
+  processes: ProcessRow[];
+  totalProcessCount: number;
+  processesTruncated: boolean;
 };
 
-const POLL_MS = 4000;
-const DEFAULT_TOP_APPS = 15;
+type RecordValue = Record<string, unknown>;
 
-/** @param {unknown} raw */
-export function normalizeSystemSnapshot(raw: unknown): SystemSnapshot | null {
-  if (!raw || typeof raw !== 'object') return null;
-  const o = raw as Record<string, unknown>;
-  const metrics = o.metrics as Record<string, unknown> | undefined;
-  const hardware = o.hardware as Record<string, unknown> | undefined;
-  const temperature = o.temperature as Record<string, unknown> | undefined;
-  const appsRaw = o.apps;
+function asRecord(value: unknown): RecordValue | null {
+  return value && typeof value === 'object' ? (value as RecordValue) : null;
+}
 
-  if (!metrics || !hardware || !temperature) return null;
+function finiteNumber(value: unknown, fallback = 0): number {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
+}
 
-  const apps = Array.isArray(appsRaw)
-    ? appsRaw
-        .map((row) => {
-          if (!row || typeof row !== 'object') return null;
-          const a = row as Record<string, unknown>;
-          const name = typeof a.name === 'string' ? a.name : '';
-          const exe = typeof a.exe === 'string' ? a.exe : '';
-          if (!name) return null;
-          return {
-            name,
-            exe,
-            pid: Number(a.pid) || 0,
-            instanceCount: Number(a.instanceCount) || 1,
-            cpuPercent: Number(a.cpuPercent) || 0,
-            memoryMb: Number(a.memoryMb) || 0
-          };
-        })
-        .filter((x): x is AppProcessRow => x !== null)
-    : [];
+function optionalNumber(value: unknown): number | null {
+  if (value === null || value === undefined) return null;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
 
+function nonNegative(value: unknown): number {
+  return Math.max(0, finiteNumber(value));
+}
+
+function boundedPercent(value: unknown): number {
+  return Math.max(0, Math.min(100, finiteNumber(value)));
+}
+
+function text(value: unknown, fallback = ''): string {
+  return typeof value === 'string' ? value : fallback;
+}
+
+function normalizeDisk(value: unknown): DiskInfo | null {
+  const disk = asRecord(value);
+  if (!disk) return null;
+  const mountPoint = text(disk.mountPoint);
+  if (!mountPoint) return null;
   return {
-    metrics: {
-      cpuPercent: Number(metrics.cpuPercent) || 0,
-      memoryUsedMb: Number(metrics.memoryUsedMb) || 0,
-      memoryTotalMb: Number(metrics.memoryTotalMb) || 0,
-      memoryPercent: Number(metrics.memoryPercent) || 0
-    },
-    hardware: {
-      cpuName: String(hardware.cpuName ?? 'CPU'),
-      totalMemoryMb: Number(hardware.totalMemoryMb) || 0,
-      osName: String(hardware.osName ?? '')
-    },
-    temperature: {
-      cpuCelsius: parseOptionalCelsius(temperature.cpuCelsius),
-      gpuCelsius: parseOptionalCelsius(temperature.gpuCelsius)
-    },
-    apps
+    name: text(disk.name, mountPoint),
+    mountPoint,
+    fileSystem: text(disk.fileSystem),
+    kind: text(disk.kind),
+    totalBytes: nonNegative(disk.totalBytes),
+    usedBytes: nonNegative(disk.usedBytes),
+    usagePercent: boundedPercent(disk.usagePercent),
+    readBytesPerSecond: nonNegative(disk.readBytesPerSecond),
+    writeBytesPerSecond: nonNegative(disk.writeBytesPerSecond)
   };
 }
 
-function parseOptionalCelsius(value: unknown): number | null {
-  if (value === null || value === undefined) return null;
-  const n = Number(value);
-  return Number.isFinite(n) ? n : null;
+function normalizeNetwork(value: unknown): NetworkInfo | null {
+  const network = asRecord(value);
+  if (!network) return null;
+  const adapter = text(network.adapter);
+  if (!adapter) return null;
+  return {
+    adapter,
+    downloadBytesPerSecond: nonNegative(network.downloadBytesPerSecond),
+    uploadBytesPerSecond: nonNegative(network.uploadBytesPerSecond)
+  };
 }
 
-export function formatTemp(celsius: number | null | undefined): string {
-  if (celsius === null || celsius === undefined || !Number.isFinite(celsius)) {
-    return '—';
+function normalizeGpu(value: unknown): GpuInfo | null {
+  const gpu = asRecord(value);
+  if (!gpu) return null;
+  const name = text(gpu.name);
+  if (!name) return null;
+  return {
+    name,
+    usagePercent:
+      gpu.usagePercent === null || gpu.usagePercent === undefined
+        ? null
+        : boundedPercent(gpu.usagePercent),
+    memoryTotalBytes: optionalNumber(gpu.memoryTotalBytes),
+    temperatureCelsius: optionalNumber(gpu.temperatureCelsius)
+  };
+}
+
+function normalizeProcess(value: unknown): ProcessRow | null {
+  const process = asRecord(value);
+  if (!process) return null;
+  const name = text(process.name);
+  const pid = Math.trunc(nonNegative(process.pid));
+  if (!name || pid <= 0) return null;
+  return {
+    name,
+    exe: text(process.exe),
+    pid,
+    cpuPercent: boundedPercent(process.cpuPercent),
+    memoryBytes: nonNegative(process.memoryBytes),
+    readBytesPerSecond: nonNegative(process.readBytesPerSecond),
+    writeBytesPerSecond: nonNegative(process.writeBytesPerSecond),
+    isSystem: Boolean(process.isSystem)
+  };
+}
+
+export function normalizeSystemSnapshot(raw: unknown): SystemSnapshot | null {
+  const root = asRecord(raw);
+  if (!root) return null;
+  const availability = asRecord(root.availability);
+  const cpu = asRecord(root.cpu);
+  const memory = asRecord(root.memory);
+  const system = asRecord(root.system);
+  const temperature = asRecord(root.temperature);
+  if (!availability || !cpu || !memory || !system || !temperature) return null;
+  const processes = Array.isArray(root.processes)
+    ? root.processes
+        .map(normalizeProcess)
+        .filter((process): process is ProcessRow => process !== null)
+    : [];
+
+  return {
+    capturedAt: text(root.capturedAt),
+    availability: {
+      disks: Boolean(availability.disks),
+      network: Boolean(availability.network),
+      gpu: Boolean(availability.gpu),
+      temperatures: Boolean(availability.temperatures)
+    },
+    warnings: Array.isArray(root.warnings)
+      ? root.warnings.filter((warning): warning is SnapshotWarning => warning === 'disksUnavailable')
+      : [],
+    cpu: {
+      usagePercent: boundedPercent(cpu.usagePercent),
+      name: text(cpu.name, 'CPU'),
+      frequencyMhz: nonNegative(cpu.frequencyMhz),
+      physicalCores: Math.trunc(nonNegative(cpu.physicalCores)),
+      logicalCores: Math.trunc(nonNegative(cpu.logicalCores))
+    },
+    memory: {
+      usedBytes: nonNegative(memory.usedBytes),
+      availableBytes: nonNegative(memory.availableBytes),
+      totalBytes: nonNegative(memory.totalBytes),
+      usagePercent: boundedPercent(memory.usagePercent)
+    },
+    system: {
+      osName: text(system.osName),
+      uptimeSeconds: nonNegative(system.uptimeSeconds)
+    },
+    temperature: {
+      cpuCelsius: optionalNumber(temperature.cpuCelsius),
+      gpuCelsius: optionalNumber(temperature.gpuCelsius)
+    },
+    disks: Array.isArray(root.disks)
+      ? root.disks.map(normalizeDisk).filter((disk): disk is DiskInfo => disk !== null)
+      : [],
+    network: Array.isArray(root.network)
+      ? root.network
+          .map(normalizeNetwork)
+          .filter((adapter): adapter is NetworkInfo => adapter !== null)
+      : [],
+    gpus: Array.isArray(root.gpus)
+      ? root.gpus.map(normalizeGpu).filter((gpu): gpu is GpuInfo => gpu !== null)
+      : [],
+    processes,
+    totalProcessCount: Math.max(
+      processes.length,
+      Math.trunc(nonNegative(root.totalProcessCount))
+    ),
+    processesTruncated: Boolean(root.processesTruncated)
+  };
+}
+
+export function createSystemRequestId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
   }
-  return `${celsius.toFixed(0)}°C`;
+  return `system-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
-export function formatPercent(value: number): string {
-  return `${Math.round(Math.max(0, Math.min(100, value)))}%`;
-}
-
-export async function fetchSystemSnapshot(topApps = DEFAULT_TOP_APPS): Promise<SystemSnapshot> {
-  const raw = await tauriInvoke<unknown>('get_system_snapshot', { topApps });
+export async function fetchSystemSnapshot(requestId: string): Promise<SystemSnapshot> {
+  const raw = await tauriInvoke<unknown>('get_system_snapshot', { requestId });
   const snapshot = normalizeSystemSnapshot(raw);
   if (!snapshot) {
-    throw new Error('Resposta de métricas inválida.');
+    throw new Error('A leitura do sistema retornou dados inválidos.');
   }
   return snapshot;
 }
 
-export type SystemMetricsPollingOptions = {
+export async function cancelSystemSnapshot(requestId: string): Promise<void> {
+  await tauriInvoke('cancel_system_snapshot', { requestId });
+}
+
+export type SystemSnapshotLoadControllerOptions = {
+  onLoading: () => void;
   onData: (snapshot: SystemSnapshot) => void;
-  onError?: (message: string) => void;
-  getActive: () => boolean;
-  getPaused: () => boolean;
-  topApps?: number;
+  onError: (message: string) => void;
+  fetcher?: (requestId: string) => Promise<SystemSnapshot>;
+  canceller?: (requestId: string) => Promise<void>;
+  createRequestId?: () => string;
 };
 
-let pollTimer: ReturnType<typeof setInterval> | null = null;
-let pollInFlight = false;
-let pollingActive = false;
-let pollGeneration = 0;
+export function createSystemSnapshotLoadController(options: SystemSnapshotLoadControllerOptions) {
+  const fetcher = options.fetcher ?? fetchSystemSnapshot;
+  const canceller = options.canceller ?? cancelSystemSnapshot;
+  const requestIdFactory = options.createRequestId ?? createSystemRequestId;
+  let requestId: string | null = null;
+  let generation = 0;
+  let disposed = false;
 
-async function pollOnce(options: SystemMetricsPollingOptions, generation: number) {
-  if (
-    generation !== pollGeneration ||
-    !pollingActive ||
-    !options.getActive() ||
-    options.getPaused() ||
-    pollInFlight
-  ) {
-    return;
-  }
-  pollInFlight = true;
-  try {
-    const snapshot = await fetchSystemSnapshot(options.topApps ?? DEFAULT_TOP_APPS);
-    if (
-      generation !== pollGeneration ||
-      !pollingActive ||
-      !options.getActive() ||
-      options.getPaused()
-    ) {
-      return;
-    }
-    options.onData(snapshot);
-  } catch (err) {
-    if (
-      generation !== pollGeneration ||
-      !pollingActive ||
-      !options.getActive() ||
-      options.getPaused()
-    ) {
-      return;
-    }
-    options.onError?.(err instanceof Error ? err.message : String(err));
-  } finally {
-    pollInFlight = false;
-    if (
-      generation !== pollGeneration ||
-      !pollingActive ||
-      !options.getActive() ||
-      options.getPaused()
-    ) {
-      if (pollTimer) {
-        clearInterval(pollTimer);
-        pollTimer = null;
+  async function load(): Promise<void> {
+    cancel();
+    if (disposed) return;
+    const loadGeneration = generation;
+    const nextRequestId = requestIdFactory();
+    requestId = nextRequestId;
+    options.onLoading();
+    try {
+      const snapshot = await fetcher(nextRequestId);
+      if (disposed || generation !== loadGeneration || requestId !== nextRequestId) return;
+      requestId = null;
+      options.onData(snapshot);
+    } catch (error) {
+      if (disposed || generation !== loadGeneration || requestId !== nextRequestId) return;
+      requestId = null;
+      const message = error instanceof Error ? error.message : String(error);
+      if (!message.toLocaleLowerCase().includes('cancel')) {
+        options.onError(message);
       }
     }
   }
-}
 
-export function startSystemMetricsPolling(options: SystemMetricsPollingOptions) {
-  stopSystemMetricsPolling();
-  pollingActive = true;
-  const generation = pollGeneration;
-  void pollOnce(options, generation);
-  pollTimer = setInterval(() => {
-    void pollOnce(options, generation);
-  }, POLL_MS);
-}
-
-export function stopSystemMetricsPolling() {
-  pollingActive = false;
-  pollGeneration += 1;
-  if (pollTimer) {
-    clearInterval(pollTimer);
-    pollTimer = null;
+  function cancel(): void {
+    generation += 1;
+    const activeRequestId = requestId;
+    requestId = null;
+    if (activeRequestId) {
+      void canceller(activeRequestId).catch(() => undefined);
+    }
   }
-  pollInFlight = false;
+
+  function dispose(): void {
+    disposed = true;
+    cancel();
+  }
+
+  return { load, cancel, dispose };
+}
+
+export function formatPercent(value: number | null | undefined): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) return '—';
+  return `${Math.round(Math.max(0, Math.min(100, value)))}%`;
+}
+
+export function formatTemperature(value: number | null | undefined): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) return '—';
+  return `${Math.round(value)} °C`;
+}
+
+export function formatBytes(value: number | null | undefined, precision = 1): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) return '—';
+  const safeValue = Math.max(0, value);
+  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  let unitIndex = 0;
+  let scaled = safeValue;
+  while (scaled >= 1024 && unitIndex < units.length - 1) {
+    scaled /= 1024;
+    unitIndex += 1;
+  }
+  const decimals = scaled >= 100 || unitIndex === 0 ? 0 : precision;
+  return `${scaled.toFixed(decimals)} ${units[unitIndex]}`;
+}
+
+export function formatRate(value: number | null | undefined): string {
+  const formatted = formatBytes(value);
+  return formatted === '—' ? formatted : `${formatted}/s`;
+}
+
+export function formatFrequency(mhz: number): string {
+  if (!Number.isFinite(mhz) || mhz <= 0) return '—';
+  return mhz >= 1000 ? `${(mhz / 1000).toFixed(2)} GHz` : `${Math.round(mhz)} MHz`;
+}
+
+export function formatUptime(seconds: number): string {
+  if (!Number.isFinite(seconds) || seconds < 0) return '—';
+  const totalMinutes = Math.floor(seconds / 60);
+  const days = Math.floor(totalMinutes / 1440);
+  const hours = Math.floor((totalMinutes % 1440) / 60);
+  const minutes = totalMinutes % 60;
+  if (days > 0) return `${days}d ${hours}h ${minutes}min`;
+  if (hours > 0) return `${hours}h ${minutes}min`;
+  return `${minutes}min`;
 }
