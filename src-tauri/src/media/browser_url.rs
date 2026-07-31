@@ -5,7 +5,7 @@ use std::time::{Duration, Instant};
 use uiautomation::types::{TreeScope, UIProperty};
 use uiautomation::variants::Variant;
 use uiautomation::UIAutomation;
-use windows::Win32::Foundation::{BOOL, CloseHandle, HWND, LPARAM};
+use windows::Win32::Foundation::{CloseHandle, BOOL, HWND, LPARAM};
 use windows::Win32::System::Threading::{
     OpenProcess, QueryFullProcessImageNameW, PROCESS_NAME_WIN32, PROCESS_QUERY_LIMITED_INFORMATION,
 };
@@ -282,9 +282,7 @@ fn process_name_for_window(hwnd: HWND) -> Option<String> {
         let _ = CloseHandle(process);
         result.ok()?;
         let path = String::from_utf16_lossy(&buffer[..size as usize]);
-        path.rsplit(['\\', '/'])
-            .next()
-            .map(str::to_string)
+        path.rsplit(['\\', '/']).next().map(str::to_string)
     }
 }
 

@@ -1,3 +1,4 @@
+use crate::radar::models::RadarPreferences;
 use log::{error, info, warn};
 use serde::{Deserialize, Serialize};
 use std::{
@@ -10,7 +11,7 @@ use tauri::{AppHandle, Manager};
 
 pub const STATE_FILE_NAME: &str = "dashboard-state.json";
 pub const CORRUPT_FILE_NAME: &str = "dashboard-state.corrupt.json";
-pub const STATE_VERSION: u8 = 7;
+pub const STATE_VERSION: u8 = 8;
 
 static STATE_WRITE_LOCK: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
 
@@ -28,6 +29,8 @@ pub struct DashboardState {
     pub rates_cache: Option<RatesCache>,
     #[serde(default)]
     pub rates_baseline: Option<RatesBaseline>,
+    #[serde(default)]
+    pub radar_preferences: RadarPreferences,
     #[serde(default)]
     pub ui: UiState,
 }
@@ -104,7 +107,7 @@ pub struct RatesBaseline {
     pub eur: f64,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UiState {
     pub last_viewed_base_date: String,
@@ -136,24 +139,8 @@ impl Default for DashboardState {
             neural_notes: Vec::new(),
             rates_cache: None,
             rates_baseline: None,
+            radar_preferences: RadarPreferences::default(),
             ui: UiState::default(),
-        }
-    }
-}
-
-impl Default for UiState {
-    fn default() -> Self {
-        Self {
-            last_viewed_base_date: String::new(),
-            view_offset_days: 0,
-            calendar_month: None,
-            preferred_monitor: None,
-            files_last_path: None,
-            files_favorites: Vec::new(),
-            files_recents: Vec::new(),
-            theme: None,
-            locale: None,
-            last_neural_note_id: None,
         }
     }
 }
@@ -161,15 +148,13 @@ impl Default for UiState {
 impl DashboardState {
     fn migrate(mut self) -> Self {
         while self.version < STATE_VERSION {
-            match self.version {
-                0 | 1 => {
-                    if self.ui.calendar_month.is_none() && self.ui.last_viewed_base_date.len() >= 7
-                    {
-                        self.ui.calendar_month =
-                            Some(self.ui.last_viewed_base_date[..7].to_string());
-                    }
-                }
-                _ => {}
+            // Versões 0 e 1 não gravavam `calendar_month`; derivamos do
+            // `last_viewed_base_date` quando ele tem pelo menos "YYYY-MM".
+            if matches!(self.version, 0 | 1)
+                && self.ui.calendar_month.is_none()
+                && self.ui.last_viewed_base_date.len() >= 7
+            {
+                self.ui.calendar_month = Some(self.ui.last_viewed_base_date[..7].to_string());
             }
             self.version += 1;
         }
@@ -277,4 +262,44 @@ pub fn save_state(app: AppHandle, mut state: DashboardState) -> Result<(), Strin
 #[tauri::command]
 pub fn get_app_data_path(app: AppHandle) -> Result<String, String> {
     Ok(app_data_directory(&app)?.to_string_lossy().into_owned())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn migrates_v7_without_losing_existing_data() {
+        let raw = r#"{
+          "version": 7,
+          "tasksByDate": {"2026-07-29": [{"id":"t1","text":"Preservar","completed":false,"priority":"medium","pinned":false,"createdAt":"2026-07-29T12:00:00Z","updatedAt":"2026-07-29T12:00:00Z"}]},
+          "calendarEvents": [],
+          "neuralNotes": [],
+          "ratesCache": null,
+          "ratesBaseline": null,
+          "ui": {"lastViewedBaseDate":"2026-07-29","viewOffsetDays":0,"theme":"olive","locale":"pt-BR"}
+        }"#;
+        let state: DashboardState = serde_json::from_str(raw).expect("v7 fixture");
+        let migrated = state.migrate();
+        assert_eq!(migrated.version, STATE_VERSION);
+        assert_eq!(migrated.tasks_by_date["2026-07-29"][0].text, "Preservar");
+        assert_eq!(migrated.radar_preferences, RadarPreferences::default());
+    }
+
+    #[test]
+    fn invalid_radar_preferences_do_not_corrupt_existing_state() {
+        let raw = r#"{
+          "version": 8,
+          "tasksByDate": {"2026-07-29": [{"id":"t1","text":"Preservar","completed":false,"priority":"medium","pinned":false,"createdAt":"2026-07-29T12:00:00Z","updatedAt":"2026-07-29T12:00:00Z"}]},
+          "calendarEvents": [],
+          "neuralNotes": [],
+          "ratesCache": null,
+          "ratesBaseline": null,
+          "radarPreferences": {"location":{"name":"Inválida","country":"Brasil","latitude":200,"longitude":0,"timezone":"UTC"},"enabledCategories":["unknown"]},
+          "ui": {"lastViewedBaseDate":"2026-07-29","viewOffsetDays":0}
+        }"#;
+        let state: DashboardState = serde_json::from_str(raw).expect("state fixture");
+        assert_eq!(state.tasks_by_date["2026-07-29"][0].text, "Preservar");
+        assert_eq!(state.radar_preferences, RadarPreferences::default());
+    }
 }

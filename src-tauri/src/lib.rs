@@ -2,6 +2,7 @@ mod dashboard_state;
 mod media;
 mod metrics;
 mod ollama;
+mod radar;
 
 use dashboard_state::{get_app_data_path, load_state, save_state};
 
@@ -9,6 +10,8 @@ use log::{info, warn};
 use reqwest::blocking::Client;
 use serde::Serialize;
 use serde_json::{json, Value};
+#[cfg(windows)]
+use std::os::windows::process::CommandExt;
 use std::{
     collections::HashSet,
     fs,
@@ -22,8 +25,6 @@ use std::{
     thread,
     time::Duration,
 };
-#[cfg(windows)]
-use std::os::windows::process::CommandExt;
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
@@ -341,11 +342,14 @@ fn start_opencode_server(
                 .lock()
                 .map_err(|_| "Falha ao acessar estado do OpenCode.".to_string())?;
             let Some(server) = guard.as_mut() else {
-                return Err(
-                    "Servidor OpenCode foi interrompido durante o arranque.".to_string(),
-                );
+                return Err("Servidor OpenCode foi interrompido durante o arranque.".to_string());
             };
-            if server.child.try_wait().map_err(|e| e.to_string())?.is_some() {
+            if server
+                .child
+                .try_wait()
+                .map_err(|e| e.to_string())?
+                .is_some()
+            {
                 break;
             }
         }
@@ -794,7 +798,11 @@ fn opencode_post_json_once(
     if body.trim().is_empty() {
         Err(format!("OpenCode retornou HTTP {}", status))
     } else {
-        Err(format!("OpenCode retornou HTTP {}: {}", status, body.trim()))
+        Err(format!(
+            "OpenCode retornou HTTP {}: {}",
+            status,
+            body.trim()
+        ))
     }
 }
 
@@ -830,7 +838,11 @@ fn opencode_post_no_content_once(
     if body.trim().is_empty() {
         Err(format!("OpenCode retornou HTTP {}", status))
     } else {
-        Err(format!("OpenCode retornou HTTP {}: {}", status, body.trim()))
+        Err(format!(
+            "OpenCode retornou HTTP {}: {}",
+            status,
+            body.trim()
+        ))
     }
 }
 
@@ -1242,7 +1254,11 @@ fn resolve_absolute_path(path: &str) -> Result<PathBuf, String> {
     }
 
     std::fs::canonicalize(&candidate).map_err(|e| {
-        format!("Nao foi possivel resolver o caminho \"{}\": {}", path.trim(), e)
+        format!(
+            "Nao foi possivel resolver o caminho \"{}\": {}",
+            path.trim(),
+            e
+        )
     })
 }
 
@@ -1270,7 +1286,11 @@ fn validate_file_path(path: &str) -> Result<PathBuf, String> {
     }
 
     let canonical = std::fs::canonicalize(&candidate).map_err(|e| {
-        format!("Nao foi possivel resolver o caminho \"{}\": {}", path.trim(), e)
+        format!(
+            "Nao foi possivel resolver o caminho \"{}\": {}",
+            path.trim(),
+            e
+        )
     })?;
 
     if !canonical.exists() {
@@ -1308,9 +1328,9 @@ fn read_directory(path: String, include_hidden: Option<bool>) -> Result<Vec<File
         let size_bytes = metadata.as_ref().map(|m| m.len()).unwrap_or(0);
         let modified_at = metadata
             .and_then(|m| m.modified().ok())
-            .and_then(|t| {
+            .map(|t| {
                 let datetime: chrono::DateTime<chrono::Local> = t.into();
-                Some(datetime.format("%d/%m/%Y %H:%M").to_string())
+                datetime.format("%d/%m/%Y %H:%M").to_string()
             })
             .unwrap_or_default();
 
@@ -1446,13 +1466,7 @@ fn get_well_known_folders() -> Result<Vec<WellKnownFolder>, String> {
             ("dev", "Dev", "dev"),
             ("code", "Code", "code"),
         ] {
-            push_well_known_folder(
-                &mut folders,
-                &mut seen,
-                id,
-                label,
-                Some(home.join(segment)),
-            );
+            push_well_known_folder(&mut folders, &mut seen, id, label, Some(home.join(segment)));
         }
     }
 
@@ -1589,7 +1603,7 @@ fn build_tray(app: &AppHandle) -> tauri::Result<()> {
                 ..
             } = event
             {
-                show_main_window(&tray.app_handle());
+                show_main_window(tray.app_handle());
             }
         });
 
@@ -1608,6 +1622,7 @@ pub fn run() {
 
     let app = tauri::Builder::default()
         .manage(RuntimeState::default())
+        .manage(radar::RadarRuntime::new())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
@@ -1676,28 +1691,36 @@ pub fn run() {
             ollama::start_ollama_service,
             ollama::install_ollama_model,
             ollama::ollama_chat_stream,
-            ollama::cancel_ollama_chat
+            ollama::cancel_ollama_chat,
+            radar::load_radar_snapshot,
+            radar::refresh_radar_snapshot,
+            radar::search_radar_locations,
+            radar::get_radar_article_preview,
+            radar::open_radar_article,
+            radar::open_radar_attribution,
+            radar::clear_radar_cache
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application");
 
     app.run(|app, event| match event {
-        RunEvent::WindowEvent { label, event, .. } if label == MAIN_WINDOW_LABEL => match event {
-            WindowEvent::CloseRequested { api, .. } => {
-                let state = app.state::<RuntimeState>();
-                if state.dialog_open.load(Ordering::SeqCst) {
-                    api.prevent_close();
-                    return;
-                }
-                if !state.quitting.load(Ordering::SeqCst) {
-                    api.prevent_close();
-                    hide_main_window(app);
-                } else if let Ok(mut guard) = state.opencode_server.lock() {
-                    stop_opencode_server_locked(&mut guard);
-                }
+        RunEvent::WindowEvent {
+            label,
+            event: WindowEvent::CloseRequested { api, .. },
+            ..
+        } if label == MAIN_WINDOW_LABEL => {
+            let state = app.state::<RuntimeState>();
+            if state.dialog_open.load(Ordering::SeqCst) {
+                api.prevent_close();
+                return;
             }
-            _ => {}
-        },
+            if !state.quitting.load(Ordering::SeqCst) {
+                api.prevent_close();
+                hide_main_window(app);
+            } else if let Ok(mut guard) = state.opencode_server.lock() {
+                stop_opencode_server_locked(&mut guard);
+            }
+        }
         RunEvent::Exit => {
             let state = app.state::<RuntimeState>();
             if let Ok(mut guard) = state.opencode_server.lock() {

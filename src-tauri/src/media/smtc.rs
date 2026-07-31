@@ -39,8 +39,7 @@ static WORKER: OnceLock<SyncSender<Job>> = OnceLock::new();
 /// A deduplicação só omite o base64 quando a faixa ativa é a MESMA e os bytes
 /// são idênticos. Ao trocar de faixa (ex.: alternar entre dois YouTube), a
 /// chave muda e o base64 é sempre reenviado — evitando capa em branco.
-static LAST_SENT_COVER: LazyLock<Mutex<Option<(String, u64)>>> =
-    LazyLock::new(|| Mutex::new(None));
+static LAST_SENT_COVER: LazyLock<Mutex<Option<(String, u64)>>> = LazyLock::new(|| Mutex::new(None));
 
 fn cover_should_omit(track_key: &str, hash: u64) -> bool {
     LAST_SENT_COVER
@@ -126,9 +125,7 @@ where
     match rx.recv_timeout(WORKER_TIMEOUT) {
         Ok(result) => result,
         Err(RecvTimeoutError::Timeout) => Err("Tempo esgotado ao ler a mídia.".to_string()),
-        Err(RecvTimeoutError::Disconnected) => {
-            Err("Sem resposta do serviço de mídia.".to_string())
-        }
+        Err(RecvTimeoutError::Disconnected) => Err("Sem resposta do serviço de mídia.".to_string()),
     }
 }
 
@@ -161,9 +158,11 @@ pub fn skip_previous() -> Result<(), String> {
     })
 }
 
+/// Capa lida da sessão ativa: `(base64, mime, largura, altura)`.
+pub type CoverArtPayload = (Option<String>, Option<String>, Option<u32>, Option<u32>);
+
 /// Lê a capa da sessão ativa para resolução de artwork (sempre com base64).
-pub fn read_cover_art_for_artwork(
-) -> Result<(Option<String>, Option<String>, Option<u32>, Option<u32>), String> {
+pub fn read_cover_art_for_artwork() -> Result<CoverArtPayload, String> {
     run_on_worker(read_cover_art_for_artwork_impl)
 }
 
@@ -204,7 +203,10 @@ fn identity_from_props(
     SessionIdentity {
         title: props.Title().map(|s| s.to_string()).unwrap_or_default(),
         artist: props.Artist().map(|s| s.to_string()).unwrap_or_default(),
-        album: props.AlbumTitle().map(|s| s.to_string()).unwrap_or_default(),
+        album: props
+            .AlbumTitle()
+            .map(|s| s.to_string())
+            .unwrap_or_default(),
         app_id: app_id.to_string(),
     }
 }
@@ -299,7 +301,9 @@ fn session_subscription_key(session: &GlobalSystemMediaTransportControlsSession)
     format!("{app_id}:{:?}", std::ptr::from_ref(session))
 }
 
-fn subscribe_session_events(session: &GlobalSystemMediaTransportControlsSession) -> Result<(), String> {
+fn subscribe_session_events(
+    session: &GlobalSystemMediaTransportControlsSession,
+) -> Result<(), String> {
     let key = session_subscription_key(session);
     if let Ok(mut subscribed) = SUBSCRIBED_SESSIONS.lock() {
         if !subscribed.insert(key) {
@@ -448,10 +452,16 @@ fn select_active(
         return None;
     }
 
-    let pinned_idx =
-        pinned.and_then(|pin| sessions.iter().position(|d| identities_match(&d.identity, pin)));
-    let current_idx = current
-        .and_then(|cur| sessions.iter().position(|d| identities_match(&d.identity, cur)));
+    let pinned_idx = pinned.and_then(|pin| {
+        sessions
+            .iter()
+            .position(|d| identities_match(&d.identity, pin))
+    });
+    let current_idx = current.and_then(|cur| {
+        sessions
+            .iter()
+            .position(|d| identities_match(&d.identity, cur))
+    });
 
     // Índice de uma sessão da mesma app que a fixada, opcionalmente exigindo que
     // esteja a tocar. `app_id` vazio nunca casa (evita agrupar tudo sob "").
@@ -581,11 +591,7 @@ fn friendly_app_name(aumid: &str) -> String {
         return "Tidal".into();
     }
 
-    aumid
-        .split('.')
-        .next()
-        .unwrap_or(aumid)
-        .replace('_', " ")
+    aumid.split('.').next().unwrap_or(aumid).replace('_', " ")
 }
 
 fn read_properties(
@@ -608,8 +614,7 @@ fn detect_image_mime(bytes: &[u8]) -> &'static str {
     }
 }
 
-fn read_cover_art_for_artwork_impl(
-) -> Result<(Option<String>, Option<String>, Option<u32>, Option<u32>), String> {
+fn read_cover_art_for_artwork_impl() -> Result<CoverArtPayload, String> {
     let Some(data) = active_session_data() else {
         return Ok((None, None, None, None));
     };

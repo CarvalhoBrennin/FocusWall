@@ -1,6 +1,7 @@
 import { writable, derived, get } from 'svelte/store';
 import { CONFIG, VIEW, RATE_STATUS, PRIORITY_ORDER, formatters } from '../config.js';
 import { storage } from '../services/storage.js';
+import { enqueueStatePersistence } from '../services/state-persistence.js';
 import { startTimer, stopAllTimers } from '../services/timer.js';
 import { fetchExchangeRates } from '../services/exchange.js';
 import { migrateLegacyFilesLists } from '../services/files.js';
@@ -23,9 +24,11 @@ import {
 } from '../utils/state.js';
 import { ensureAbsolutePath } from '../utils/path.js';
 import { applyTheme } from './theme-store.js';
-import { setLocale } from '../i18n/index.js';
+import { msg, setLocale } from '../i18n/index.js';
 import { rebuildFormatters } from '../config.js';
+import { normalizeRadarCategories, normalizeRadarLocation, normalizeRadarPreferences } from '../utils/radar.js';
 import type { LocaleId, ThemeId, AppState, RateStatus } from '../types/app.js';
+import type { RadarLocation, RadarNewsCategory, RadarPreferences } from '../types/radar.js';
 
 function ensureDateBucket(data, dk) {
   const tbd = { ...data.tasksByDate };
@@ -62,6 +65,16 @@ export function mergePersistedState(state: AppState): AppState {
   };
 }
 
+/**
+ * Publica apenas o domínio confirmado sobre o estado mais recente em memória.
+ * Isso preserva mutações otimistas ocorridas enquanto a gravação assíncrona estava em andamento.
+ */
+export function publishPersistedDomain(mutator: (latest: AppState) => AppState): AppState {
+  const published = mergePersistedState(mutator(get(data)));
+  data.set(published);
+  return published;
+}
+
 /** Rejeita payloads brutos claramente inválidos antes da normalização. */
 export function assertLoadableRawState(raw: unknown): void {
   if (raw == null) return;
@@ -93,19 +106,28 @@ export function resolveBootstrapViewOffset(
 }
 
 /** Define ui.calendarMonth só quando ainda não há mês salvo (não força mês atual). */
-function syncCalendarMonthIfStale(todayDateKey: string) {
+async function syncCalendarMonthIfStale(todayDateKey: string): Promise<void> {
   const currentMonth = normalizeMonthKey(getMonthKeyFromDateKey(todayDateKey));
   if (!currentMonth) return;
 
-  const $data = get(data);
-  const stored = normalizeMonthKey($data.ui?.calendarMonth) || '';
-  if (!stored) {
-    data.set({
-      ...$data,
-      ui: { ...$data.ui, calendarMonth: currentMonth }
+  await enqueueStateMutation(async () => {
+    const current = get(data);
+    const stored = normalizeMonthKey(current.ui?.calendarMonth) || '';
+    if (stored) return;
+    const next = mergePersistedState({
+      ...current,
+      ui: { ...current.ui, calendarMonth: currentMonth }
     });
-    persistStateDebounced();
-  }
+    try {
+      await storage.saveState(next);
+      publishPersistedDomain((latest) => ({
+        ...latest,
+        ui: { ...latest.ui, calendarMonth: currentMonth }
+      }));
+    } catch {
+      setAppStatus('Não foi possível salvar o mês do calendário.', 'error', get(appDataPath));
+    }
+  });
 }
 
 export const currentDateKey = writable(getLocalDateKey(new Date()));
@@ -160,35 +182,32 @@ let ratesInFlight = false;
 let ratesAbortController: AbortController | null = null;
 let saveDebounceId: ReturnType<typeof setTimeout> | null = null;
 let saveGeneration = 0;
-let taskMutationQueue: Promise<void> = Promise.resolve();
 let bootstrapPromise: Promise<void> | null = null;
 let ratesTickCount = 0;
 
 
-function enqueueTaskMutation<T>(operation: () => Promise<T>): Promise<T> {
-  const run = taskMutationQueue.then(operation, operation);
-  taskMutationQueue = run.then(() => undefined, () => undefined);
-  return run;
-}
+const enqueueStateMutation = enqueueStatePersistence;
 
 function buildRateMeta(iso, prefix) {
   const d = new Date(iso);
   return Number.isNaN(d.getTime()) ? prefix + '.' : prefix + ' às ' + formatters.shortTime.format(d) + '.';
 }
 
-async function persistStateImmediate() {
-  const generation = ++saveGeneration;
-  const updated = mergePersistedState(get(data));
-  await storage.saveState(updated);
-  if (generation !== saveGeneration) return;
-  data.set(updated);
+async function persistStateImmediate(generation: number) {
+  await enqueueStateMutation(async () => {
+    const updated = mergePersistedState(get(data));
+    await storage.saveState(updated);
+    if (generation !== saveGeneration) return;
+    data.set(updated);
+  });
 }
 
 export function persistStateDebounced() {
+  const generation = ++saveGeneration;
   if (saveDebounceId) clearTimeout(saveDebounceId);
   saveDebounceId = setTimeout(() => {
     saveDebounceId = null;
-    persistStateImmediate().catch(() => {
+    persistStateImmediate(generation).catch(() => {
       appStatusMessage.set('Não foi possível salvar o estado local.');
       appStatusVariant.set('error');
     });
@@ -209,54 +228,101 @@ export function setViewOffset(offset: number, options: { maxHistoryDays?: number
   persistStateDebounced();
 }
 
-export async function setPreferredMonitorPreference(preferredMonitor: number) {
-  if (!Number.isInteger(preferredMonitor) || preferredMonitor < 0) return false;
-  const $data = get(data);
-  const nextData = mergePersistedState({
-    ...$data,
-    ui: {
-      ...$data.ui,
-      preferredMonitor
+export function setPreferredMonitorPreference(preferredMonitor: number): Promise<boolean> {
+  if (!Number.isInteger(preferredMonitor) || preferredMonitor < 0) return Promise.resolve(false);
+  return enqueueStateMutation(async () => {
+    const current = get(data);
+    const nextData = mergePersistedState({
+      ...current,
+      ui: { ...current.ui, preferredMonitor }
+    });
+    try {
+      await storage.saveState(nextData);
+      publishPersistedDomain((latest) => ({
+        ...latest,
+        ui: { ...latest.ui, preferredMonitor }
+      }));
+      return true;
+    } catch {
+      setAppStatus('Não foi possível salvar a preferência de monitor.', 'error', get(appDataPath));
+      return false;
     }
   });
-
-  try {
-    await storage.saveState(nextData);
-    data.set(nextData);
-    return true;
-  } catch {
-    setAppStatus('Não foi possível salvar a preferência de monitor.', 'error', get(appDataPath));
-    return false;
-  }
 }
 
-export async function setThemePreference(nextTheme: ThemeId) {
-  applyTheme(nextTheme);
-  const $data = get(data);
-  const nextData = mergePersistedState({ ...$data, ui: { ...$data.ui, theme: nextTheme } });
-  try {
-    await storage.saveState(nextData);
-    data.set(nextData);
-    return true;
-  } catch {
-    setAppStatus('Não foi possível salvar o tema.', 'error', get(appDataPath));
-    return false;
-  }
+export function setThemePreference(nextTheme: ThemeId): Promise<boolean> {
+  return enqueueStateMutation(async () => {
+    const current = get(data);
+    const nextData = mergePersistedState({ ...current, ui: { ...current.ui, theme: nextTheme } });
+    applyTheme(nextTheme);
+    try {
+      await storage.saveState(nextData);
+      publishPersistedDomain((latest) => ({
+        ...latest,
+        ui: { ...latest.ui, theme: nextTheme }
+      }));
+      return true;
+    } catch {
+      applyTheme(current.ui.theme);
+      setAppStatus('Não foi possível salvar o tema.', 'error', get(appDataPath));
+      return false;
+    }
+  });
 }
 
-export async function setLocalePreference(nextLocale: LocaleId) {
-  setLocale(nextLocale);
-  rebuildFormatters(nextLocale);
-  const $data = get(data);
-  const nextData = mergePersistedState({ ...$data, ui: { ...$data.ui, locale: nextLocale } });
-  try {
-    await storage.saveState(nextData);
-    data.set(nextData);
-    return true;
-  } catch {
-    setAppStatus('Não foi possível salvar o idioma.', 'error', get(appDataPath));
-    return false;
-  }
+function persistRadarPreferences(
+  mutate: (current: RadarPreferences) => RadarPreferences
+): Promise<boolean> {
+  return enqueueStateMutation(async () => {
+    const currentState = get(data);
+    const normalized = normalizeRadarPreferences(mutate(currentState.radarPreferences));
+    const nextData = mergePersistedState({ ...currentState, radarPreferences: normalized });
+    try {
+      await storage.saveState(nextData);
+      publishPersistedDomain((latest) => ({ ...latest, radarPreferences: normalized }));
+      return true;
+    } catch {
+      setAppStatus(msg('radar.preferencesSaveFailed'), 'error', get(appDataPath));
+      return false;
+    }
+  });
+}
+
+export function setRadarPreferences(next: RadarPreferences): Promise<boolean> {
+  const normalized = normalizeRadarPreferences(next);
+  return persistRadarPreferences(() => normalized);
+}
+
+export function setRadarLocation(location: RadarLocation | null): Promise<boolean> {
+  const normalizedLocation = normalizeRadarLocation(location);
+  return persistRadarPreferences((current) => ({ ...current, location: normalizedLocation }));
+}
+
+export function setRadarCategories(categories: RadarNewsCategory[]): Promise<boolean> {
+  const normalizedCategories = normalizeRadarCategories(categories);
+  return persistRadarPreferences((current) => ({ ...current, enabledCategories: normalizedCategories }));
+}
+
+export function setLocalePreference(nextLocale: LocaleId): Promise<boolean> {
+  return enqueueStateMutation(async () => {
+    const current = get(data);
+    const nextData = mergePersistedState({ ...current, ui: { ...current.ui, locale: nextLocale } });
+    setLocale(nextLocale);
+    rebuildFormatters(nextLocale);
+    try {
+      await storage.saveState(nextData);
+      publishPersistedDomain((latest) => ({
+        ...latest,
+        ui: { ...latest.ui, locale: nextLocale }
+      }));
+      return true;
+    } catch {
+      setLocale(current.ui.locale);
+      rebuildFormatters(current.ui.locale);
+      setAppStatus('Não foi possível salvar o idioma.', 'error', get(appDataPath));
+      return false;
+    }
+  });
 }
 
 export function setClockTime(now: Date) {
@@ -276,23 +342,25 @@ export function exportStateBackup() {
   URL.revokeObjectURL(url);
 }
 
-export async function setFilesLastPath(path: string) {
-  if (typeof path !== 'string' || !path.trim()) return;
+export function setFilesLastPath(path: string): Promise<void> {
+  if (typeof path !== 'string' || !path.trim()) return Promise.resolve();
   const absolute = ensureAbsolutePath(path) || path.trim();
-  const $data = get(data);
-  const nextData = mergePersistedState({
-    ...$data,
-    ui: {
-      ...$data.ui,
-      filesLastPath: absolute
+  return enqueueStateMutation(async () => {
+    const current = get(data);
+    const nextData = mergePersistedState({
+      ...current,
+      ui: { ...current.ui, filesLastPath: absolute }
+    });
+    try {
+      await storage.saveState(nextData);
+      publishPersistedDomain((latest) => ({
+        ...latest,
+        ui: { ...latest.ui, filesLastPath: absolute }
+      }));
+    } catch {
+      setAppStatus('Não foi possível salvar o último diretório.', 'error', get(appDataPath));
     }
   });
-  try {
-    await storage.saveState(nextData);
-    data.set(nextData);
-  } catch {
-    setAppStatus('Não foi possível salvar o último diretório.', 'error', get(appDataPath));
-  }
 }
 
 export function bootstrapApp() {
@@ -319,7 +387,7 @@ export function bootstrapApp() {
       d = pruneHistory(d, $currentDateKey);
       data.set(d);
       migrateLegacyFilesLists();
-      syncCalendarMonthIfStale($currentDateKey);
+      await syncCalendarMonthIfStale($currentDateKey);
       applyTheme(d.ui.theme ?? 'dark');
       const bootLocale = d.ui.locale ?? 'pt-BR';
       setLocale(bootLocale);
@@ -350,7 +418,7 @@ export function bootstrapApp() {
       viewOffsetDays.set(VIEW.TODAY);
       const d = ensureDateBucket(createDefaultState(), $currentDateKey);
       data.set(d);
-      syncCalendarMonthIfStale($currentDateKey);
+      await syncCalendarMonthIfStale($currentDateKey);
       applyTheme(d.ui.theme);
       const bootLocale = d.ui.locale ?? 'pt-BR';
       setLocale(bootLocale);
@@ -413,20 +481,27 @@ export async function updateExchangeRates(options: { force?: boolean; silent?: b
     if (before && Number.isFinite(before.usd) && Number.isFinite(before.eur)) {
       prevRates.set({ usd: before.usd, eur: before.eur });
     }
-    const latest = get(data);
-    const todayBR = getBrazilDateKey(new Date());
-    const currentBaseline = latest.ratesBaseline;
-    const shouldSetBaseline =
-      !currentBaseline || currentBaseline.dayKey !== todayBR;
-    const nextData = mergePersistedState({
-      ...latest,
-      ratesCache: fresh,
-      ratesBaseline: shouldSetBaseline
-        ? { dayKey: todayBR, usd: fresh.usd, eur: fresh.eur }
-        : currentBaseline
+    await enqueueStateMutation(async () => {
+      if (rid !== ratesRequestId) return;
+      const latest = get(data);
+      const todayBR = getBrazilDateKey(new Date());
+      const currentBaseline = latest.ratesBaseline;
+      const shouldSetBaseline = !currentBaseline || currentBaseline.dayKey !== todayBR;
+      const nextData = mergePersistedState({
+        ...latest,
+        ratesCache: fresh,
+        ratesBaseline: shouldSetBaseline
+          ? { dayKey: todayBR, usd: fresh.usd, eur: fresh.eur }
+          : currentBaseline
+      });
+      await storage.saveState(nextData);
+      publishPersistedDomain((current) => ({
+        ...current,
+        ratesCache: nextData.ratesCache,
+        ratesBaseline: nextData.ratesBaseline
+      }));
     });
-    data.set(nextData);
-    await storage.saveState(nextData);
+    if (rid !== ratesRequestId) return;
     ratesCache.set(fresh);
     ratesStatus.set(RATE_STATUS.LIVE);
     ratesMeta.set(buildRateMeta(fresh.updatedAt, 'Atualizado'));
@@ -453,21 +528,34 @@ export function abortRatesFetch() {
 
 export function onDayChange() {
   const next = getLocalDateKey(new Date());
-  const $current = get(currentDateKey);
-  if (next === $current) return;
+  const previous = get(currentDateKey);
+  if (next === previous) return;
 
-  const monthChanged = next.slice(0, 7) !== $current.slice(0, 7);
+  const monthChanged = next.slice(0, 7) !== previous.slice(0, 7);
   currentDateKey.set(next);
   viewOffsetDays.set(VIEW.TODAY);
   editingTaskId.set(null);
-  const $data = get(data);
-  let d = ensureDateBucket($data, next);
-  d = pruneHistory(d, next);
-  data.set(d);
-  if (monthChanged) {
-    syncCalendarMonthIfStale(next);
-  }
-  persistStateDebounced();
+  void enqueueStateMutation(async () => {
+    let nextData = ensureDateBucket(get(data), next);
+    nextData = pruneHistory(nextData, next);
+    if (monthChanged) {
+      const currentMonth = normalizeMonthKey(getMonthKeyFromDateKey(next));
+      if (currentMonth) {
+        nextData = { ...nextData, ui: { ...nextData.ui, calendarMonth: currentMonth } };
+      }
+    }
+    const serialized = mergePersistedState(nextData);
+    try {
+      await storage.saveState(serialized);
+      publishPersistedDomain((latest) => ({
+        ...latest,
+        tasksByDate: serialized.tasksByDate,
+        ui: { ...latest.ui, calendarMonth: serialized.ui.calendarMonth }
+      }));
+    } catch {
+      setAppStatus('Não foi possível atualizar o estado para o novo dia.', 'error', get(appDataPath));
+    }
+  });
 }
 
 export function onFullscreenPause(shouldPause) {
@@ -486,7 +574,7 @@ export function onFullscreenPause(shouldPause) {
  * have to navigate the panel first.
  */
 export function addTask(text, priority, targetDateKey = ''): Promise<string | null> {
-  return enqueueTaskMutation(async () => {
+  return enqueueStateMutation(async () => {
     const t = normalizeTaskText(text);
     if (!t) return null;
 
@@ -515,7 +603,7 @@ export function addTask(text, priority, targetDateKey = ''): Promise<string | nu
 
     try {
       await storage.saveState(nextData);
-      data.set(nextData);
+      publishPersistedDomain((latest) => ({ ...latest, tasksByDate: nextData.tasksByDate }));
       setAppStatus('Tarefa salva localmente.', 'live', get(appDataPath));
       lastAddedTaskId.set(newTask.id);
       setTimeout(() => lastAddedTaskId.update((id) => (id === newTask.id ? null : id)), CONFIG.TASK_HIGHLIGHT_MS);
@@ -528,7 +616,7 @@ export function addTask(text, priority, targetDateKey = ''): Promise<string | nu
 }
 
 export function updateTask(taskId, updater): Promise<boolean> {
-  return enqueueTaskMutation(async () => {
+  return enqueueStateMutation(async () => {
     const $data = get(data);
     const $current = get(currentDateKey);
     const $viewOffset = get(viewOffsetDays);
@@ -548,7 +636,7 @@ export function updateTask(taskId, updater): Promise<boolean> {
     const nextData = mergePersistedState({ ...$data, tasksByDate: { ...$data.tasksByDate, [dk]: next } });
     try {
       await storage.saveState(nextData);
-      data.set(nextData);
+      publishPersistedDomain((latest) => ({ ...latest, tasksByDate: nextData.tasksByDate }));
       return true;
     } catch {
       setAppStatus('Não foi possível atualizar a tarefa.', 'error', get(appDataPath));
@@ -558,7 +646,7 @@ export function updateTask(taskId, updater): Promise<boolean> {
 }
 
 export function updateVisibleTaskList(mutator): Promise<boolean> {
-  return enqueueTaskMutation(async () => {
+  return enqueueStateMutation(async () => {
     const $data = get(data);
     const $current = get(currentDateKey);
     const $viewOffset = get(viewOffsetDays);
@@ -570,7 +658,7 @@ export function updateVisibleTaskList(mutator): Promise<boolean> {
     const nextData = mergePersistedState({ ...$data, tasksByDate: { ...$data.tasksByDate, [dk]: next } });
     try {
       await storage.saveState(nextData);
-      data.set(nextData);
+      publishPersistedDomain((latest) => ({ ...latest, tasksByDate: nextData.tasksByDate }));
       return true;
     } catch {
       setAppStatus('Não foi possível atualizar as tarefas.', 'error', get(appDataPath));
@@ -631,7 +719,7 @@ export async function commitTaskEdit(id, nextText): Promise<boolean> {
 }
 
 export function deleteTask(id, onUndo): Promise<boolean> {
-  return enqueueTaskMutation(async () => {
+  return enqueueStateMutation(async () => {
     const $data = get(data);
     const $current = get(currentDateKey);
     const $viewOffset = get(viewOffsetDays);
@@ -651,10 +739,10 @@ export function deleteTask(id, onUndo): Promise<boolean> {
 
     try {
       await storage.saveState(nextData);
-      data.set(nextData);
+      publishPersistedDomain((latest) => ({ ...latest, tasksByDate: nextData.tasksByDate }));
       if (onUndo) {
         onUndo(() => {
-          enqueueTaskMutation(async () => {
+          enqueueStateMutation(async () => {
             const $d = get(data);
             const current = getTasksByDate($d, dk).map(cloneTask);
             const pc = getPinnedCount(current);
@@ -665,7 +753,7 @@ export function deleteTask(id, onUndo): Promise<boolean> {
             const restored = mergePersistedState({ ...$d, tasksByDate: { ...$d.tasksByDate, [dk]: current } });
             try {
               await storage.saveState(restored);
-              data.set(restored);
+              publishPersistedDomain((latest) => ({ ...latest, tasksByDate: restored.tasksByDate }));
               return true;
             } catch {
               setAppStatus('Não foi possível restaurar a tarefa.', 'error', get(appDataPath));
@@ -688,14 +776,20 @@ export async function clearTodayTasks(onConfirm) {
   const today = getTasksByDate($data, $current);
   if (!today.length) return;
   onConfirm(() => {
-    const latest = get(data);
-    const current = get(currentDateKey);
-    const nextData = mergePersistedState({ ...latest, tasksByDate: { ...latest.tasksByDate, [current]: [] } });
-    storage.saveState(nextData).then(() => {
-      data.set(nextData);
-      editingTaskId.set(null);
-    }).catch(() => {
-      setAppStatus('Não foi possível limpar as tarefas de hoje.', 'error', get(appDataPath));
+    void enqueueStateMutation(async () => {
+      const latest = get(data);
+      const currentDate = get(currentDateKey);
+      const serialized = mergePersistedState({
+        ...latest,
+        tasksByDate: { ...latest.tasksByDate, [currentDate]: [] }
+      });
+      try {
+        await storage.saveState(serialized);
+        publishPersistedDomain((latest) => ({ ...latest, tasksByDate: serialized.tasksByDate }));
+        editingTaskId.set(null);
+      } catch {
+        setAppStatus('Não foi possível limpar as tarefas de hoje.', 'error', get(appDataPath));
+      }
     });
   });
 }

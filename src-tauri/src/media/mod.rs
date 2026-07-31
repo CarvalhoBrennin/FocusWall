@@ -96,11 +96,11 @@ pub fn start_media_events(app: tauri::AppHandle) {
 pub fn build_media_snapshot() -> Result<MediaSnapshot, String> {
     #[cfg(windows)]
     {
-        return smtc::read_media_snapshot();
+        smtc::read_media_snapshot()
     }
     #[cfg(not(windows))]
     {
-        return stub::read_media_snapshot();
+        stub::read_media_snapshot()
     }
 }
 
@@ -116,6 +116,9 @@ fn truncate_media_field(value: String, max_chars: usize) -> String {
     value.chars().take(max_chars).collect()
 }
 
+// Os parâmetros vêm do IPC um a um; agrupá-los em struct mudaria o contrato
+// que o frontend já usa.
+#[allow(clippy::too_many_arguments)]
 #[tauri::command(async)]
 pub async fn get_media_artwork(
     app: tauri::AppHandle,
@@ -184,7 +187,7 @@ pub async fn get_media_artwork(
 pub fn media_toggle_playback() -> Result<bool, String> {
     #[cfg(windows)]
     {
-        return smtc::toggle_playback();
+        smtc::toggle_playback()
     }
     #[cfg(not(windows))]
     {
@@ -196,7 +199,7 @@ pub fn media_toggle_playback() -> Result<bool, String> {
 pub fn media_skip_next() -> Result<(), String> {
     #[cfg(windows)]
     {
-        return smtc::skip_next();
+        smtc::skip_next()
     }
     #[cfg(not(windows))]
     {
@@ -208,7 +211,7 @@ pub fn media_skip_next() -> Result<(), String> {
 pub fn media_skip_previous() -> Result<(), String> {
     #[cfg(windows)]
     {
-        return smtc::skip_previous();
+        smtc::skip_previous()
     }
     #[cfg(not(windows))]
     {

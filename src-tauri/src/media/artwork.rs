@@ -1,8 +1,8 @@
-use image::GenericImageView;
 use super::browser_url;
 use super::web_artwork;
 use super::MediaArtwork;
 use base64::{engine::general_purpose::STANDARD, Engine as _};
+use image::GenericImageView;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
@@ -291,9 +291,7 @@ pub(super) fn is_allowed_remote_image_url(url: &str) -> bool {
         Some(host) => host,
         None => return false,
     };
-    host == "i.ytimg.com"
-        || host.ends_with(".scdn.co")
-        || host.ends_with(".spotifycdn.com")
+    host == "i.ytimg.com" || host.ends_with(".scdn.co") || host.ends_with(".spotifycdn.com")
 }
 
 pub(super) fn fetch_url_bytes(client: &reqwest::blocking::Client, url: &str) -> Option<Vec<u8>> {
@@ -353,7 +351,10 @@ fn fetch_browser_artwork(
     web_artwork::fetch_artwork_for_page_url(client, &page_url)
 }
 
-pub fn resolve_artwork(request: ArtworkRequest<'_>, cache_dir: &Path) -> Result<MediaArtwork, String> {
+pub fn resolve_artwork(
+    request: ArtworkRequest<'_>,
+    cache_dir: &Path,
+) -> Result<MediaArtwork, String> {
     let key = track_key(
         request.artist,
         request.album,
@@ -374,9 +375,14 @@ pub fn resolve_artwork(request: ArtworkRequest<'_>, cache_dir: &Path) -> Result<
         return Ok(to_media_artwork(cached));
     }
 
-    let smtc_artwork = request
-        .smtc_base64
-        .and_then(|b64| artwork_from_smtc(b64, request.smtc_mime, request.smtc_width, request.smtc_height));
+    let smtc_artwork = request.smtc_base64.and_then(|b64| {
+        artwork_from_smtc(
+            b64,
+            request.smtc_mime,
+            request.smtc_width,
+            request.smtc_height,
+        )
+    });
 
     if let Some(ref smtc) = smtc_artwork {
         if !smtc.low_res {

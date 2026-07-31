@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { normalizeRadarPreferences } from './radar.js';
 import {
   normalizeState,
   normalizeTaskText,
@@ -17,6 +18,8 @@ describe('state utils', () => {
     expect(state.ui.filesRecents).toEqual([]);
     expect(state.neuralNotes).toEqual([]);
     expect(state.ui.lastNeuralNoteId).toBeNull();
+    expect(state.version).toBe(8);
+    expect(state.radarPreferences).toEqual(normalizeRadarPreferences(null));
   });
 
   it('preserves and normalizes calendar event recurrence', () => {
@@ -41,7 +44,7 @@ describe('state utils', () => {
       ]
     });
 
-    expect(state.version).toBe(7);
+    expect(state.version).toBe(8);
     expect(state.calendarEvents[0]?.recurrence).toBe('yearly');
     expect(state.calendarEvents[1]?.recurrence).toBe('none');
   });
@@ -61,6 +64,19 @@ describe('state utils', () => {
     expect(state.neuralNotes).toHaveLength(1);
     expect(state.neuralNotes[0]?.title).toBe('Mapa Mental');
     expect(state.neuralNotes[0]?.content).toBe('Ver [[Projeto Alpha]].');
+  });
+
+
+  it('migrates v7 state and preserves existing data while adding Radar defaults', () => {
+    const state = normalizeState({
+      version: 7,
+      tasksByDate: { '2026-07-29': [{ id: 't1', text: 'Preservar', completed: false, pinned: false, priority: 'medium', createdAt: '2026-07-29T12:00:00Z', updatedAt: '2026-07-29T12:00:00Z' }] },
+      calendarEvents: [], neuralNotes: [], ui: { theme: 'olive', locale: 'en-US' }
+    });
+    expect(state.version).toBe(8);
+    expect(state.tasksByDate['2026-07-29']?.[0]?.text).toBe('Preservar');
+    expect(state.ui.theme).toBe('olive');
+    expect(state.radarPreferences).toEqual(normalizeRadarPreferences(null));
   });
 
   it('trims and limits task text', () => {

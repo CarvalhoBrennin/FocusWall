@@ -11,7 +11,8 @@ export function trapFocus(container: HTMLElement, options: FocusTrapOptions = {}
 
   function getFocusable() {
     return [...container.querySelectorAll(FOCUSABLE)].filter(
-      (el): el is HTMLElement => el instanceof HTMLElement && el.offsetParent !== null
+      (el): el is HTMLElement =>
+        el instanceof HTMLElement && el.getClientRects().length > 0 && getComputedStyle(el).visibility !== 'hidden'
     );
   }
 
@@ -21,11 +22,13 @@ export function trapFocus(container: HTMLElement, options: FocusTrapOptions = {}
       options.initialFocus && focusable.includes(options.initialFocus)
         ? options.initialFocus
         : focusable[0];
-    target?.focus();
+    (target ?? container).focus();
   }
 
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === 'Escape') {
+      e.preventDefault();
+      e.stopPropagation();
       options.onEscape?.();
       return;
     }
@@ -53,11 +56,16 @@ export function trapFocus(container: HTMLElement, options: FocusTrapOptions = {}
     }
   }
 
-  requestAnimationFrame(() => focusFirst());
+  const focusFrame = requestAnimationFrame(() => focusFirst());
   container.addEventListener('keydown', handleKeydown);
 
   return () => {
+    cancelAnimationFrame(focusFrame);
     container.removeEventListener('keydown', handleKeydown);
-    previousFocus?.focus();
+    if (previousFocus?.isConnected) {
+      requestAnimationFrame(() => {
+        if (previousFocus.isConnected && !previousFocus.closest('[inert]')) previousFocus.focus();
+      });
+    }
   };
 }

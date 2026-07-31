@@ -95,7 +95,8 @@ fn health_client() -> Result<BlockingClient, String> {
 }
 
 fn validate_local_base_url(value: &str) -> Result<String, String> {
-    let mut url = Url::parse(value.trim()).map_err(|_| "URL local do Ollama invalida.".to_string())?;
+    let mut url =
+        Url::parse(value.trim()).map_err(|_| "URL local do Ollama invalida.".to_string())?;
     if url.scheme() != "http" {
         return Err("A URL do Ollama deve usar HTTP local.".to_string());
     }
@@ -103,7 +104,11 @@ fn validate_local_base_url(value: &str) -> Result<String, String> {
     if !matches!(host.as_str(), "localhost" | "127.0.0.1" | "::1") {
         return Err("A URL do Ollama deve apontar apenas para localhost.".to_string());
     }
-    if !url.username().is_empty() || url.password().is_some() || url.query().is_some() || url.fragment().is_some() {
+    if !url.username().is_empty()
+        || url.password().is_some()
+        || url.query().is_some()
+        || url.fragment().is_some()
+    {
         return Err("A URL do Ollama contem componentes nao permitidos.".to_string());
     }
     if url.path() != "/" && !url.path().is_empty() {
@@ -213,7 +218,9 @@ fn run_ollama_pull(model: &str) -> Result<(), String> {
         command.creation_flags(CREATE_NO_WINDOW);
         match command.status() {
             Ok(status) if status.success() => return Ok(()),
-            Ok(status) => last_error = format!("{} saiu com codigo {}", candidate.display(), status),
+            Ok(status) => {
+                last_error = format!("{} saiu com codigo {}", candidate.display(), status)
+            }
             Err(error) => last_error = format!("{}: {error}", candidate.display()),
         }
     }
@@ -365,7 +372,10 @@ pub async fn start_ollama_service(base_url: Option<String>) -> OllamaStartResult
 }
 
 #[tauri::command]
-pub async fn install_ollama_model(model: String, base_url: Option<String>) -> OllamaModelInstallResult {
+pub async fn install_ollama_model(
+    model: String,
+    base_url: Option<String>,
+) -> OllamaModelInstallResult {
     tauri::async_runtime::spawn_blocking(move || {
         let model = match validate_model_name(&model) {
             Ok(model) => model,
@@ -448,7 +458,8 @@ fn validate_chat_body(body: &str) -> Result<(), String> {
     if body.len() > MAX_REQUEST_BYTES {
         return Err("Payload do Ollama excede o limite permitido.".to_string());
     }
-    let parsed: Value = serde_json::from_str(body).map_err(|_| "Payload JSON do Ollama invalido.".to_string())?;
+    let parsed: Value =
+        serde_json::from_str(body).map_err(|_| "Payload JSON do Ollama invalido.".to_string())?;
     if !parsed.is_object() {
         return Err("Payload do Ollama deve ser um objeto JSON.".to_string());
     }
@@ -456,7 +467,8 @@ fn validate_chat_body(body: &str) -> Result<(), String> {
 }
 
 fn parse_done_line(line: &str) -> Result<bool, String> {
-    let value: Value = serde_json::from_str(line).map_err(|_| "Ollama enviou JSON invalido.".to_string())?;
+    let value: Value =
+        serde_json::from_str(line).map_err(|_| "Ollama enviou JSON invalido.".to_string())?;
     if !value.is_object() {
         return Err("Ollama enviou um chunk invalido.".to_string());
     }
@@ -575,7 +587,9 @@ async fn perform_chat_stream(
 #[tauri::command]
 pub async fn cancel_ollama_chat(request_id: String) -> bool {
     let sender = { cancellations().lock().await.get(&request_id).cloned() };
-    sender.map(|entry| entry.send(true).is_ok()).unwrap_or(false)
+    sender
+        .map(|entry| entry.send(true).is_ok())
+        .unwrap_or(false)
 }
 
 #[tauri::command]
@@ -590,8 +604,10 @@ pub async fn ollama_chat_stream(
     validate_request_id(&request_id)?;
     validate_chat_body(&body)?;
     let candidates = normalize_base_urls(base_url)?;
-    let idle_timeout = Duration::from_millis(idle_timeout_ms.unwrap_or(60_000).clamp(1_000, 300_000));
-    let request_timeout = Duration::from_millis(request_timeout_ms.unwrap_or(180_000).clamp(5_000, 900_000));
+    let idle_timeout =
+        Duration::from_millis(idle_timeout_ms.unwrap_or(60_000).clamp(1_000, 300_000));
+    let request_timeout =
+        Duration::from_millis(request_timeout_ms.unwrap_or(180_000).clamp(5_000, 900_000));
     let (cancel_tx, mut cancel_rx) = watch::channel(false);
     {
         let mut active = cancellations().lock().await;
@@ -620,7 +636,10 @@ mod tests {
 
     #[test]
     fn accepts_only_local_http_base_urls() {
-        assert_eq!(validate_local_base_url("http://127.0.0.1:11434/").unwrap(), DEFAULT_BASE_URL);
+        assert_eq!(
+            validate_local_base_url("http://127.0.0.1:11434/").unwrap(),
+            DEFAULT_BASE_URL
+        );
         assert!(validate_local_base_url("https://127.0.0.1:11434").is_err());
         assert!(validate_local_base_url("http://example.com:11434").is_err());
         assert!(validate_local_base_url("http://localhost:11434/api").is_err());

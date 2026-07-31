@@ -127,3 +127,20 @@ Ver [CHANGELOG.md](CHANGELOG.md).
 ## Deploy
 
 Guia resumido: [docs/DEPLOY.md](docs/DEPLOY.md)
+
+## Aba Radar
+
+A aba **Radar** agrega condições meteorológicas e notícias de tecnologia/desenvolvimento em uma superfície única. No desktop, todas as chamadas externas são executadas pelo backend Rust; o frontend Svelte recebe somente modelos normalizados e não processa XML ou HTML remoto.
+
+- Clima e busca de cidades: Open-Meteo.
+- Notícias: GitHub Blog e Hacker News via RSS/Atom, processados no Rust por parser XML streaming com limites defensivos.
+- Preferências persistidas no estado principal: cidade selecionada e categorias habilitadas.
+- Cache operacional separado: `radar-cache.json`, não incluído no backup funcional.
+- A cidade e as coordenadas aproximadas permanecem no armazenamento local, mas a consulta meteorológica envia as coordenadas ao provider e a busca envia o texto somente após ação do usuário.
+- O preview web usa dados fictícios identificados e não consulta os providers.
+
+Os dados meteorológicos exigem atribuição ao Open-Meteo. A API gratuita possui condições específicas para uso não comercial; distribuições comerciais devem usar uma licença/plano apropriado ou substituir o provider na camada `src-tauri/src/radar/weather.rs`.
+
+### Build desta revisão
+
+Este pacote é distribuído como código-fonte. Binários Windows antigos foram removidos para evitar divergência entre fonte e executável. Gere um novo release com `npm ci`, validações frontend/Rust e `npm run tauri:build:installer`. O relatório detalhado das correções e limitações do ambiente está em [`RADAR_IMPLEMENTATION_REPORT.md`](RADAR_IMPLEMENTATION_REPORT.md).

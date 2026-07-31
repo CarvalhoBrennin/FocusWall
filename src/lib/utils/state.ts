@@ -1,6 +1,7 @@
 import { CONFIG, PRIORITY } from '../config.js';
 import type { AppState } from '../types/app.js';
 import { normalizeNeuralNotes } from './neural.js';
+import { normalizeRadarPreferences } from './radar.js';
 
 export function createDefaultState(): AppState {
   return {
@@ -10,6 +11,7 @@ export function createDefaultState(): AppState {
     neuralNotes: [],
     ratesCache: null,
     ratesBaseline: null,
+    radarPreferences: normalizeRadarPreferences(null),
     ui: {
       lastViewedBaseDate: '',
       viewOffsetDays: 0,
@@ -43,6 +45,7 @@ export function normalizeState(candidate) {
     neuralNotes: normalizeNeuralNotes(candidate.neuralNotes),
     ratesCache: normalizeRatesCache(candidate.ratesCache),
     ratesBaseline: normalizeRatesBaseline(candidate.ratesBaseline),
+    radarPreferences: normalizeRadarPreferences(candidate.radarPreferences),
     ui: {
       lastViewedBaseDate: typeof candidate.ui?.lastViewedBaseDate === 'string' ? candidate.ui.lastViewedBaseDate : '',
       viewOffsetDays: Number.isInteger(candidate.ui?.viewOffsetDays) ? candidate.ui.viewOffsetDays : 0,

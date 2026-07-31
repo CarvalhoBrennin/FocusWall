@@ -9,12 +9,14 @@
     ASSISTANT_TAB_ENABLED,
     NEURAL_TAB_ENABLED,
     OPENCODE_TAB_ENABLED,
+    RADAR_TAB_ENABLED,
     VIVARIUM_ENABLED
   } from '../features.js';
 
   let calendarMounted = $state(false);
   let filesMounted = $state(false);
   let mediaMounted = $state(false);
+  let radarMounted = $state(false);
   let assistantMounted = $state(false);
   let opencodeMounted = $state(false);
   let neuralMounted = $state(false);
@@ -24,6 +26,7 @@
   let FilesPanel = $state(null);
   let SystemPanel = $state(null);
   let MediaPanel = $state(null);
+  let RadarPanel = $state(null);
   let AssistantPanel = $state(null);
   let OpenCodePanel = $state(null);
   let NeuralPanel = $state(null);
@@ -52,6 +55,16 @@
       if (!SystemPanel) {
         import('./system/SystemPanel.svelte').then((mod) => {
           SystemPanel = mod.default;
+        });
+      }
+    }
+
+
+    if (RADAR_TAB_ENABLED && $panelTab === 'radar') {
+      radarMounted = true;
+      if (!RadarPanel) {
+        import('./radar/RadarPanel.svelte').then((mod) => {
+          RadarPanel = mod.default;
         });
       }
     }
@@ -177,6 +190,21 @@
           {:else}
             <SystemSkeleton />
           {/if}
+        </div>
+      {/if}
+
+
+      {#if RADAR_TAB_ENABLED && radarMounted && RadarPanel}
+        <div
+          id="radar-panel"
+          class="panel-view"
+          class:is-active={$panelTab === 'radar'}
+          role="tabpanel"
+          aria-labelledby="radar-tab"
+          tabindex={$panelTab === 'radar' ? 0 : -1}
+          aria-hidden={$panelTab !== 'radar'}
+        >
+          <RadarPanel active={$panelTab === 'radar'} />
         </div>
       {/if}
 

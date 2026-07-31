@@ -42,4 +42,12 @@ commands.allow = [
   "install_ollama_model",
   "ollama_chat_stream",
   "cancel_ollama_chat",
+  "load_radar_snapshot",
+  "refresh_radar_snapshot",
+  "search_radar_locations",
+  # Abertura externa é feita por ID opaco; o frontend nunca envia URL.
+  "get_radar_article_preview",
+  "open_radar_article",
+  "open_radar_attribution",
+  "clear_radar_cache",
 ]

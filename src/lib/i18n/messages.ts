@@ -56,6 +56,106 @@ export type MessageKey =
   | 'tasks.nextDay'
   | 'tasks.desktop'
   | 'tasks.performance'
+  | 'tasks.radar'
+  | 'tasks.currentContext'
+  | 'radar.panelLabel'
+  | 'radar.refresh'
+  | 'radar.refreshing'
+  | 'radar.updatedAt'
+  | 'radar.cachedAt'
+  | 'radar.stale'
+  | 'radar.partial'
+  | 'radar.fixture'
+  | 'radar.weather'
+  | 'radar.news'
+  | 'radar.location'
+  | 'radar.changeLocation'
+  | 'radar.removeLocation'
+  | 'radar.locationRequiredTitle'
+  | 'radar.locationRequiredBody'
+  | 'radar.locationSearchLabel'
+  | 'radar.locationSearchPlaceholder'
+  | 'radar.locationSearchEmpty'
+  | 'radar.locationSearchError'
+  | 'radar.temperature'
+  | 'radar.feelsLike'
+  | 'radar.humidity'
+  | 'radar.precipitation'
+  | 'radar.wind'
+  | 'radar.minimum'
+  | 'radar.maximum'
+  | 'radar.nextHours'
+  | 'radar.category.all'
+  | 'radar.category.brasil'
+  | 'radar.category.technology'
+  | 'radar.category.development'
+  | 'radar.category.security'
+  | 'radar.category.business'
+  | 'radar.category.science'
+  | 'radar.category.world'
+  | 'radar.relatedCount'
+  | 'radar.previewLoading'
+  | 'radar.previewError'
+  | 'radar.closePreview'
+  | 'radar.openInBrowser'
+  | 'radar.openUnavailable'
+  | 'radar.relatedArticles'
+  | 'radar.sevenDays'
+  | 'radar.estimateBadge'
+  | 'radar.alerts'
+  | 'radar.alert.heavyRain'
+  | 'radar.alert.storm'
+  | 'radar.alert.strongWind'
+  | 'radar.alert.highHeat'
+  | 'radar.alert.intenseCold'
+  | 'radar.alert.lowHumidity'
+  | 'radar.alert.veryHighUv'
+  | 'radar.newsEmpty'
+  | 'radar.newsUnavailable'
+  | 'radar.weatherUnavailable'
+  | 'radar.usingCachedData'
+  | 'radar.openArticle'
+  | 'radar.openArticleError'
+  | 'radar.source'
+  | 'radar.attributionWeather'
+  | 'radar.attributionNews'
+  | 'radar.relative.now'
+  | 'radar.relative.minutes'
+  | 'radar.relative.hours'
+  | 'radar.relative.days'
+  | 'radar.condition.clear'
+  | 'radar.condition.mainlyClear'
+  | 'radar.condition.partlyCloudy'
+  | 'radar.condition.overcast'
+  | 'radar.condition.fog'
+  | 'radar.condition.drizzle'
+  | 'radar.condition.rain'
+  | 'radar.condition.snow'
+  | 'radar.condition.showers'
+  | 'radar.condition.thunderstorm'
+  | 'radar.condition.unknown'
+  | 'radar.loadFailed'
+  | 'radar.refreshFailed'
+  | 'radar.openFailed'
+  | 'radar.statusReady'
+  | 'radar.statusLoading'
+  | 'radar.statusError'
+  | 'radar.locationResults'
+  | 'radar.closeLocation'
+  | 'radar.retry'
+  | 'radar.noPublishedDate'
+  | 'radar.preferencesSaveFailed'
+  | 'radar.refreshFailedUsingCache'
+  | 'radar.refreshCooldown'
+  | 'radar.refreshCooldownUntil'
+  | 'radar.locationSaveError'
+  | 'radar.locationResultsCount'
+  | 'radar.enabledCategories'
+  | 'radar.categorySaveError'
+  | 'radar.partialSourceWarning'
+  | 'radar.cacheWriteFailed'
+  | 'radar.cacheReadFailed'
+  | 'radar.refreshFailedNoData'
   | 'system.loading'
   | 'system.desktopOnly'
   | 'system.paused'
@@ -355,6 +455,106 @@ const messages: Record<LocaleId, Record<MessageKey, string>> = {
     'tasks.nextDay': 'Dia seguinte',
     'tasks.desktop': 'Desktop',
     'tasks.performance': 'Desempenho',
+    'tasks.radar': 'Radar',
+    'tasks.currentContext': 'Contexto atual',
+    'radar.panelLabel': 'Radar de contexto atual',
+    'radar.refresh': 'Atualizar',
+    'radar.refreshing': 'Atualizando...',
+    'radar.updatedAt': 'Atualizado {time}',
+    'radar.cachedAt': 'Cache de {time}',
+    'radar.stale': 'Dados desatualizados',
+    'radar.partial': 'Dados parcialmente disponíveis',
+    'radar.fixture': 'Modo demonstração: dados fictícios, sem acesso aos provedores.',
+    'radar.weather': 'Clima',
+    'radar.news': 'Notícias',
+    'radar.location': 'Localização',
+    'radar.changeLocation': 'Alterar localização',
+    'radar.removeLocation': 'Remover localização',
+    'radar.locationRequiredTitle': 'Escolha uma cidade',
+    'radar.locationRequiredBody': 'Selecione uma localização para consultar o clima. As notícias continuam disponíveis.',
+    'radar.locationSearchLabel': 'Pesquisar cidade',
+    'radar.locationSearchPlaceholder': 'Digite ao menos 2 caracteres',
+    'radar.locationSearchEmpty': 'Nenhuma localização encontrada.',
+    'radar.locationSearchError': 'Não foi possível pesquisar localizações.',
+    'radar.temperature': 'Temperatura',
+    'radar.feelsLike': 'Sensação',
+    'radar.humidity': 'Umidade',
+    'radar.precipitation': 'Chuva',
+    'radar.wind': 'Vento',
+    'radar.minimum': 'Mín.',
+    'radar.maximum': 'Máx.',
+    'radar.nextHours': 'Próximas horas',
+    'radar.category.all': 'Tudo',
+    'radar.category.brasil': 'Brasil',
+    'radar.category.technology': 'Tecnologia',
+    'radar.category.development': 'Desenvolvimento',
+    'radar.category.security': 'Seguranca',
+    'radar.category.business': 'Economia',
+    'radar.category.science': 'Ciencia',
+    'radar.category.world': 'Mundo',
+    'radar.relatedCount': '{count} relacionadas',
+    'radar.previewLoading': 'Carregando materia...',
+    'radar.previewError': 'Nao foi possivel carregar esta materia.',
+    'radar.closePreview': 'Fechar',
+    'radar.openInBrowser': 'Abrir materia completa no navegador',
+    'radar.openUnavailable': 'Esta materia nao pode ser aberta externamente.',
+    'radar.relatedArticles': 'Relacionadas',
+    'radar.sevenDays': 'Proximos 7 dias',
+    'radar.estimateBadge': 'Estimativa meteorologica',
+    'radar.alerts': 'Sinalizacoes',
+    'radar.alert.heavyRain': 'Chuva intensa prevista',
+    'radar.alert.storm': 'Alta probabilidade de tempestade',
+    'radar.alert.strongWind': 'Vento forte',
+    'radar.alert.highHeat': 'Calor elevado',
+    'radar.alert.intenseCold': 'Frio intenso',
+    'radar.alert.lowHumidity': 'Umidade baixa',
+    'radar.alert.veryHighUv': 'UV muito alto',
+    'radar.newsEmpty': 'Nenhuma notícia disponível nesta categoria.',
+    'radar.newsUnavailable': 'As notícias estão indisponíveis no momento.',
+    'radar.weatherUnavailable': 'O clima está indisponível no momento.',
+    'radar.usingCachedData': 'Exibindo dados em cache.',
+    'radar.openArticle': 'Abrir notícia no navegador padrão',
+    'radar.openArticleError': 'Não foi possível abrir o conteúdo externo.',
+    'radar.source': 'Fonte',
+    'radar.attributionWeather': 'Dados meteorológicos por Open-Meteo',
+    'radar.attributionNews': 'Notícias de Agência Brasil, InfoQ Brasil, BrazilJS, CERT.br, TabNews, Tecnoblog e GitHub Blog',
+    'radar.relative.now': 'agora',
+    'radar.relative.minutes': 'há {count} min',
+    'radar.relative.hours': 'há {count} h',
+    'radar.relative.days': 'há {count} d',
+    'radar.condition.clear': 'Céu limpo',
+    'radar.condition.mainlyClear': 'Predominantemente limpo',
+    'radar.condition.partlyCloudy': 'Parcialmente nublado',
+    'radar.condition.overcast': 'Nublado',
+    'radar.condition.fog': 'Neblina',
+    'radar.condition.drizzle': 'Garoa',
+    'radar.condition.rain': 'Chuva',
+    'radar.condition.snow': 'Neve',
+    'radar.condition.showers': 'Pancadas de chuva',
+    'radar.condition.thunderstorm': 'Trovoadas',
+    'radar.condition.unknown': 'Condição desconhecida',
+    'radar.loadFailed': 'Não foi possível carregar o cache do Radar.',
+    'radar.refreshFailed': 'Não foi possível atualizar o Radar.',
+    'radar.openFailed': 'Não foi possível abrir a notícia.',
+    'radar.statusReady': 'Dados atualizados',
+    'radar.statusLoading': 'Carregando dados do Radar...',
+    'radar.statusError': 'Dados indisponíveis',
+    'radar.locationResults': 'Resultados de localização',
+    'radar.closeLocation': 'Fechar seleção de localização',
+    'radar.retry': 'Tentar novamente',
+    'radar.noPublishedDate': 'Data não informada',
+    'radar.preferencesSaveFailed': 'Não foi possível salvar as preferências do Radar.',
+    'radar.refreshFailedUsingCache': 'A atualização falhou. Os dados anteriores continuam visíveis.',
+    'radar.refreshCooldown': 'A atualização manual estará disponível novamente em instantes.',
+    'radar.refreshCooldownUntil': 'Atualização manual disponível novamente às {time}.',
+    'radar.locationSaveError': 'Não foi possível salvar a localização.',
+    'radar.locationResultsCount': '{count} localizações encontradas.',
+    'radar.enabledCategories': 'Categorias ativas',
+    'radar.categorySaveError': 'Não foi possível salvar as categorias.',
+    'radar.partialSourceWarning': 'Uma ou mais fontes de notícias estão temporariamente indisponíveis.',
+    'radar.cacheWriteFailed': 'Os dados foram atualizados, mas não puderam ser gravados no cache local.',
+    'radar.cacheReadFailed': 'O cache local não pôde ser lido. Os dados disponíveis podem não incluir o conteúdo anterior.',
+    'radar.refreshFailedNoData': 'Não foi possível carregar dados do Radar.',
     'system.loading': 'Coletando um novo retrato do sistema...',
     'system.desktopOnly': 'As métricas do sistema estão disponíveis apenas no aplicativo desktop.',
     'system.paused': 'Coleta pausada',
@@ -656,6 +856,106 @@ const messages: Record<LocaleId, Record<MessageKey, string>> = {
     'tasks.nextDay': 'Next day',
     'tasks.desktop': 'Desktop',
     'tasks.performance': 'Performance',
+    'tasks.radar': 'Radar',
+    'tasks.currentContext': 'Current context',
+    'radar.panelLabel': 'Current context radar',
+    'radar.refresh': 'Refresh',
+    'radar.refreshing': 'Refreshing...',
+    'radar.updatedAt': 'Updated {time}',
+    'radar.cachedAt': 'Cached {time}',
+    'radar.stale': 'Outdated data',
+    'radar.partial': 'Partially available data',
+    'radar.fixture': 'Demo mode: fictional data, no provider access.',
+    'radar.weather': 'Weather',
+    'radar.news': 'News',
+    'radar.location': 'Location',
+    'radar.changeLocation': 'Change location',
+    'radar.removeLocation': 'Remove location',
+    'radar.locationRequiredTitle': 'Choose a city',
+    'radar.locationRequiredBody': 'Select a location to load weather. News remains available.',
+    'radar.locationSearchLabel': 'Search city',
+    'radar.locationSearchPlaceholder': 'Enter at least 2 characters',
+    'radar.locationSearchEmpty': 'No locations found.',
+    'radar.locationSearchError': 'Locations could not be searched.',
+    'radar.temperature': 'Temperature',
+    'radar.feelsLike': 'Feels like',
+    'radar.humidity': 'Humidity',
+    'radar.precipitation': 'Rain',
+    'radar.wind': 'Wind',
+    'radar.minimum': 'Min.',
+    'radar.maximum': 'Max.',
+    'radar.nextHours': 'Next hours',
+    'radar.category.all': 'All',
+    'radar.category.brasil': 'Brazil',
+    'radar.category.technology': 'Technology',
+    'radar.category.development': 'Development',
+    'radar.category.security': 'Security',
+    'radar.category.business': 'Business',
+    'radar.category.science': 'Science',
+    'radar.category.world': 'World',
+    'radar.relatedCount': '{count} related',
+    'radar.previewLoading': 'Loading article...',
+    'radar.previewError': 'This article could not be loaded.',
+    'radar.closePreview': 'Close',
+    'radar.openInBrowser': 'Open full article in browser',
+    'radar.openUnavailable': 'This article cannot be opened externally.',
+    'radar.relatedArticles': 'Related',
+    'radar.sevenDays': 'Next 7 days',
+    'radar.estimateBadge': 'Weather estimate',
+    'radar.alerts': 'Signals',
+    'radar.alert.heavyRain': 'Heavy rain expected',
+    'radar.alert.storm': 'High storm probability',
+    'radar.alert.strongWind': 'Strong wind',
+    'radar.alert.highHeat': 'High heat',
+    'radar.alert.intenseCold': 'Intense cold',
+    'radar.alert.lowHumidity': 'Low humidity',
+    'radar.alert.veryHighUv': 'Very high UV',
+    'radar.newsEmpty': 'No news is available for this category.',
+    'radar.newsUnavailable': 'News is currently unavailable.',
+    'radar.weatherUnavailable': 'Weather is currently unavailable.',
+    'radar.usingCachedData': 'Showing cached data.',
+    'radar.openArticle': 'Open article in the default browser',
+    'radar.openArticleError': 'The external content could not be opened.',
+    'radar.source': 'Source',
+    'radar.attributionWeather': 'Weather data by Open-Meteo',
+    'radar.attributionNews': 'News from Agência Brasil, InfoQ Brasil, BrazilJS, CERT.br, TabNews, Tecnoblog and GitHub Blog',
+    'radar.relative.now': 'now',
+    'radar.relative.minutes': '{count} min ago',
+    'radar.relative.hours': '{count} h ago',
+    'radar.relative.days': '{count} d ago',
+    'radar.condition.clear': 'Clear sky',
+    'radar.condition.mainlyClear': 'Mainly clear',
+    'radar.condition.partlyCloudy': 'Partly cloudy',
+    'radar.condition.overcast': 'Overcast',
+    'radar.condition.fog': 'Fog',
+    'radar.condition.drizzle': 'Drizzle',
+    'radar.condition.rain': 'Rain',
+    'radar.condition.snow': 'Snow',
+    'radar.condition.showers': 'Rain showers',
+    'radar.condition.thunderstorm': 'Thunderstorm',
+    'radar.condition.unknown': 'Unknown condition',
+    'radar.loadFailed': 'Radar cache could not be loaded.',
+    'radar.refreshFailed': 'Radar could not be refreshed.',
+    'radar.openFailed': 'The article could not be opened.',
+    'radar.statusReady': 'Data is up to date',
+    'radar.statusLoading': 'Loading Radar data...',
+    'radar.statusError': 'Data unavailable',
+    'radar.locationResults': 'Location results',
+    'radar.closeLocation': 'Close location picker',
+    'radar.retry': 'Try again',
+    'radar.noPublishedDate': 'Date unavailable',
+    'radar.preferencesSaveFailed': 'Radar preferences could not be saved.',
+    'radar.refreshFailedUsingCache': 'The refresh failed. Previous data remains visible.',
+    'radar.refreshCooldown': 'Manual refresh will be available again shortly.',
+    'radar.refreshCooldownUntil': 'Manual refresh available again at {time}.',
+    'radar.locationSaveError': 'The location could not be saved.',
+    'radar.locationResultsCount': '{count} locations found.',
+    'radar.enabledCategories': 'Active categories',
+    'radar.categorySaveError': 'Categories could not be saved.',
+    'radar.partialSourceWarning': 'One or more news sources are temporarily unavailable.',
+    'radar.cacheWriteFailed': 'Data was refreshed but could not be written to the local cache.',
+    'radar.cacheReadFailed': 'The local cache could not be read. Available data may not include previous content.',
+    'radar.refreshFailedNoData': 'Radar data could not be loaded.',
     'system.loading': 'Collecting a new system snapshot...',
     'system.desktopOnly': 'System metrics are available only in the desktop application.',
     'system.paused': 'Collection paused',

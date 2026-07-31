@@ -1,3 +1,4 @@
+import type { RadarPreferences } from './radar.js';
 export type Priority = 'high' | 'medium' | 'low';
 export type RateStatus = 'live' | 'updating' | 'cached' | 'unavailable';
 export type PanelTab =
@@ -6,6 +7,7 @@ export type PanelTab =
   | 'calendar'
   | 'files'
   | 'system'
+  | 'radar'
   | 'media'
   | 'assistant'
   | 'neural'
@@ -119,6 +121,7 @@ export interface AppState {
   neuralNotes: NeuralNote[];
   ratesCache: RatesCache | null;
   ratesBaseline: RatesBaseline | null;
+  radarPreferences: RadarPreferences;
   ui: UiState;
 }
 

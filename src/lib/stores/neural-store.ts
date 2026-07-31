@@ -1,6 +1,7 @@
 import { derived, get, writable } from 'svelte/store';
 import { msg } from '../i18n/index.js';
 import { storage } from '../services/storage.js';
+import { enqueueStatePersistence } from '../services/state-persistence.js';
 import type { AppState, NeuralNote } from '../types/app.js';
 import {
   buildLocalGraph,
@@ -19,9 +20,27 @@ import {
   sortNeuralNotes,
   createNeuralId
 } from '../utils/neural.js';
-import { appDataPath, data, mergePersistedState, persistStateDebounced, setAppStatus } from './app-store.js';
+import {
+  appDataPath,
+  data,
+  mergePersistedState,
+  persistStateDebounced,
+  publishPersistedDomain,
+  setAppStatus
+} from './app-store.js';
 
 export const selectedNeuralNoteId = writable<string | null>(null);
+
+let neuralMutationQueue: Promise<void> = Promise.resolve();
+
+function enqueueNeuralMutation<T>(operation: () => Promise<T>): Promise<T> {
+  const run = neuralMutationQueue.then(operation, operation);
+  neuralMutationQueue = run.then(
+    () => undefined,
+    () => undefined
+  );
+  return run;
+}
 export const neuralSearchQuery = writable('');
 
 export const neuralNotes = derived(data, ($data) => sortNeuralNotes($data.neuralNotes || [], $data.ui?.locale));
@@ -84,17 +103,22 @@ function withNeuralUi(state: AppState): AppState {
   };
 }
 
-async function saveNeuralState(nextData: AppState, success: string, failure: string): Promise<boolean> {
-  const persisted = mergePersistedState(withNeuralUi(nextData));
-  try {
-    await storage.saveState(persisted);
-    data.set(persisted);
-    setAppStatus(success, 'live', get(appDataPath));
-    return true;
-  } catch {
-    setAppStatus(failure, 'error', get(appDataPath));
-    return false;
-  }
+async function saveNeuralState(nextNotes: NeuralNote[], success: string, failure: string): Promise<boolean> {
+  return enqueueStatePersistence(async () => {
+    const latest = get(data);
+    const persisted = mergePersistedState(withNeuralUi({ ...latest, neuralNotes: nextNotes }));
+    try {
+      await storage.saveState(persisted);
+      publishPersistedDomain((current) =>
+        withNeuralUi({ ...current, neuralNotes: nextNotes })
+      );
+      setAppStatus(success, 'live', get(appDataPath));
+      return true;
+    } catch {
+      setAppStatus(failure, 'error', get(appDataPath));
+      return false;
+    }
+  });
 }
 
 export function ensureNeuralSelection() {
@@ -124,83 +148,79 @@ export function selectNeuralNote(id: string | null) {
   }
 }
 
-export async function addNeuralNote(seed: Partial<NeuralNote> = {}): Promise<string | null> {
-  const $data = get(data);
-  const notes = getNotes($data);
-  const now = new Date().toISOString();
-  const title = createUniqueTitle(notes, normalizeNeuralTitle(seed.title) || msg('neural.defaultNoteTitle'));
-  const note = normalizeNeuralNote({
-    id: createNeuralId(),
-    title,
-    content: normalizeNeuralContent(seed.content || ''),
-    createdAt: now,
-    updatedAt: now
+export function addNeuralNote(seed: Partial<NeuralNote> = {}): Promise<string | null> {
+  return enqueueNeuralMutation(async () => {
+    const $data = get(data);
+    const notes = getNotes($data);
+    const now = new Date().toISOString();
+    const title = createUniqueTitle(notes, normalizeNeuralTitle(seed.title) || msg('neural.defaultNoteTitle'));
+    const note = normalizeNeuralNote({
+      id: createNeuralId(),
+      title,
+      content: normalizeNeuralContent(seed.content || ''),
+      createdAt: now,
+      updatedAt: now
+    });
+    if (!note) return null;
+
+    const nextNotes = sortNeuralNotes([...notes, note], $data.ui?.locale);
+    const ok = await saveNeuralState(nextNotes, msg('neural.status.saved'), msg('neural.status.saveFailedAdd'));
+    if (ok) selectNeuralNote(note.id);
+    return ok ? note.id : null;
   });
-  if (!note) return null;
-
-  const nextData: AppState = {
-    ...$data,
-    neuralNotes: sortNeuralNotes([...notes, note], $data.ui?.locale)
-  };
-
-  const ok = await saveNeuralState(nextData, msg('neural.status.saved'), msg('neural.status.saveFailedAdd'));
-  if (ok) selectNeuralNote(note.id);
-  return ok ? note.id : null;
 }
 
-export async function updateNeuralNote(id: string, patch: Partial<NeuralNote>): Promise<boolean> {
-  const $data = get(data);
-  const notes = getNotes($data);
-  const current = notes.find((note) => note.id === id);
-  if (!current) return false;
+export function updateNeuralNote(id: string, patch: Partial<NeuralNote>): Promise<boolean> {
+  return enqueueNeuralMutation(async () => {
+    const $data = get(data);
+    const notes = getNotes($data);
+    const current = notes.find((note) => note.id === id);
+    if (!current) return false;
 
-  const requestedTitle = 'title' in patch ? normalizeNeuralTitle(patch.title) : current.title;
-  if (!requestedTitle) return false;
-  const nextTitle = createUniqueTitle(notes.filter((note) => note.id !== id), requestedTitle);
-  const titleChanged = normalizeNoteKey(current.title) !== normalizeNoteKey(nextTitle);
-  const now = new Date().toISOString();
+    const requestedTitle = 'title' in patch ? normalizeNeuralTitle(patch.title) : current.title;
+    if (!requestedTitle) return false;
+    const nextTitle = createUniqueTitle(notes.filter((note) => note.id !== id), requestedTitle);
+    const titleChanged = normalizeNoteKey(current.title) !== normalizeNoteKey(nextTitle);
+    const now = new Date().toISOString();
 
-  const nextNotes = notes.map((note) => {
-    const baseContent = note.id === id && 'content' in patch ? normalizeNeuralContent(patch.content) : note.content;
-    const content = titleChanged ? rewriteWikiLinkTargets(baseContent, current.title, nextTitle) : baseContent;
+    const nextNotes = notes.map((note) => {
+      const baseContent = note.id === id && 'content' in patch ? normalizeNeuralContent(patch.content) : note.content;
+      const content = titleChanged ? rewriteWikiLinkTargets(baseContent, current.title, nextTitle) : baseContent;
 
-    if (note.id === id) {
-      return {
-        ...note,
-        title: nextTitle,
-        content,
-        updatedAt: now
-      };
+      if (note.id === id) {
+        return { ...note, title: nextTitle, content, updatedAt: now };
+      }
+      if (content !== note.content) return { ...note, content, updatedAt: now };
+      return note;
+    });
+
+    return saveNeuralState(
+      sortNeuralNotes(nextNotes, $data.ui?.locale),
+      msg('neural.status.updated'),
+      msg('neural.status.saveFailedUpdate')
+    );
+  });
+}
+
+export function deleteNeuralNote(id: string): Promise<boolean> {
+  return enqueueNeuralMutation(async () => {
+    const $data = get(data);
+    const notes = getNotes($data);
+    const target = notes.find((note) => note.id === id);
+    if (!target) return false;
+
+    const nextNotes = notes.filter((note) => note.id !== id);
+    const ok = await saveNeuralState(
+      nextNotes,
+      msg('neural.status.deleted'),
+      msg('neural.status.saveFailedDelete')
+    );
+    if (ok) {
+      const currentSelected = get(selectedNeuralNoteId);
+      if (currentSelected === id) selectNeuralNote(nextNotes[0]?.id || null);
     }
-
-    if (content !== note.content) return { ...note, content, updatedAt: now };
-    return note;
+    return ok;
   });
-
-  return saveNeuralState(
-    { ...$data, neuralNotes: sortNeuralNotes(nextNotes, $data.ui?.locale) },
-    msg('neural.status.updated'),
-    msg('neural.status.saveFailedUpdate')
-  );
-}
-
-export async function deleteNeuralNote(id: string): Promise<boolean> {
-  const $data = get(data);
-  const notes = getNotes($data);
-  const target = notes.find((note) => note.id === id);
-  if (!target) return false;
-
-  const nextNotes = notes.filter((note) => note.id !== id);
-  const ok = await saveNeuralState(
-    { ...$data, neuralNotes: nextNotes },
-    msg('neural.status.deleted'),
-    msg('neural.status.saveFailedDelete')
-  );
-  if (ok) {
-    const currentSelected = get(selectedNeuralNoteId);
-    if (currentSelected === id) selectNeuralNote(nextNotes[0]?.id || null);
-  }
-  return ok;
 }
 
 export function createUniqueTitle(notes: NeuralNote[], desiredTitle: string): string {

@@ -1,0 +1,40 @@
+[
+  {
+    "id": "fe33d567-a338-4c6e-a591-0a957dcdb62a",
+    "owner_id": "f5214cc1-36cb-44fa-b0f9-e49bfece918f",
+    "parent_id": null,
+    "slug": "day-5-100-days-of-code-em-c",
+    "title": "[Day 5] - 100 days of code em C",
+    "status": "published",
+    "source_url": null,
+    "created_at": "2026-07-29T00:54:12.635Z",
+    "updated_at": "2026-07-29T00:54:12.635Z",
+    "published_at": "2026-07-29T00:54:12.638Z",
+    "deleted_at": null,
+    "tabcoins": 7,
+    "tabcoins_credit": 6,
+    "tabcoins_debit": 0,
+    "owner_username": "figureight",
+    "children_deep_count": 0,
+    "type": "content"
+  },
+  {
+    "id": "ff42f1ec-591e-4c1d-961b-2d89648bb24a",
+    "owner_id": "fd9ff7c8-22d2-4573-8a8a-17c7eca60eb2",
+    "parent_id": null,
+    "slug": "multitenancy-com-prisma-e-postgresql-row-level-security-vs-schema-por-tenant",
+    "title": "Multitenancy com Prisma e PostgreSQL: Row-Level Security vs Schema por Tenant",
+    "status": "published",
+    "source_url": "https://www.vivodecodigo.com.br/backend/multitenancy-prisma-postgresql-rls-schema-por-tenant",
+    "created_at": "2026-07-29T12:03:05.379Z",
+    "updated_at": "2026-07-29T12:03:05.379Z",
+    "published_at": "2026-07-29T12:03:05.387Z",
+    "deleted_at": null,
+    "tabcoins": 6,
+    "tabcoins_credit": 6,
+    "tabcoins_debit": -1,
+    "owner_username": "mrmsoares",
+    "children_deep_count": 2,
+    "type": "content"
+  }
+]

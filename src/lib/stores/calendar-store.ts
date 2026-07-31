@@ -1,6 +1,7 @@
 import { get, derived } from 'svelte/store';
 import { CONFIG } from '../config.js';
 import { storage } from '../services/storage.js';
+import { enqueueStatePersistence } from '../services/state-persistence.js';
 import {
   normalizeCalendarEvent,
   normalizeMonthKey,
@@ -19,6 +20,7 @@ import {
   appDataPath,
   persistStateDebounced,
   mergePersistedState,
+  publishPersistedDomain,
   setAppStatus,
   setExecutionDateForDateKey
 } from './app-store.js';
@@ -272,17 +274,20 @@ export function ensureCalendarMonthInitialized(todayDateKey: string) {
   if (currentMonth) setCalendarMonth(currentMonth);
 }
 
-async function saveCalendarState(nextData: AppState, success: string, failure: string) {
-  const persisted = mergePersistedState(nextData);
-  try {
-    await storage.saveState(persisted);
-    data.set(persisted);
-    setAppStatus(success, 'live', get(appDataPath));
-    return true;
-  } catch {
-    setAppStatus(failure, 'error', get(appDataPath));
-    return false;
-  }
+async function saveCalendarState(nextEvents: CalendarEvent[], success: string, failure: string) {
+  return enqueueStatePersistence(async () => {
+    const latest = get(data);
+    const persisted = mergePersistedState({ ...latest, calendarEvents: nextEvents });
+    try {
+      await storage.saveState(persisted);
+      publishPersistedDomain((current) => ({ ...current, calendarEvents: nextEvents }));
+      setAppStatus(success, 'live', get(appDataPath));
+      return true;
+    } catch {
+      setAppStatus(failure, 'error', get(appDataPath));
+      return false;
+    }
+  });
 }
 
 export function addCalendarEvent(payload: Partial<CalendarEvent>): Promise<string | null> {
@@ -297,12 +302,9 @@ export function addCalendarEvent(payload: Partial<CalendarEvent>): Promise<strin
     if (!event) return null;
 
     const $data = get(data);
-    const nextData: AppState = {
-      ...$data,
-      calendarEvents: sortCalendarEvents([...getCalendarEvents($data), event], $data.ui?.locale)
-    };
+    const nextEvents = sortCalendarEvents([...getCalendarEvents($data), event], $data.ui?.locale);
 
-    const ok = await saveCalendarState(nextData, 'Evento salvo localmente.', 'Não foi possível salvar o evento.');
+    const ok = await saveCalendarState(nextEvents, 'Evento salvo localmente.', 'Não foi possível salvar o evento.');
     return ok ? event.id : null;
   });
 }
@@ -327,7 +329,7 @@ export function updateCalendarEvent(id: string, patch: Partial<CalendarEvent>): 
     if (!changed) return false;
 
     return saveCalendarState(
-      { ...$data, calendarEvents: sortCalendarEvents(nextEvents, $data.ui?.locale) },
+      sortCalendarEvents(nextEvents, $data.ui?.locale),
       'Evento atualizado localmente.',
       'Não foi possível atualizar o evento.'
     );
@@ -342,7 +344,7 @@ export function deleteCalendarEvent(id: string): Promise<boolean> {
     if (nextEvents.length === currentEvents.length) return false;
 
     return saveCalendarState(
-      { ...$data, calendarEvents: nextEvents },
+      nextEvents,
       'Evento excluído.',
       'Não foi possível excluir o evento.'
     );
@@ -363,7 +365,7 @@ export function deleteCalendarEvents(ids: string[]): Promise<string[]> {
 
     const nextEvents = currentEvents.filter((event) => !idSet.has(event.id));
     const ok = await saveCalendarState(
-      { ...$data, calendarEvents: nextEvents },
+      nextEvents,
       deletedIds.length === 1 ? 'Evento excluído.' : `${deletedIds.length} eventos excluídos.`,
       'Não foi possível excluir os eventos.'
     );

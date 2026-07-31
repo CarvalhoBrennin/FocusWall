@@ -32,6 +32,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Radar — revisão de segurança, concorrência e confiabilidade
+
+- Normalização estrita impede que `null`, strings vazias e booleanos sejam convertidos em valores meteorológicos ou coordenadas zero.
+- Preview web não presume localização; clima exige seleção explícita e notícias fictícias respeitam categorias habilitadas.
+- Persistência de `dashboard-state.json` centralizada em fila global, evitando perda concorrente de tarefas, calendário, notas, tema e preferências Radar.
+- URLs privadas e locais reforçadas, incluindo subdomínios `.localhost` e IPv4 mapeado em IPv6.
+- Cache Radar versionado e validado semanticamente, com pruning, quarantine limitada, recuperação crash-safe e warnings de leitura/escrita.
+- HTTP usa deadline total de 8 segundos; parser RSS/Atom streaming possui limites de bytes, profundidade, eventos e entradas e rejeita DTD.
+- Refresh expõe erro e cooldown, timestamps visuais usam `fetchedAt` real e categorias habilitadas são persistidas separadamente da seleção ativa.
+- Modal de localização recebeu focus trap, restauração de foco, `inert`, anúncios acessíveis e descarte de respostas antigas.
+- Executável Windows antigo removido; o pacote contém somente fonte coerente com a revisão.
+
 ### Fixed
 
 - Revisão de eventos recorrentes: ocorrências deixam de aparecer antes da data original do evento.

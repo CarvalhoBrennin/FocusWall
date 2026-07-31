@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach } from 'vitest';
+import { afterEach, describe, expect, it, beforeEach, vi } from 'vitest';
 import { get } from 'svelte/store';
 import {
   getVisibleDateKey,
@@ -9,10 +9,22 @@ import {
   assertLoadableRawState,
   resolveBootstrapViewOffset,
   setExecutionDateForDateKey,
+  setRadarLocation,
+  setRadarCategories,
+  addTask,
+  getTasksByDate,
   setViewOffset
 } from './app-store.js';
 import { createDefaultState } from '../utils/state.js';
-import { VIEW } from '../config.js';
+import { CONFIG, VIEW } from '../config.js';
+import { storage } from '../services/storage.js';
+import { addCalendarEvent, setCalendarMonth } from './calendar-store.js';
+import { addNeuralNote } from './neural-store.js';
+
+afterEach(() => {
+  vi.useRealTimers();
+  vi.restoreAllMocks();
+});
 
 describe('getVisibleDateKey', () => {
   it('offsets from the current date key', () => {
@@ -86,5 +98,175 @@ describe('resolveBootstrapViewOffset', () => {
 
   it('ignores non-integer offsets', () => {
     expect(resolveBootstrapViewOffset('2026-06-20', -1.5, '2026-06-20')).toBe(VIEW.TODAY);
+  });
+});
+
+describe('Radar preferences persistence', () => {
+  beforeEach(() => {
+    currentDateKey.set('2026-07-29');
+    viewOffsetDays.set(0);
+    data.set(createDefaultState());
+  });
+
+  it('publishes normalized preferences only after persistence succeeds', async () => {
+    const save = vi.spyOn(storage, 'saveState').mockResolvedValue(undefined);
+    const result = await setRadarLocation({
+      id: 'sp',
+      name: '  São   Paulo ',
+      admin1: ' São Paulo ',
+      country: ' Brasil ',
+      countryCode: 'br',
+      latitude: -23.5505,
+      longitude: -46.6333,
+      timezone: 'America/Sao_Paulo'
+    });
+
+    expect(result).toBe(true);
+    expect(save).toHaveBeenCalledTimes(1);
+    expect(get(data).radarPreferences.location?.name).toBe('São Paulo');
+    expect(get(data).radarPreferences.location?.countryCode).toBe('BR');
+  });
+
+
+
+  it('serializes Radar and task mutations without losing either change', async () => {
+    vi.useFakeTimers();
+    let resolveFirst!: () => void;
+    const firstSave = new Promise<void>((resolve) => { resolveFirst = resolve; });
+    const save = vi.spyOn(storage, 'saveState')
+      .mockImplementationOnce(() => firstSave)
+      .mockResolvedValue(undefined);
+
+    const locationPromise = setRadarLocation({
+      id: 'sp',
+      name: 'São Paulo',
+      admin1: 'São Paulo',
+      country: 'Brasil',
+      countryCode: 'BR',
+      latitude: -23.5505,
+      longitude: -46.6333,
+      timezone: 'America/Sao_Paulo'
+    });
+    const taskPromise = addTask('Revisar Radar', 'high', '2026-07-29');
+
+    await Promise.resolve();
+    expect(save).toHaveBeenCalledTimes(1);
+    resolveFirst();
+
+    const [locationSaved, taskId] = await Promise.all([locationPromise, taskPromise]);
+    expect(locationSaved).toBe(true);
+    expect(taskId).toBeTruthy();
+    expect(save).toHaveBeenCalledTimes(2);
+    expect(get(data).radarPreferences.location?.id).toBe('sp');
+    expect(getTasksByDate(get(data), '2026-07-29').map((task) => task.text)).toContain('Revisar Radar');
+  });
+
+
+  it('serializes Radar, calendar and neural mutations without cross-domain data loss', async () => {
+    vi.useFakeTimers();
+    let resolveFirst!: () => void;
+    const firstSave = new Promise<void>((resolve) => { resolveFirst = resolve; });
+    const save = vi.spyOn(storage, 'saveState')
+      .mockImplementationOnce(() => firstSave)
+      .mockResolvedValue(undefined);
+
+    const locationPromise = setRadarLocation({
+      id: 'sp', name: 'São Paulo', admin1: 'São Paulo', country: 'Brasil', countryCode: 'BR',
+      latitude: -23.5505, longitude: -46.6333, timezone: 'America/Sao_Paulo'
+    });
+    const eventPromise = addCalendarEvent({ title: 'Revisão Radar', dateKey: '2026-07-29' });
+    const notePromise = addNeuralNote({ title: 'Radar', content: 'Validação concluída.' });
+
+    await Promise.resolve();
+    expect(save).toHaveBeenCalledTimes(1);
+    resolveFirst();
+
+    const [locationSaved, eventId, noteId] = await Promise.all([locationPromise, eventPromise, notePromise]);
+    expect(locationSaved).toBe(true);
+    expect(eventId).toBeTruthy();
+    expect(noteId).toBeTruthy();
+    expect(save).toHaveBeenCalledTimes(3);
+    const finalState = get(data);
+    expect(finalState.radarPreferences.location?.id).toBe('sp');
+    expect(finalState.calendarEvents.some((event) => event.id === eventId)).toBe(true);
+    expect(finalState.neuralNotes.some((note) => note.id === noteId)).toBe(true);
+    vi.clearAllTimers();
+  });
+
+  it('preserves optimistic UI changes made while a Radar save is in flight', async () => {
+    vi.useFakeTimers();
+    let resolveFirst!: () => void;
+    const firstSave = new Promise<void>((resolve) => { resolveFirst = resolve; });
+    const save = vi.spyOn(storage, 'saveState')
+      .mockImplementationOnce(() => firstSave)
+      .mockResolvedValue(undefined);
+
+    const locationPromise = setRadarLocation({
+      id: 'sp',
+      name: 'São Paulo',
+      admin1: 'São Paulo',
+      country: 'Brasil',
+      countryCode: 'BR',
+      latitude: -23.5505,
+      longitude: -46.6333,
+      timezone: 'America/Sao_Paulo'
+    });
+
+    await Promise.resolve();
+    setCalendarMonth('2026-08');
+    expect(get(data).ui.calendarMonth).toBe('2026-08');
+
+    resolveFirst();
+    expect(await locationPromise).toBe(true);
+    expect(get(data).radarPreferences.location?.id).toBe('sp');
+    expect(get(data).ui.calendarMonth).toBe('2026-08');
+
+    await vi.advanceTimersByTimeAsync(CONFIG.SAVE_DEBOUNCE_MS);
+    await Promise.resolve();
+
+    expect(save).toHaveBeenCalledTimes(2);
+    const persistedAfterDebounce = save.mock.calls[1]?.[0];
+    expect(persistedAfterDebounce?.radarPreferences.location?.id).toBe('sp');
+    expect(persistedAfterDebounce?.ui.calendarMonth).toBe('2026-08');
+  });
+
+  it('merges concurrent Radar preference mutations in queue order', async () => {
+    const save = vi.spyOn(storage, 'saveState').mockResolvedValue(undefined);
+    const location = setRadarLocation({
+      id: 'lisbon',
+      name: 'Lisboa',
+      admin1: 'Lisboa',
+      country: 'Portugal',
+      countryCode: 'PT',
+      latitude: 38.7223,
+      longitude: -9.1393,
+      timezone: 'Europe/Lisbon'
+    });
+    const categories = setRadarCategories(['development']);
+
+    expect(await location).toBe(true);
+    expect(await categories).toBe(true);
+    expect(save).toHaveBeenCalledTimes(2);
+    expect(get(data).radarPreferences).toMatchObject({
+      location: { id: 'lisbon' },
+      enabledCategories: ['development']
+    });
+  });
+  it('keeps the previous state when persistence fails', async () => {
+    vi.spyOn(storage, 'saveState').mockRejectedValue(new Error('disk unavailable'));
+    const before = get(data);
+    const result = await setRadarLocation({
+      id: 'lisbon',
+      name: 'Lisboa',
+      admin1: 'Lisboa',
+      country: 'Portugal',
+      countryCode: 'PT',
+      latitude: 38.7223,
+      longitude: -9.1393,
+      timezone: 'Europe/Lisbon'
+    });
+
+    expect(result).toBe(false);
+    expect(get(data)).toEqual(before);
   });
 });

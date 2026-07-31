@@ -19,7 +19,7 @@ base64 = "0.22"
 image = { version = "0.25", default-features = false, features = ["jpeg", "png", "gif", "webp"] }
 reqwest = { version = "0.12", features = ["blocking", "json", "stream"] }
 futures-util = "0.3"
-tokio = { version = "1", features = ["sync", "time", "macros"] }
+tokio = { version = "1", features = ["sync", "time", "macros", "net", "rt", "rt-multi-thread", "io-util"] }
 tauri = { version = "2", features = ["tray-icon"] }
 tauri-plugin-autostart = "2"
 tauri-plugin-dialog = "2"
@@ -31,6 +31,15 @@ env_logger = "0.11"
 getrandom = "0.3"
 sysinfo = "0.33"
 regex = "1.12.4"
+quick-xml = "=0.38.4"
+url = "=2.5.8"
+rusqlite = { version = "0.37", features = ["bundled"] }
+sha2 = "0.10"
+unicode-normalization = "0.1"
+rand = "0.9"
+
+[features]
+live-provider-tests = []
 
 [target.'cfg(windows)'.dependencies]
 uiautomation = "0.25.0"
