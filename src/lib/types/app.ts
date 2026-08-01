@@ -110,6 +110,7 @@ export interface UiState {
   filesFavorites: string[];
   filesRecents: string[];
   lastNeuralNoteId: string | null;
+  assistantModel: string;
   theme: ThemeId;
   locale: LocaleId;
 }

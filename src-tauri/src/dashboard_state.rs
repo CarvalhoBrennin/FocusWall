@@ -128,6 +128,8 @@ pub struct UiState {
     pub locale: Option<String>,
     #[serde(default)]
     pub last_neural_note_id: Option<String>,
+    #[serde(default)]
+    pub assistant_model: String,
 }
 
 impl Default for DashboardState {

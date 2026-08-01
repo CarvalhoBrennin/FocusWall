@@ -4,6 +4,7 @@
   import StartupToggle from './StartupToggle.svelte';
   import AppearanceSettings from './AppearanceSettings.svelte';
   import UpdateSettings from './UpdateSettings.svelte';
+  import AssistantSettings from './AssistantSettings.svelte';
   import { settingsModal } from '../stores/ui-store.js';
   import { exportStateBackup } from '../stores/app-store.js';
   import { trapFocus } from '../utils/focus-trap.js';
@@ -71,6 +72,9 @@
       </section>
       <section class="settings-section">
         <UpdateSettings />
+      </section>
+      <section class="settings-section">
+        <AssistantSettings />
       </section>
       <section class="settings-section">
         <MonitorSelector />

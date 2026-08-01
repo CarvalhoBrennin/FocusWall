@@ -325,6 +325,25 @@ export function setLocalePreference(nextLocale: LocaleId): Promise<boolean> {
   });
 }
 
+export function setAssistantModelPreference(nextModel: string): Promise<boolean> {
+  const assistantModel = nextModel.trim();
+  return enqueueStateMutation(async () => {
+    const current = get(data);
+    const nextData = mergePersistedState({ ...current, ui: { ...current.ui, assistantModel } });
+    try {
+      await storage.saveState(nextData);
+      publishPersistedDomain((latest) => ({
+        ...latest,
+        ui: { ...latest.ui, assistantModel }
+      }));
+      return true;
+    } catch {
+      setAppStatus('Não foi possível salvar o modelo do Wallbot.', 'error', get(appDataPath));
+      return false;
+    }
+  });
+}
+
 export function setClockTime(now: Date) {
   clockNow.set(now);
   clockTime.set(formatters.time.format(now));

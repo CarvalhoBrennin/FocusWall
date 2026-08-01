@@ -79,7 +79,7 @@
 
 .calendar-body {
   display: grid;
-  grid-template-columns: minmax(0, 1.22fr) minmax(260px, 0.78fr);
+  grid-template-columns: minmax(0, 1.22fr) minmax(16rem, 0.78fr);
   grid-template-rows: minmax(0, 1fr);
   gap: 0.85rem;
   flex: 1;

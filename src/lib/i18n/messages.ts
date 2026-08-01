@@ -13,6 +13,14 @@ export type MessageKey =
   | 'settings.data'
   | 'settings.theme'
   | 'settings.locale'
+  | 'settings.wallbot'
+  | 'settings.wallbotModel'
+  | 'settings.wallbotModelAuto'
+  | 'settings.wallbotModelHelp'
+  | 'settings.wallbotModelLoading'
+  | 'settings.wallbotModelOffline'
+  | 'settings.wallbotModelNoModels'
+  | 'settings.wallbotModelRefresh'
   | 'settings.updates'
   | 'settings.checkUpdates'
   | 'theme.dark'
@@ -244,9 +252,7 @@ export type MessageKey =
   | 'priority.low'
   | 'infoRail.label'
   | 'clock.localTime'
-  | 'rates.exchange'
   | 'rates.title'
-  | 'rates.subtitle'
   | 'rates.listLabel'
   | 'rates.status.live'
   | 'rates.status.cached'
@@ -292,12 +298,13 @@ export type MessageKey =
   | 'assistant.panelLabel'
   | 'assistant.you'
   | 'assistant.name'
-  | 'assistant.model'
   | 'assistant.refresh'
   | 'assistant.clearChat'
-  | 'assistant.empty'
+  | 'assistant.emptyTitle'
+  | 'assistant.emptyBody'
   | 'assistant.inputLabel'
   | 'assistant.placeholder'
+  | 'assistant.composerHint'
   | 'assistant.send'
   | 'assistant.sending'
   | 'assistant.cancel'
@@ -412,6 +419,14 @@ const messages: Record<LocaleId, Record<MessageKey, string>> = {
     'settings.data': 'Dados',
     'settings.theme': 'Tema',
     'settings.locale': 'Idioma',
+    'settings.wallbot': 'Wallbot',
+    'settings.wallbotModel': 'Modelo do Wallbot',
+    'settings.wallbotModelAuto': 'Automático (recomendado)',
+    'settings.wallbotModelHelp': 'Deixe no automático para usar o melhor modelo compatível instalado.',
+    'settings.wallbotModelLoading': 'Verificando modelos instalados...',
+    'settings.wallbotModelOffline': 'O Ollama está offline. Inicie o serviço para alterar esta preferência.',
+    'settings.wallbotModelNoModels': 'Nenhum modelo compatível foi encontrado.',
+    'settings.wallbotModelRefresh': 'Atualizar modelos',
     'settings.updates': 'Atualizações',
     'settings.checkUpdates': 'Verificar atualizações',
     'theme.dark': 'Escuro',
@@ -444,7 +459,7 @@ const messages: Record<LocaleId, Record<MessageKey, string>> = {
     'tasks.files': 'Arquivos',
     'tasks.system': 'Sistema',
     'tasks.media': 'Mídia',
-    'tasks.assistant': 'Assistente',
+    'tasks.assistant': 'Wallbot',
     'tasks.neural': 'Neural',
     'tasks.opencode': 'OpenCode',
     'tasks.vivarium': 'Vivarium',
@@ -643,9 +658,7 @@ const messages: Record<LocaleId, Record<MessageKey, string>> = {
     'priority.low': 'Baixa',
     'infoRail.label': 'Informações do dia',
     'clock.localTime': 'Tempo local',
-    'rates.exchange': 'Câmbio',
     'rates.title': 'Câmbio BRL',
-    'rates.subtitle': 'USD-BRL e EUR-BRL.',
     'rates.listLabel': 'Cotações do dia',
     'rates.status.live': 'ao vivo',
     'rates.status.cached': 'em cache',
@@ -688,34 +701,35 @@ const messages: Record<LocaleId, Record<MessageKey, string>> = {
     'opencode.exitedUnexpectedly': 'OpenCode encerrou inesperadamente.',
     'opencode.starting': 'Iniciando...',
     'opencode.desktopOnly': 'OpenCode CLI só está disponível no desktop (Tauri).',
-    'assistant.panelLabel': 'Assistente FocusWall',
+    'assistant.panelLabel': 'Wallbot',
     'assistant.you': 'Você',
-    'assistant.name': 'Assistente',
-    'assistant.model': 'Modelo',
+    'assistant.name': 'Wallbot',
     'assistant.refresh': 'Atualizar',
     'assistant.clearChat': 'Limpar conversa',
-    'assistant.empty': 'Conversa vazia.',
-    'assistant.inputLabel': 'Mensagem para o assistente',
-    'assistant.placeholder': 'Peça uma ação no FocusWall...',
+    'assistant.emptyTitle': 'Olá, eu sou o Wallbot.',
+    'assistant.emptyBody': 'Envie uma solicitação para organizar tarefas, calendário ou seu próximo foco.',
+    'assistant.inputLabel': 'Mensagem para o Wallbot',
+    'assistant.placeholder': 'Peça ao Wallbot para organizar seu próximo movimento...',
+    'assistant.composerHint': 'Enter envia · Shift + Enter quebra linha',
     'assistant.send': 'Enviar',
     'assistant.sending': 'Enviando...',
     'assistant.cancel': 'Cancelar',
     'assistant.cancelled': 'Resposta cancelada.',
-    'assistant.offline': 'Ollama offline. Abra o app Ollama ou execute "ollama serve" e clique em Atualizar.',
+    'assistant.offline': 'Wallbot indisponível. Abra o app Ollama ou execute "ollama serve" e clique em Atualizar.',
     'assistant.startEyebrow': 'Serviço local',
-    'assistant.startTitle': 'O assistente precisa ser iniciado',
-    'assistant.startBody': 'O FocusWall não conseguiu acessar o Ollama local. Inicie o serviço para usar comandos por linguagem natural.',
-    'assistant.startButton': 'Iniciar assistente',
+    'assistant.startTitle': 'O Wallbot precisa ser iniciado',
+    'assistant.startBody': 'O FocusWall não conseguiu acessar o serviço local do Wallbot. Inicie o serviço para usar comandos por linguagem natural.',
+    'assistant.startButton': 'Iniciar Wallbot',
     'assistant.starting': 'Iniciando...',
-    'assistant.startOk': 'Assistente iniciado.',
+    'assistant.startOk': 'Wallbot iniciado.',
     'assistant.modelMissingEyebrow': 'Modelo local',
-    'assistant.modelMissingTitle': 'Modelo do assistente não instalado',
-    'assistant.modelMissingBody': 'O Ollama está online, mas nenhum modelo compatível foi encontrado. Instale o modelo padrão para habilitar o assistente.',
-    'assistant.modelMissingDetail': 'Modelo esperado',
+    'assistant.modelMissingTitle': 'O modelo do Wallbot não está disponível',
+    'assistant.modelMissingBody': 'O Ollama está online, mas nenhum modelo compatível foi encontrado. Instale o modelo padrão para ativar o Wallbot.',
+    'assistant.modelMissingDetail': 'O modelo padrão configurado está indisponível.',
     'assistant.modelInstallButton': 'Instalar modelo',
     'assistant.modelInstalling': 'Instalando modelo...',
-    'assistant.modelInstallOk': 'Modelo do assistente instalado.',
-    'assistant.modelInstallFailed': 'Não foi possível instalar o modelo do assistente.',
+    'assistant.modelInstallOk': 'Modelo do Wallbot instalado.',
+    'assistant.modelInstallFailed': 'Não foi possível instalar o modelo do Wallbot.',
     'assistant.error': 'Não foi possível concluir a resposta.',
     'assistant.actionDone': 'ação concluída',
     'assistant.actionFailed': 'ação falhou',
@@ -813,6 +827,14 @@ const messages: Record<LocaleId, Record<MessageKey, string>> = {
     'settings.data': 'Data',
     'settings.theme': 'Theme',
     'settings.locale': 'Language',
+    'settings.wallbot': 'Wallbot',
+    'settings.wallbotModel': 'Wallbot model',
+    'settings.wallbotModelAuto': 'Automatic (recommended)',
+    'settings.wallbotModelHelp': 'Keep automatic to use the best compatible installed model.',
+    'settings.wallbotModelLoading': 'Checking installed models...',
+    'settings.wallbotModelOffline': 'Ollama is offline. Start the service to change this preference.',
+    'settings.wallbotModelNoModels': 'No compatible model was found.',
+    'settings.wallbotModelRefresh': 'Refresh models',
     'settings.updates': 'Updates',
     'settings.checkUpdates': 'Check for updates',
     'theme.dark': 'Dark',
@@ -845,7 +867,7 @@ const messages: Record<LocaleId, Record<MessageKey, string>> = {
     'tasks.files': 'Files',
     'tasks.system': 'System',
     'tasks.media': 'Media',
-    'tasks.assistant': 'Assistant',
+    'tasks.assistant': 'Wallbot',
     'tasks.neural': 'Neural',
     'tasks.opencode': 'OpenCode',
     'tasks.vivarium': 'Vivarium',
@@ -1044,9 +1066,7 @@ const messages: Record<LocaleId, Record<MessageKey, string>> = {
     'priority.low': 'Low',
     'infoRail.label': 'Daily information',
     'clock.localTime': 'Local time',
-    'rates.exchange': 'Exchange',
     'rates.title': 'BRL exchange',
-    'rates.subtitle': 'USD-BRL and EUR-BRL.',
     'rates.listLabel': 'Today\'s rates',
     'rates.status.live': 'live',
     'rates.status.cached': 'cached',
@@ -1089,34 +1109,35 @@ const messages: Record<LocaleId, Record<MessageKey, string>> = {
     'opencode.exitedUnexpectedly': 'OpenCode exited unexpectedly.',
     'opencode.starting': 'Starting...',
     'opencode.desktopOnly': 'OpenCode CLI is only available on desktop (Tauri).',
-    'assistant.panelLabel': 'FocusWall assistant',
+    'assistant.panelLabel': 'Wallbot',
     'assistant.you': 'You',
-    'assistant.name': 'Assistant',
-    'assistant.model': 'Model',
+    'assistant.name': 'Wallbot',
     'assistant.refresh': 'Refresh',
     'assistant.clearChat': 'Clear chat',
-    'assistant.empty': 'Empty conversation.',
-    'assistant.inputLabel': 'Message for the assistant',
-    'assistant.placeholder': 'Ask for a FocusWall action...',
+    'assistant.emptyTitle': 'Hello, I am Wallbot.',
+    'assistant.emptyBody': 'Send a request to organize tasks, your calendar, or your next focus.',
+    'assistant.inputLabel': 'Message for Wallbot',
+    'assistant.placeholder': 'Ask Wallbot to organize your next move...',
+    'assistant.composerHint': 'Enter sends · Shift + Enter adds a line break',
     'assistant.send': 'Send',
     'assistant.sending': 'Sending...',
     'assistant.cancel': 'Cancel',
     'assistant.cancelled': 'Response cancelled.',
-    'assistant.offline': 'Ollama offline. Open the Ollama app or run "ollama serve", then click Refresh.',
+    'assistant.offline': 'Wallbot is unavailable. Open the Ollama app or run "ollama serve", then click Refresh.',
     'assistant.startEyebrow': 'Local service',
-    'assistant.startTitle': 'The assistant needs to be started',
-    'assistant.startBody': 'FocusWall could not reach the local Ollama service. Start it to use natural-language commands.',
-    'assistant.startButton': 'Start assistant',
+    'assistant.startTitle': 'Wallbot needs to be started',
+    'assistant.startBody': 'FocusWall could not reach the local Wallbot service. Start it to use natural-language commands.',
+    'assistant.startButton': 'Start Wallbot',
     'assistant.starting': 'Starting...',
-    'assistant.startOk': 'Assistant started.',
+    'assistant.startOk': 'Wallbot started.',
     'assistant.modelMissingEyebrow': 'Local model',
-    'assistant.modelMissingTitle': 'Assistant model is not installed',
-    'assistant.modelMissingBody': 'Ollama is online, but no compatible model was found. Install the default model to enable the assistant.',
-    'assistant.modelMissingDetail': 'Expected model',
+    'assistant.modelMissingTitle': 'Wallbot model is unavailable',
+    'assistant.modelMissingBody': 'Ollama is online, but no compatible model was found. Install the default model to enable Wallbot.',
+    'assistant.modelMissingDetail': 'The configured default model is unavailable.',
     'assistant.modelInstallButton': 'Install model',
     'assistant.modelInstalling': 'Installing model...',
-    'assistant.modelInstallOk': 'Assistant model installed.',
-    'assistant.modelInstallFailed': 'Could not install the assistant model.',
+    'assistant.modelInstallOk': 'Wallbot model installed.',
+    'assistant.modelInstallFailed': 'Could not install the Wallbot model.',
     'assistant.error': 'Could not complete the response.',
     'assistant.actionDone': 'action completed',
     'assistant.actionFailed': 'action failed',

@@ -27,7 +27,7 @@
 
 .task-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: clamp(0.75rem, 1vw, 1.2rem);
   flex-shrink: 0;
@@ -39,7 +39,7 @@
 .task-header h1 {
   margin: 0;
   font-family: var(--font-display);
-  font-size: clamp(2.15rem, 2.55vw, 3.55rem);
+  font-size: clamp(1.85rem, 2.1vw, 2.9rem);
   font-weight: 700;
   line-height: 0.95;
   letter-spacing: 0;
@@ -49,28 +49,46 @@
   text-overflow: ellipsis;
   height: auto;
   max-width: 100%;
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
+/* Nunca quebra linha: a barra de tabs precisa ficar sempre na mesma posição,
+   não pulando conforme o título muda de aba pra aba (ou de dia, no histórico).
+   Quem cede espaço é o título, que encolhe e trunca em vez de empurrar a
+   barra pra outra linha. */
 .task-header-copy {
   display: flex;
-  flex-direction: column;
-  gap: clamp(0.42rem, 0.6vw, 0.65rem);
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: nowrap;
+  column-gap: clamp(0.85rem, 1.4vw, 1.75rem);
   min-width: 0;
   flex: 1;
 }
 
+/* Largura fixa (função só da viewport, nunca do texto): garante que a barra
+   de tabs fique no mesmo pixel ao trocar de aba, mesmo quando o título ou o
+   kicker mudam de tamanho. Título/kicker truncam com reticências se não
+   couberem — preferível a empurrar a barra de posição. */
 .task-heading {
-  display: block;
+  display: flex;
+  align-items: baseline;
+  gap: clamp(0.45rem, 0.7vw, 0.8rem);
+  flex: 0 0 clamp(11rem, 24vw, 30rem);
+  min-width: 0;
+  overflow: hidden;
 }
 
 .task-kicker {
-  margin: 0 0 0.28rem;
+  margin: 0;
   font-size: clamp(0.74rem, 0.76vw, 0.88rem);
   font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--accent-strong);
   min-height: 0;
+  flex: 0 0 auto;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -80,13 +98,17 @@
   display: inline-flex;
   align-items: stretch;
   flex-wrap: nowrap;
+  /* A barra acompanha o conteúdo e só rola quando a viewport realmente não comporta todas as abas. */
+  flex: 0 1 auto;
   gap: clamp(0.18rem, 0.28vw, 0.28rem);
   padding: clamp(0.16rem, 0.22vw, 0.24rem);
   margin-top: 0;
   border: 1px solid var(--control-border-soft);
   background: var(--control-bg);
   box-shadow: inset 0 1px 0 var(--glare-soft);
+  width: fit-content;
   max-width: 100%;
+  min-width: 0;
   overflow-x: auto;
   scrollbar-width: none;
 }
@@ -96,6 +118,10 @@
 }
 
 .panel-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
   min-width: clamp(4.85rem, 6.05vw, 6.4rem);
   padding: clamp(0.36rem, 0.46vw, 0.48rem) clamp(0.48rem, 0.64vw, 0.72rem);
   border: 1px solid transparent;

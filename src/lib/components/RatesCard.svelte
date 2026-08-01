@@ -219,14 +219,8 @@
 
 <section class="rates-card" aria-labelledby="rates-title">
   <div class="section-heading section-heading--rates">
-    <div class="rates-heading">
-      <p class="eyebrow">{$t('rates.exchange')}</p>
-      <h3 id="rates-title" class="section-title section-title--rates">{$t('rates.title')}</h3>
-      <p class="rates-subtitle">{$t('rates.subtitle')}</p>
-    </div>
-    <div class="rates-status">
-      <span class={`status-pill ${statusClass}`} aria-live="polite">{statusText}</span>
-    </div>
+    <h3 id="rates-title" class="section-title section-title--rates">{$t('rates.title')}</h3>
+    <span class={`status-pill ${statusClass}`} aria-live="polite">{statusText}</span>
   </div>
 
   <div class="rate-list" role="list" aria-label={$t('rates.listLabel')}>
@@ -237,36 +231,29 @@
       class:rate-row--down={isDown(usdPrimary)}
       class:rate-row--flat={isFlat(usdPrimary)}
       role="listitem"
+      aria-label={`USD-BRL, ${usdMovementText}`}
     >
       <div class="rate-row-top">
-        <div class="rate-copy">
-          <div class="rate-chipline">
-            <span class="rate-code">USD</span>
-            <span class="rate-market">USD-BRL</span>
-          </div>
-          <span
-            class="rate-delta"
-            class:rate-up={isUp(usdPrimary)}
-            class:rate-down={isDown(usdPrimary)}
-            class:rate-flat={isFlat(usdPrimary)}
-          >
-            {usdDeltaText}
+        <span class="rate-market">USD-BRL</span>
+        <strong class="rate-value" class:rate-value--gold={usdGold}>
+          <span class="rate-symbol">R$</span>
+          <span class="rate-number">
+            {rc?.usd != null ? formatters.rateNumber.format(rc.usd) : '--'}
           </span>
-          {#if usdPrimary?.beforeVal != null && usdPrimary?.delta != null && Math.abs(usdPrimary.delta) > 0.0001}
-            <span class="rate-before" aria-label={$t('rates.previousQuote')}>
-              {formatMessage($t('rates.before'), { value: formatters.rateNumber.format(usdPrimary.beforeVal) })}
-            </span>
-          {/if}
-        </div>
-        <div class="rate-value-wrap">
-          <strong class="rate-value" class:rate-value--gold={usdGold}>
-            <span class="rate-symbol">R$</span>
-            <span class="rate-number">
-              {rc?.usd != null ? formatters.rateNumber.format(rc.usd) : '--'}
-            </span>
-          </strong>
-          <span class={`rate-pulse ${movementClass(usdPrimary)}`}>{usdMovementText}</span>
-        </div>
+        </strong>
+        <span
+          class="rate-delta"
+          class:rate-up={isUp(usdPrimary)}
+          class:rate-down={isDown(usdPrimary)}
+          class:rate-flat={isFlat(usdPrimary)}
+        >
+          {usdDeltaText}
+        </span>
+        {#if usdPrimary?.beforeVal != null && usdPrimary?.delta != null && Math.abs(usdPrimary.delta) > 0.0001}
+          <span class="rate-before" aria-label={$t('rates.previousQuote')}>
+            {formatMessage($t('rates.before'), { value: formatters.rateNumber.format(usdPrimary.beforeVal) })}
+          </span>
+        {/if}
       </div>
       <div class="rate-sparkline" aria-hidden="true">
         <svg viewBox="0 0 200 48" preserveAspectRatio="none">
@@ -285,36 +272,29 @@
       class:rate-row--down={isDown(eurPrimary)}
       class:rate-row--flat={isFlat(eurPrimary)}
       role="listitem"
+      aria-label={`EUR-BRL, ${eurMovementText}`}
     >
       <div class="rate-row-top">
-        <div class="rate-copy">
-          <div class="rate-chipline">
-            <span class="rate-code">EUR</span>
-            <span class="rate-market">EUR-BRL</span>
-          </div>
-          <span
-            class="rate-delta"
-            class:rate-up={isUp(eurPrimary)}
-            class:rate-down={isDown(eurPrimary)}
-            class:rate-flat={isFlat(eurPrimary)}
-          >
-            {eurDeltaText}
+        <span class="rate-market">EUR-BRL</span>
+        <strong class="rate-value" class:rate-value--gold={eurGold}>
+          <span class="rate-symbol">R$</span>
+          <span class="rate-number">
+            {rc?.eur != null ? formatters.rateNumber.format(rc.eur) : '--'}
           </span>
-          {#if eurPrimary?.beforeVal != null && eurPrimary?.delta != null && Math.abs(eurPrimary.delta) > 0.0001}
-            <span class="rate-before" aria-label={$t('rates.previousQuote')}>
-              {formatMessage($t('rates.before'), { value: formatters.rateNumber.format(eurPrimary.beforeVal) })}
-            </span>
-          {/if}
-        </div>
-        <div class="rate-value-wrap">
-          <strong class="rate-value" class:rate-value--gold={eurGold}>
-            <span class="rate-symbol">R$</span>
-            <span class="rate-number">
-              {rc?.eur != null ? formatters.rateNumber.format(rc.eur) : '--'}
-            </span>
-          </strong>
-          <span class={`rate-pulse ${movementClass(eurPrimary)}`}>{eurMovementText}</span>
-        </div>
+        </strong>
+        <span
+          class="rate-delta"
+          class:rate-up={isUp(eurPrimary)}
+          class:rate-down={isDown(eurPrimary)}
+          class:rate-flat={isFlat(eurPrimary)}
+        >
+          {eurDeltaText}
+        </span>
+        {#if eurPrimary?.beforeVal != null && eurPrimary?.delta != null && Math.abs(eurPrimary.delta) > 0.0001}
+          <span class="rate-before" aria-label={$t('rates.previousQuote')}>
+            {formatMessage($t('rates.before'), { value: formatters.rateNumber.format(eurPrimary.beforeVal) })}
+          </span>
+        {/if}
       </div>
       <div class="rate-sparkline" aria-hidden="true">
         <svg viewBox="0 0 200 48" preserveAspectRatio="none">

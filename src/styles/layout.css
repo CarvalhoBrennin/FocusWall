@@ -12,10 +12,9 @@
   display: grid;
   grid-template-columns: minmax(16.75rem, var(--rail-column)) minmax(0, 1fr);
   gap: var(--shell-gap);
-  width: min(100%, 1980px);
+  width: 100%;
   height: 100%;
   min-height: 0;
-  margin: 0 auto;
   overflow: hidden;
 }
 
@@ -94,6 +93,7 @@
 
 .clock-block,
 .rates-card {
+  flex: 1 1 auto;
   position: relative;
   z-index: 1;
   display: flex;
@@ -110,6 +110,10 @@
   min-width: 0;
 }
 
+.clock-block {
+  justify-content: center;
+}
+
 .clock-header,
 .section-heading {
   display: flex;
@@ -119,7 +123,8 @@
 }
 
 .section-heading--rates {
-  align-items: flex-end;
+  align-items: center;
+  gap: 0.6rem;
 }
 
 .clock-accent {
@@ -150,7 +155,7 @@
 .clock {
   margin: 0;
   font-family: var(--font-display);
-  font-size: clamp(2.55rem, 4.25vw, 5.35rem);
+  font-size: clamp(2.15rem, 3.4vw, 4.2rem);
   font-weight: 700;
   line-height: 1.05;
   letter-spacing: 0;
@@ -198,43 +203,9 @@
 }
 
 .section-title--rates {
-  margin-top: 0.35rem;
-  font-size: clamp(1.25rem, 1.45vw, 1.75rem);
+  margin-top: 0;
+  font-size: clamp(1.15rem, 1.3vw, 1.5rem);
   letter-spacing: 0;
-}
-
-.rates-heading {
-  display: grid;
-  gap: 0.38rem;
-}
-
-.rates-subtitle {
-  margin: 0;
-  max-width: 30ch;
-  font-size: clamp(0.78rem, 0.78vw, 0.9rem);
-  line-height: 1.42;
-  color: var(--light-soft);
-}
-
-.rates-status {
-  display: grid;
-  justify-items: end;
-  gap: 0.55rem;
-}
-
-.rates-badge {
-  display: inline-flex;
-  align-items: center;
-  min-height: 1.85rem;
-  padding: 0.26rem 0.68rem;
-  border-radius: 0;
-  border: 1px solid var(--control-border-soft);
-  background: var(--control-bg);
-  color: var(--light-soft);
-  font-size: 0.7rem;
-  font-weight: 800;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
 }
 
 .status-pill {
@@ -277,7 +248,9 @@
 }
 
 .rate-list {
+  flex: 1;
   display: grid;
+  align-content: stretch;
   gap: clamp(0.48rem, 0.75vw, 0.95rem);
   min-width: 0;
 }
@@ -369,38 +342,20 @@
   box-shadow: 0 0 18px rgba(207, 206, 205, 0.24);
 }
 
+/* Coluna única: o rail é estreito demais para valor e texto lado a lado —
+   dividido, o delta quebrava em 4 linhas e a cotação ficava espremida. */
 .rate-row-top {
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(6.5rem, auto);
-  gap: clamp(0.5rem, 0.75vw, 1rem);
-  align-items: end;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: start;
+  gap: 0.28rem;
   min-width: 0;
-}
-
-.rate-copy {
-  min-width: 0;
-  display: grid;
-  gap: 0.42rem;
-}
-
-.rate-chipline {
-  display: flex;
-  align-items: center;
-  gap: 0.65rem;
-  flex-wrap: wrap;
-}
-
-.rate-code {
-  font-size: 0.78rem;
-  font-weight: 800;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: var(--light-soft);
 }
 
 .rate-market {
+  justify-self: start;
   display: inline-flex;
   align-items: center;
   min-height: 1.65rem;
@@ -439,13 +394,6 @@
   color: var(--light-soft);
 }
 
-.rate-value-wrap {
-  display: grid;
-  justify-items: end;
-  gap: 0.4rem;
-  min-width: 0;
-}
-
 .rate-value {
   display: inline-flex;
   align-items: baseline;
@@ -462,7 +410,7 @@
 
 .rate-value .rate-number {
   font-family: var(--font-display);
-  font-size: clamp(1.55rem, 2.25vw, 3.1rem);
+  font-size: clamp(1.8rem, 2.2vw, 2.9rem);
   font-weight: 700;
   line-height: 0.88;
   letter-spacing: 0;
@@ -470,39 +418,6 @@
 
 .rate-value--gold .rate-number {
   color: #CFCECD;
-}
-
-.rate-pulse {
-  display: inline-flex;
-  align-items: center;
-  min-height: 1.75rem;
-  padding: 0.2rem 0.62rem;
-  border-radius: 0;
-  border: 1px solid var(--control-border-soft);
-  background: var(--control-bg);
-  font-size: 0.72rem;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--light-soft);
-}
-
-.rate-pulse.is-up {
-  color: #5B8C5B;
-  background: rgba(75, 70, 70, 0.16);
-  border-color: rgba(75, 70, 70, 0.2);
-}
-
-.rate-pulse.is-down {
-  color: rgba(181, 92, 80, 0.7);
-  background: rgba(181, 92, 80, 0.16);
-  border-color: rgba(181, 92, 80, 0.2);
-}
-
-.rate-pulse.is-flat {
-  color: rgba(207, 206, 205, 0.7);
-  background: rgba(207, 206, 205, 0.12);
-  border-color: rgba(207, 206, 205, 0.18);
 }
 
 .rate-sparkline {

@@ -87,12 +87,12 @@
   --space-6: 2rem;
   --space-7: 2.6rem;
   --space-8: 3.4rem;
-  --shell-padding: clamp(0.9rem, 1.45vw, 1.75rem);
-  --shell-gap: clamp(0.75rem, 1.2vw, 1.45rem);
-  --rail-column: clamp(17.25rem, 22vw, 25.5rem);
-  --rail-padding: clamp(1rem, 1.35vw, 1.55rem);
+  --shell-padding: 0.375rem;
+  --shell-gap: 0.375rem;
+  --rail-column: clamp(16rem, 18vw, 20rem);
+  --rail-padding: clamp(0.95rem, 1.1vw, 1.3rem);
   --panel-padding: clamp(0.85rem, 1.05vw, 1.2rem);
-  --panel-inner-gap: clamp(0.65rem, 0.9vw, 1rem);
+  --panel-inner-gap: clamp(0.62rem, 0.85vw, 0.95rem);
   --transition-fast: 160ms ease;
   --transition: 260ms cubic-bezier(0.2, 0.85, 0.25, 1);
   --transition-minimal: 50ms linear;

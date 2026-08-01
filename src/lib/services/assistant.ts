@@ -96,7 +96,7 @@ export function buildAssistantConversationContextMessage(sessionMessages: Assist
   if (!olderMessages.length) return null;
 
   const lines = olderMessages.slice(-MAX_SUMMARY_MESSAGES).map((message) => {
-    const speaker = message.role === 'user' ? 'Usuário' : 'Assistente';
+    const speaker = message.role === 'user' ? 'Usuário' : 'Wallbot';
     const content = trimForContext(message.content, MAX_SUMMARY_MESSAGE_CHARS);
     return `- ${speaker}: ${content}${formatActionsForContext(message)}`;
   });

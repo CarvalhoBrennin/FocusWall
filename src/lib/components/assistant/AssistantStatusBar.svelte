@@ -1,15 +1,12 @@
 <script>
   import { t } from '../../i18n/index.js';
+  import WallbotMark from '../icons/WallbotMark.svelte';
 
   let {
     status = 'checking',
     online = false,
-    model = '',
-    models = [],
-    modelAvailable = false,
     messageCount = 0,
     disabled = false,
-    onModelChange = () => {},
     onRefresh = () => {},
     onClear = () => {}
   } = $props();
@@ -28,6 +25,7 @@
 
 <header class="assistant-status-bar">
   <div class="assistant-status-main">
+    <WallbotMark size={32} />
     <span
       class="assistant-status-dot"
       class:is-online={online}
@@ -35,24 +33,8 @@
       aria-hidden="true"
     ></span>
     <div>
-      <strong>{$t(statusKey(status))}</strong>
-      {#if online && models.length}
-        <label class="assistant-model-picker">
-          <span class="sr-only">{$t('assistant.model')}</span>
-          <select
-            aria-label={$t('assistant.model')}
-            value={model}
-            disabled={disabled}
-            onchange={(event) => onModelChange(event.currentTarget.value)}
-          >
-            {#each models as entry (entry.name)}
-              <option value={entry.name}>{entry.name}</option>
-            {/each}
-          </select>
-        </label>
-      {:else}
-        <span class:model-missing={online && !modelAvailable}>{$t('assistant.model')}: {model}</span>
-      {/if}
+      <strong>{$t('assistant.name')}</strong>
+      <span>{$t(statusKey(status))}</span>
     </div>
   </div>
 

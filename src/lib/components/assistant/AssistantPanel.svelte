@@ -3,6 +3,7 @@
   import { onDestroy, tick, untrack } from 'svelte';
   import { CONFIG } from '../../config.js';
   import { msg, t } from '../../i18n/index.js';
+  import { data } from '../../stores/app-store.js';
   import { runAssistantTurn } from '../../services/assistant.js';
   import {
     checkOllamaHealth,
@@ -14,6 +15,7 @@
   import AssistantComposer from './AssistantComposer.svelte';
   import AssistantMessageList from './AssistantMessageList.svelte';
   import AssistantStatusBar from './AssistantStatusBar.svelte';
+  import WallbotMark from '../icons/WallbotMark.svelte';
 
   let { active = false } = $props();
 
@@ -33,9 +35,8 @@
   let startError = $state('');
   let modelInstallError = $state('');
   let modelInstalling = $state(false);
-  let selectedModel = $state(CONFIG.ASSISTANT.model);
-
-  const activeModel = $derived(selectedModel || CONFIG.ASSISTANT.model);
+  const configuredModel = $derived($data.ui?.assistantModel || '');
+  const activeModel = $derived(configuredModel || pickAssistantModel(health.models, CONFIG.ASSISTANT.model));
   const modelAvailable = $derived(!health.online || health.models.some((entry) => entry.name === activeModel));
   const showStartScreen = $derived(!health.online && (status === 'offline' || status === 'starting'));
   const showModelMissingScreen = $derived(health.online && !modelAvailable);
@@ -63,12 +64,7 @@
 
   function applyHealth(nextHealth) {
     health = nextHealth;
-    if (nextHealth.online) {
-      startError = '';
-      if (nextHealth.models.length && !nextHealth.models.some((entry) => entry.name === selectedModel)) {
-        selectedModel = pickAssistantModel(nextHealth.models, selectedModel);
-      }
-    }
+    if (nextHealth.online) startError = '';
   }
 
   async function refreshHealth() {
@@ -317,10 +313,6 @@
   <AssistantStatusBar
     {status}
     online={health.online}
-    model={activeModel}
-    models={health.models}
-    {modelAvailable}
-    onModelChange={(value) => { selectedModel = value; }}
     messageCount={messages.length}
     disabled={sending || modelInstalling || status === 'starting'}
     onRefresh={refreshHealth}
@@ -330,6 +322,10 @@
   {#if showStartScreen}
     <div class="assistant-start-screen" role="status" aria-live="polite">
       <div class="assistant-start-card">
+        <div class="assistant-start-brand">
+          <WallbotMark size={44} />
+          <span>{$t('assistant.name')}</span>
+        </div>
         <span class="assistant-start-eyebrow">{$t('assistant.startEyebrow')}</span>
         <h2>{$t('assistant.startTitle')}</h2>
         <p>{$t('assistant.startBody')}</p>
@@ -350,10 +346,14 @@
   {:else if showModelMissingScreen}
     <div class="assistant-start-screen" role="status" aria-live="polite">
       <div class="assistant-start-card">
+        <div class="assistant-start-brand">
+          <WallbotMark size={44} />
+          <span>{$t('assistant.name')}</span>
+        </div>
         <span class="assistant-start-eyebrow">{$t('assistant.modelMissingEyebrow')}</span>
         <h2>{$t('assistant.modelMissingTitle')}</h2>
         <p>{$t('assistant.modelMissingBody')}</p>
-        <span class="assistant-start-detail">{$t('assistant.modelMissingDetail')}: {activeModel}</span>
+        <span class="assistant-start-detail">{$t('assistant.modelMissingDetail')}</span>
         {#if modelInstallError}
           <span class="assistant-start-detail">{modelInstallError}</span>
         {/if}

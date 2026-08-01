@@ -12,6 +12,7 @@
   import { parseDateKey, parseMonthKey, addDays, normalizeMonthKey } from '../utils/state.js';
   import { t } from '../i18n/index.js';
   import { getVisiblePanelTabs } from '../features.js';
+  import WallbotMark from './icons/WallbotMark.svelte';
 
   const tabs = getVisiblePanelTabs();
 
@@ -102,10 +103,8 @@
 <header class="task-header">
   <div class="task-header-copy">
     <div class="task-heading">
-      <div>
-        <p class="task-kicker">{kicker}</p>
-        <h1 id="tasks-title">{headline}</h1>
-      </div>
+      <h1 id="tasks-title">{headline}</h1>
+      <p class="task-kicker">{kicker}</p>
     </div>
 
     <div
@@ -126,6 +125,9 @@
           onclick={() => setPanelTab(tab.id)}
           onkeydown={(event) => handleTabKeydown(event, tab.id)}
         >
+          {#if tab.id === 'assistant'}
+            <WallbotMark size={16} />
+          {/if}
           {$t(tab.labelKey)}
         </button>
       {/each}
@@ -169,32 +171,21 @@
 </header>
 
 <style>
-  .task-heading {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 1rem;
-  }
-
-  .task-heading > div {
-    flex: 1;
-    min-width: 0;
-  }
-
+  /* Só encolhe na LARGURA (pra não ocupar espaço ao lado das tabs). A altura
+     natural do nav-button fica intacta de propósito: se ela fosse a zero,
+     o cabeçalho passaria a usar a barra de tabs (mais baixa) como referência
+     de altura, e a barra pularia de posição ao trocar para uma aba sem nav
+     (Arquivos, Radar, Mídia...). Os filhos ficam sem display:none — só
+     invisíveis (visibility herda do pai) e fora de interação — pra reservar
+     esse espaço mesmo escondidos. */
   .history-nav.is-dormant {
     width: 0;
     min-width: 0;
     max-width: 0;
     padding-inline: 0;
     gap: 0;
-    border-width: 0;
     overflow: hidden;
     visibility: hidden;
     pointer-events: none;
-  }
-
-  .history-nav.is-dormant .history-label,
-  .history-nav.is-dormant .nav-button {
-    display: none;
   }
 </style>

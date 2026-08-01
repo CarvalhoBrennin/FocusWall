@@ -13,7 +13,7 @@
 .radar-button:disabled, .radar-icon-button:disabled, .radar-remove-location:disabled, .radar-location-picker button:disabled { cursor: default; opacity: .55; }
 .radar-button--secondary { background: transparent; }
 .radar-fixture-banner { border: 1px solid var(--priority-medium-border); background: var(--priority-medium-bg); padding: .6rem .85rem; color: var(--ink-main); font-size: .78rem; }
-.radar-grid { display: grid; grid-template-columns: minmax(18rem,.8fr) minmax(0,1.5fr); align-items: start; gap: .75rem; }
+.radar-grid { display: grid; grid-template-columns: minmax(18rem,.8fr) minmax(0,1.5fr); align-items: stretch; gap: .75rem; }
 .radar-card { display: flex; min-width: 0; flex-direction: column; gap: .9rem; border: 1px solid var(--control-border); background: var(--card-bg); padding: 1rem; overflow: visible; }
 .radar-card-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: .75rem; }
 .radar-card-heading h2 { margin: .2rem 0 0; color: var(--ink-strong); font-family: var(--font-display); font-size: clamp(.85rem,1vw,1rem); letter-spacing: .035em; }

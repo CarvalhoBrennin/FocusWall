@@ -2,6 +2,7 @@
   import { onDestroy, tick } from 'svelte';
   import { t } from '../../i18n/index.js';
   import { renderAssistantMarkdown } from '../../assistant/markdown.js';
+  import WallbotMark from '../icons/WallbotMark.svelte';
 
   let { messages = [], disabled = false, onQuickReply = () => {} } = $props();
 
@@ -85,7 +86,13 @@
   aria-relevant="additions text"
 >
   {#if messages.length === 0}
-    <p class="assistant-empty">{$t('assistant.empty')}</p>
+    <div class="assistant-empty">
+      <WallbotMark size={54} />
+      <div>
+        <strong>{$t('assistant.emptyTitle')}</strong>
+        <p>{$t('assistant.emptyBody')}</p>
+      </div>
+    </div>
   {:else}
     {#each messages as message, index (message.id)}
       <article

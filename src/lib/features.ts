@@ -5,6 +5,7 @@ import type { MessageKey } from './i18n/messages.js';
 export const OPENCODE_TAB_ENABLED = false;
 export const VIVARIUM_ENABLED = false;
 export const NEURAL_TAB_ENABLED = false;
+export const SYSTEM_TAB_ENABLED = false;
 export const ASSISTANT_TAB_ENABLED = true;
 export const RADAR_TAB_ENABLED = true;
 
@@ -20,7 +21,7 @@ export const PANEL_TAB_DEFINITIONS: PanelTabDefinition[] = [
   { id: 'execution', labelKey: 'tasks.execution', panelId: 'execution-panel', enabled: true },
   { id: 'calendar', labelKey: 'tasks.calendar', panelId: 'calendar-panel', enabled: true },
   { id: 'files', labelKey: 'tasks.files', panelId: 'files-panel', enabled: true },
-  { id: 'system', labelKey: 'tasks.system', panelId: 'system-panel', enabled: true },
+  { id: 'system', labelKey: 'tasks.system', panelId: 'system-panel', enabled: SYSTEM_TAB_ENABLED },
   { id: 'radar', labelKey: 'tasks.radar', panelId: 'radar-panel', enabled: RADAR_TAB_ENABLED },
   { id: 'media', labelKey: 'tasks.media', panelId: 'media-panel', enabled: true },
   { id: 'assistant', labelKey: 'tasks.assistant', panelId: 'assistant-panel', enabled: ASSISTANT_TAB_ENABLED },

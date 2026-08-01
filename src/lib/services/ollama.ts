@@ -200,7 +200,7 @@ export async function startOllamaService(): Promise<OllamaStartResult> {
     return {
       online: false,
       started: false,
-      message: 'Não foi possível iniciar o assistente.',
+      message: 'Não foi possível iniciar o Wallbot.',
       error: String((error as Error)?.message || error)
     };
   }
@@ -224,7 +224,7 @@ export async function installOllamaModel(model = CONFIG.ASSISTANT.model): Promis
     return {
       installed: false,
       model,
-      message: 'Não foi possível instalar o modelo do assistente.',
+      message: 'Não foi possível instalar o modelo do Wallbot.',
       error: String((error as Error)?.message || error)
     };
   }

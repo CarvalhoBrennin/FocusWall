@@ -20,6 +20,7 @@ export function createDefaultState(): AppState {
       filesFavorites: [],
       filesRecents: [],
       lastNeuralNoteId: null,
+      assistantModel: '',
       theme: 'dark',
       locale: CONFIG.LOCALE,
       preferredMonitor: null
@@ -58,6 +59,7 @@ export function normalizeState(candidate) {
         typeof candidate.ui?.lastNeuralNoteId === 'string' && candidate.ui.lastNeuralNoteId
           ? candidate.ui.lastNeuralNoteId
           : null,
+      assistantModel: typeof candidate.ui?.assistantModel === 'string' ? candidate.ui.assistantModel.trim() : '',
       theme:
         candidate.ui?.theme === 'light' || candidate.ui?.theme === 'olive' || candidate.ui?.theme === 'dark'
           ? candidate.ui.theme
