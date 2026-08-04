@@ -164,6 +164,16 @@ export type MessageKey =
   | 'radar.cacheWriteFailed'
   | 'radar.cacheReadFailed'
   | 'radar.refreshFailedNoData'
+  | 'radar.gusts'
+  | 'radar.pressure'
+  | 'radar.uvIndex'
+  | 'radar.sunrise'
+  | 'radar.sunset'
+  | 'radar.ticker'
+  | 'radar.quote.ptax'
+  | 'radar.quote.spot'
+  | 'radar.quote.estimate'
+  | 'radar.quote.event'
   | 'system.loading'
   | 'system.desktopOnly'
   | 'system.paused'
@@ -570,6 +580,16 @@ const messages: Record<LocaleId, Record<MessageKey, string>> = {
     'radar.cacheWriteFailed': 'Os dados foram atualizados, mas não puderam ser gravados no cache local.',
     'radar.cacheReadFailed': 'O cache local não pôde ser lido. Os dados disponíveis podem não incluir o conteúdo anterior.',
     'radar.refreshFailedNoData': 'Não foi possível carregar dados do Radar.',
+    'radar.gusts': 'Rajada',
+    'radar.pressure': 'Pressão',
+    'radar.uvIndex': 'UV máx.',
+    'radar.sunrise': 'Nascer',
+    'radar.sunset': 'Pôr',
+    'radar.ticker': 'Câmbio, cripto e eventos',
+    'radar.quote.ptax': 'PTAX',
+    'radar.quote.spot': 'À VISTA',
+    'radar.quote.estimate': 'ESTIMATIVA',
+    'radar.quote.event': 'EVENTO',
     'system.loading': 'Coletando um novo retrato do sistema...',
     'system.desktopOnly': 'As métricas do sistema estão disponíveis apenas no aplicativo desktop.',
     'system.paused': 'Coleta pausada',
@@ -978,6 +998,16 @@ const messages: Record<LocaleId, Record<MessageKey, string>> = {
     'radar.cacheWriteFailed': 'Data was refreshed but could not be written to the local cache.',
     'radar.cacheReadFailed': 'The local cache could not be read. Available data may not include previous content.',
     'radar.refreshFailedNoData': 'Radar data could not be loaded.',
+    'radar.gusts': 'Gusts',
+    'radar.pressure': 'Pressure',
+    'radar.uvIndex': 'Max UV',
+    'radar.sunrise': 'Sunrise',
+    'radar.sunset': 'Sunset',
+    'radar.ticker': 'Currencies, crypto and events',
+    'radar.quote.ptax': 'PTAX',
+    'radar.quote.spot': 'SPOT',
+    'radar.quote.estimate': 'ESTIMATE',
+    'radar.quote.event': 'EVENT',
     'system.loading': 'Collecting a new system snapshot...',
     'system.desktopOnly': 'System metrics are available only in the desktop application.',
     'system.paused': 'Collection paused',

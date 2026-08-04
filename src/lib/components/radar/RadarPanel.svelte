@@ -14,9 +14,10 @@
     closeRadarArticlePreview,
     setRadarPaused
   } from '../../stores/radar-store.js';
-  import RadarToolbar from './RadarToolbar.svelte';
-  import RadarWeatherCard from './RadarWeatherCard.svelte';
+  import RadarMasthead from './RadarMasthead.svelte';
+  import RadarWeatherStrip from './RadarWeatherStrip.svelte';
   import RadarNewsFeed from './RadarNewsFeed.svelte';
+  import RadarTicker from './RadarTicker.svelte';
   import RadarLocationPicker from './RadarLocationPicker.svelte';
   import RadarArticleDrawer from './RadarArticleDrawer.svelte';
   import { t } from '../../i18n/index.js';
@@ -56,16 +57,18 @@
 </script>
 
 <div class="radar-panel" aria-label={$t('radar.panelLabel')}>
-  <div class="radar-content" inert={overlayOpen} aria-hidden={overlayOpen ? 'true' : undefined}>
-    <RadarToolbar
+  <div class="radar-shell" inert={overlayOpen} aria-hidden={overlayOpen ? 'true' : undefined}>
+    <RadarMasthead
       phase={$radarPhase}
       snapshot={$radarSnapshot}
       errorKey={$radarErrorKey}
       refreshAvailableAt={$radarRefreshAvailableAt}
       {request}
     />
-    <div class="radar-grid">
-      <RadarWeatherCard
+
+    <!-- Composição editorial contínua: um scroll só, do clima ao fim da lista. -->
+    <div class="radar-content">
+      <RadarWeatherStrip
         section={$radarSnapshot?.weather ?? null}
         loading={$radarPhase === 'loading'}
         hasLocation={Boolean(request.location)}
@@ -78,6 +81,8 @@
         categories={request.categories}
       />
     </div>
+
+    <RadarTicker section={$radarSnapshot?.ticker ?? null} />
   </div>
   <RadarLocationPicker />
   <RadarArticleDrawer />

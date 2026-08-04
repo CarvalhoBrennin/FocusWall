@@ -6,12 +6,15 @@
 </script>
 
 {#if hours.length}
+  <!-- Faixa horizontal: rola dentro de si mesma, nunca empurra a largura do painel. -->
   <div class="radar-hourly" aria-label={$t('radar.nextHours')}>
     {#each hours.slice(0, 6) as hour, index (`${hour.localTime}-${index}`)}
-      <div class="radar-hour">
-        <strong>{hourLabel(hour.localTime)}</strong>
-        <span>{Math.round(hour.temperatureCelsius)} °C</span>
-        <small>{hour.precipitationProbabilityPercent == null ? '—' : `${Math.round(hour.precipitationProbabilityPercent)}%`}</small>
+      <div class="radar-hour" class:is-now={hour.isCurrentHour}>
+        <strong class="radar-num">{hourLabel(hour.localTime)}</strong>
+        <span class="radar-num">{Math.round(hour.temperatureCelsius)}°</span>
+        <small class="radar-num">
+          {hour.precipitationProbabilityPercent == null ? '—' : `${Math.round(hour.precipitationProbabilityPercent)}%`}
+        </small>
       </div>
     {/each}
   </div>
