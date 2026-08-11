@@ -371,6 +371,43 @@ pub async fn start_ollama_service(base_url: Option<String>) -> OllamaStartResult
         })
 }
 
+/// Pede ao Ollama que libere os pesos do modelo imediatamente.
+///
+/// Precisa ser um comando, e não um `fetch` do frontend: a CSP declarada no
+/// `index.html` nao inclui a porta do Ollama em `connect-src`, entao uma
+/// requisicao direta do webview e bloqueada. Todo o trafego com o Ollama passa
+/// por aqui pelo mesmo motivo.
+///
+/// `keep_alive: 0` sem `prompt` e a forma documentada de descarregar sem gerar
+/// nada. E best-effort: nao inicia o Ollama se ele estiver fora (nao haveria nada
+/// carregado) e devolve `false` em vez de erro, porque o modelo expira sozinho
+/// pelo keep_alive de qualquer forma.
+#[tauri::command]
+pub async fn unload_ollama_model(model: String, base_url: Option<String>) -> bool {
+    tauri::async_runtime::spawn_blocking(move || {
+        let Ok(model) = validate_model_name(&model) else {
+            return false;
+        };
+        let Ok(candidates) = normalize_base_urls(base_url) else {
+            return false;
+        };
+        let Ok(client) = health_client() else {
+            return false;
+        };
+
+        let payload = serde_json::json!({ "model": model, "keep_alive": 0 });
+        candidates.iter().any(|base| {
+            client
+                .post(format!("{base}/api/generate"))
+                .json(&payload)
+                .send()
+                .is_ok_and(|response| response.status().is_success())
+        })
+    })
+    .await
+    .unwrap_or(false)
+}
+
 #[tauri::command]
 pub async fn install_ollama_model(
     model: String,

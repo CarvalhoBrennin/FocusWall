@@ -577,7 +577,23 @@ export function onDayChange() {
   });
 }
 
+/**
+ * Reage a mudança de visibilidade da janela — só na mudança.
+ *
+ * Antes esta função agia a cada chamada, e como o verificador roda a cada
+ * `FULLSCREEN_CHECK_MS` (3s), o ramo "retomar" disparava `updateExchangeRates`
+ * de 3 em 3 segundos indefinidamente: uma requisição à API de cotações e uma
+ * regravação completa do arquivo de estado, para um dado que só muda a cada
+ * `RATE_REFRESH_MS` (60s). Comparar com o estado atual é o que mantém o refresh
+ * de retomada sem transformar o verificador em um laço de polling.
+ *
+ * A comparação usa o próprio store em vez de uma variável de módulo: `paused` já
+ * é a fonte de verdade e ninguém mais o escreve, então duplicá-lo só criaria a
+ * chance de os dois divergirem.
+ */
 export function onFullscreenPause(shouldPause) {
+  if (shouldPause === get(paused)) return;
+
   if (shouldPause) {
     paused.set(true);
     abortRatesFetch();

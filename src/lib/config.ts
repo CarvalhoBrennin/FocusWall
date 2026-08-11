@@ -34,6 +34,15 @@ export const CONFIG = {
      * system prompt once the tool definitions and the state snapshot are added.
      */
     numCtx: 8192,
+    /**
+     * Quanto tempo o Ollama mantém o modelo residente após uma resposta. O
+     * default do Ollama é 5min, o que prende os ~5-6 GB do qwen3:8b muito
+     * depois de você sair da aba. Aqui o valor é generoso de propósito: a aba
+     * aberta significa que você vai mandar outra mensagem, e recarregar o
+     * modelo custa segundos. Quem libera a VRAM é o unload explícito ao sair
+     * da aba (ver unloadOllamaModel).
+     */
+    keepAlive: '10m',
     healthTimeoutMs: 5000,
     streamIdleTimeoutMs: 60000,
     requestTimeoutMs: 180000,

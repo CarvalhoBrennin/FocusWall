@@ -39,6 +39,7 @@ commands.allow = [
   "media_skip_previous",
   "check_ollama_health",
   "start_ollama_service",
+  "unload_ollama_model",
   "install_ollama_model",
   "ollama_chat_stream",
   "cancel_ollama_chat",

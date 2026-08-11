@@ -1635,19 +1635,10 @@ pub fn run() {
 
             media::start_media_events(app.handle().clone());
 
-            if let Err(error) = thread::Builder::new()
-                .name("ollama-autostart".into())
-                .spawn(|| {
-                    let result = ollama::ensure_ollama_started(None);
-                    if result.online {
-                        info!("Ollama ready for FocusWall assistant.");
-                    } else if let Some(error) = result.error {
-                        warn!("Ollama autostart failed: {error}");
-                    }
-                })
-            {
-                warn!("Could not spawn Ollama autostart thread: {error}");
-            }
+            // O Ollama NÃO sobe aqui de propósito: o processo custa memória e
+            // quem nunca abre a aba do assistente não deveria pagar por ele. A
+            // primeira ativação da aba chama `start_ollama_service` pelo
+            // frontend (ver bootAssistant em AssistantPanel.svelte).
 
             Ok(())
         })
@@ -1689,6 +1680,7 @@ pub fn run() {
             media::media_skip_previous,
             ollama::check_ollama_health,
             ollama::start_ollama_service,
+            ollama::unload_ollama_model,
             ollama::install_ollama_model,
             ollama::ollama_chat_stream,
             ollama::cancel_ollama_chat,

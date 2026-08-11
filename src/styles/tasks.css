@@ -178,6 +178,30 @@
   z-index: 1;
 }
 
+/*
+ * Painéis permanecem montados depois da primeira visita — é o que torna a troca
+ * de abas instantânea, e trocar por `display: none` custaria re-layout e uma
+ * re-rasterização do blur da capa a cada retorno.
+ *
+ * Mas `visibility: hidden` não interrompe animação CSS: sem isto, o Ken Burns da
+ * capa e as barras do equalizador seguem animando indefinidamente atrás da aba
+ * ativa. Congelar é a economia sem custo nenhum de navegação — o layout e as
+ * camadas do compositor ficam intactos, e as animações retomam de onde pararam.
+ *
+ * `!important` é necessário, não é atalho: as animações dos painéis são declaradas
+ * com o shorthand `animation` (ex.: `.media-eq-bar:nth-child(1)`), que reseta
+ * `animation-play-state` para `running`. A especificidade empata em (0,2,0) e o CSS
+ * do painel é injetado depois — sem `!important` a pausa perde a cascata. E como a
+ * regra é categórica (nada anima num painel invisível), não há caso legítimo em que
+ * uma declaração local deva vencê-la.
+ */
+.panel-view:not(.is-active),
+.panel-view:not(.is-active) *,
+.panel-view:not(.is-active) *::before,
+.panel-view:not(.is-active) *::after {
+  animation-play-state: paused !important;
+}
+
 #execution-panel {
   gap: clamp(0.5rem, 0.75vw, 0.75rem);
 }

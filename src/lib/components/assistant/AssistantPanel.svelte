@@ -1,6 +1,6 @@
 <script>
   import '../../../styles/assistant.css';
-  import { onDestroy, tick, untrack } from 'svelte';
+  import { onDestroy, onMount, tick, untrack } from 'svelte';
   import { CONFIG } from '../../config.js';
   import { msg, t } from '../../i18n/index.js';
   import { data } from '../../stores/app-store.js';
@@ -9,7 +9,8 @@
     checkOllamaHealth,
     installOllamaModel,
     pickAssistantModel,
-    startOllamaService
+    startOllamaService,
+    unloadOllamaModel
   } from '../../services/ollama.js';
   import { showToast } from '../../stores/ui-store.js';
   import AssistantComposer from './AssistantComposer.svelte';
@@ -284,9 +285,31 @@
     }
   }
 
+  /**
+   * Primeira ativação da aba: o Ollama sobe aqui, não no boot do app. Quem nunca
+   * abre o assistente nunca paga o processo. A ordem importa — checar a saúde
+   * primeiro evita spawnar um segundo processo quando o usuário já roda o Ollama
+   * como serviço.
+   */
+  async function bootAssistant() {
+    await refreshHealth();
+    if (!health.online) await startAssistant();
+  }
+
   $effect(() => {
     if (!active) {
       stopHealthPolling();
+      // Sair da aba libera os ~5-6 GB do modelo na hora, em vez de esperar o
+      // keep_alive inteiro. Não faz sentido durante um envio: a resposta ainda
+      // está sendo gerada.
+      //
+      // Ler `sending` aqui é intencional e carrega peso: cria dependência, então
+      // sair da aba no meio de um envio não descarrega nada, mas o fim do envio
+      // reexecuta este efeito e o descarregamento acontece. Sem a dependência, o
+      // modelo ficaria residente até a próxima troca de aba.
+      if (initialized && !sending) {
+        untrack(() => void unloadOllamaModel(activeModel));
+      }
       return;
     }
 
@@ -295,9 +318,26 @@
     if (!initialized) {
       initialized = true;
       untrack(() => {
-        refreshHealth();
+        void bootAssistant();
       });
     }
+  });
+
+  /**
+   * O keep_alive configurado é mais longo que o default do Ollama, então fechar o
+   * app com a aba do assistente aberta precisa descarregar explicitamente — senão
+   * esta mudança pioraria justamente o caso que se propõe a melhorar.
+   *
+   * `beforeunload` é o gancho confiável para o fechamento da janela; `onDestroy`
+   * cobre desmontagem e reload. Os dois podem disparar na mesma saída, e um
+   * unload duplicado é inofensivo (o segundo encontra o modelo já descarregado).
+   */
+  function releaseModel() {
+    if (initialized) void unloadOllamaModel(activeModel);
+  }
+
+  onMount(() => {
+    window.addEventListener('beforeunload', releaseModel);
   });
 
   onDestroy(() => {
@@ -306,6 +346,8 @@
     cancelScheduledTokenFlush();
     flushPendingTokens();
     stopHealthPolling();
+    window.removeEventListener('beforeunload', releaseModel);
+    releaseModel();
   });
 </script>
 

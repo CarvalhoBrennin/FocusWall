@@ -206,6 +206,56 @@ export async function startOllamaService(): Promise<OllamaStartResult> {
   }
 }
 
+/**
+ * Descarrega o modelo da memória imediatamente, liberando os ~5-6 GB que o
+ * qwen3:8b ocupa. `keep_alive: 0` sem prompt é a forma documentada de o Ollama
+ * liberar os pesos sem gerar nada.
+ *
+ * No app vai pelo comando Tauri, como todo o resto do tráfego com o Ollama: a CSP
+ * declarada no `index.html` não inclui a porta 11434 em `connect-src`, então um
+ * `fetch` direto do webview é bloqueado. O caminho de `fetch` só serve ao modo
+ * browser, onde o proxy do vite (`/ollama`) satisfaz `'self'`.
+ *
+ * `keepalive: true` no caminho browser cobre o fechamento da aba: sem ele o envio
+ * é cancelado junto com o documento. `AbortSignal.timeout` em vez de um
+ * `setTimeout` manual porque um timer agendado durante o teardown não roda de
+ * forma confiável e ficaria pendurado.
+ *
+ * É best-effort de propósito: se o Ollama estiver fora ou a requisição falhar, não
+ * há nada a fazer nem a informar — o modelo expira sozinho pelo keep_alive. Por
+ * isso engole os erros e não devolve status.
+ */
+export async function unloadOllamaModel(model = CONFIG.ASSISTANT.model): Promise<void> {
+  if (!model) return;
+
+  if (isTauri()) {
+    try {
+      await tauriInvoke('unload_ollama_model', {
+        model,
+        baseUrl: CONFIG.ASSISTANT.ollamaBaseUrl
+      });
+    } catch {
+      // Sem ação: ver comentário acima.
+    }
+    return;
+  }
+
+  for (const baseUrl of getBrowserBaseUrlCandidates()) {
+    try {
+      const response = await fetch(ollamaUrl('/api/generate', baseUrl), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model, keep_alive: 0 }),
+        keepalive: true,
+        signal: AbortSignal.timeout(CONFIG.ASSISTANT.healthTimeoutMs)
+      });
+      if (response.ok) return;
+    } catch {
+      // Tenta o próximo candidato.
+    }
+  }
+}
+
 export async function installOllamaModel(model = CONFIG.ASSISTANT.model): Promise<OllamaModelInstallResult> {
   if (!isTauri()) {
     return {
@@ -377,6 +427,7 @@ function buildChatRequestBody(options: StreamChatOptions): Record<string, unknow
     messages: options.messages,
     tools: options.tools || [],
     stream: true,
+    keep_alive: CONFIG.ASSISTANT.keepAlive,
     options: {
       temperature: CONFIG.ASSISTANT.temperature,
       num_ctx: CONFIG.ASSISTANT.numCtx

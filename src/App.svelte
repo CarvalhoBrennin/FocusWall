@@ -174,6 +174,10 @@
     startAllTimers(onClockTick, onDayCheck, onRatesTick, onFullscreenCheck, updateExchangeRates);
     onClockTick();
     document.addEventListener('keydown', handleKeydown);
+    // Minimizar ou esconder na bandeja pausa na hora, em vez de esperar até 3s
+    // pelo verificador. O timer continua como rede de segurança para os casos
+    // que o evento não cobre (entrar/sair de fullscreen).
+    document.addEventListener('visibilitychange', onFullscreenCheck);
     window.addEventListener('beforeunload', stopAllAppTimers);
 
     if (isTauri()) {
@@ -192,6 +196,8 @@
     window.removeEventListener('unhandledrejection', handleUnhandledRejection);
 
     document.removeEventListener('keydown', handleKeydown);
+
+    document.removeEventListener('visibilitychange', onFullscreenCheck);
 
     window.removeEventListener('beforeunload', stopAllAppTimers);
 
