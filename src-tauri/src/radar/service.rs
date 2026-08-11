@@ -21,14 +21,22 @@ use super::{
 };
 use chrono::{DateTime, Utc};
 use futures_util::future::join_all;
+use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
+use image::{codecs::jpeg::JpegEncoder, ImageReader, Limits};
 use log::{info, warn};
-use std::{collections::HashSet, path::Path, sync::Arc};
+use regex::Regex;
+use std::{
+    collections::{HashMap, HashSet},
+    io::Cursor,
+    path::Path,
+    sync::{Arc, OnceLock},
+};
 use tokio::sync::Mutex;
 
 /// Contadores locais de observabilidade. Nenhuma telemetria remota.
 ///
-/// Alguns contadores ainda não têm incremento porque pertencem a etapas não
-/// entregues (imagens) ou ao caminho de leitura instrumentado.
+/// Alguns contadores ainda não têm incremento porque pertencem ao caminho de
+/// leitura instrumentado ou a métricas que não são expostas na UI.
 #[allow(dead_code)]
 #[derive(Debug, Default, Clone, Copy)]
 pub struct RadarMetrics {
@@ -42,6 +50,141 @@ pub struct RadarMetrics {
     pub articles_clustered: u32,
     pub snapshot_cache_hit: u32,
     pub snapshot_stale_hit: u32,
+}
+
+struct PendingArticle {
+    article: StoredArticle,
+    media_url: Option<String>,
+    article_hosts: &'static [&'static str],
+    image_hosts: &'static [&'static str],
+}
+
+struct PreparedImage {
+    bytes: Vec<u8>,
+    content_hash: String,
+    width: u32,
+    height: u32,
+}
+
+fn category_image_tone(category: RadarNewsCategory) -> RadarImageTone {
+    match category {
+        RadarNewsCategory::Brasil | RadarNewsCategory::Business => RadarImageTone::Olive,
+        RadarNewsCategory::Technology | RadarNewsCategory::Science => RadarImageTone::Cool,
+        RadarNewsCategory::Security | RadarNewsCategory::World => RadarImageTone::Warm,
+        RadarNewsCategory::Development => RadarImageTone::Neutral,
+    }
+}
+
+fn prepare_image(bytes: &[u8]) -> Option<PreparedImage> {
+    if bytes.is_empty() || bytes.len() > config::MAX_IMAGE_BYTES {
+        return None;
+    }
+
+    let mut reader = ImageReader::new(Cursor::new(bytes));
+    let mut limits = Limits::default();
+    limits.max_image_width = Some(config::IMAGE_MAX_INPUT_DIMENSION);
+    limits.max_image_height = Some(config::IMAGE_MAX_INPUT_DIMENSION);
+    limits.max_alloc = Some(192 * 1024 * 1024);
+    reader.limits(limits);
+    let image = reader.with_guessed_format().ok()?.decode().ok()?;
+    let (input_width, input_height) = image::GenericImageView::dimensions(&image);
+    let pixels = u64::from(input_width).saturating_mul(u64::from(input_height));
+    if input_width < config::IMAGE_MIN_WIDTH
+        || input_height < config::IMAGE_MIN_HEIGHT
+        || pixels > config::IMAGE_MAX_PIXELS
+    {
+        return None;
+    }
+
+    let thumbnail = image
+        .thumbnail(config::IMAGE_VARIANT_WIDTH, config::IMAGE_VARIANT_HEIGHT)
+        .to_rgb8();
+    let mut encoded = Vec::new();
+    {
+        let mut encoder = JpegEncoder::new_with_quality(&mut encoded, config::IMAGE_JPEG_QUALITY);
+        encoder
+            .encode(
+                thumbnail.as_raw(),
+                thumbnail.width(),
+                thumbnail.height(),
+                image::ExtendedColorType::Rgb8,
+            )
+            .ok()?;
+    }
+    if encoded.is_empty() {
+        return None;
+    }
+
+    Some(PreparedImage {
+        content_hash: security::sha256_hex_bytes(&encoded),
+        width: thumbnail.width(),
+        height: thumbnail.height(),
+        bytes: encoded,
+    })
+}
+
+fn extract_open_graph_image(bytes: &[u8]) -> Option<String> {
+    static META_IMAGE_RE: OnceLock<Regex> = OnceLock::new();
+    let pattern = META_IMAGE_RE.get_or_init(|| {
+        Regex::new(
+            r#"(?is)<meta\b[^>]*(?:property|name)\s*=\s*[\"']og:image[\"'][^>]*content\s*=\s*[\"']([^\"']+)[\"'][^>]*>|<meta\b[^>]*content\s*=\s*[\"']([^\"']+)[\"'][^>]*(?:property|name)\s*=\s*[\"']og:image[\"'][^>]*>"#,
+        )
+        .expect("valid Open Graph meta regex")
+    });
+
+    let html = String::from_utf8_lossy(bytes);
+    pattern
+        .captures(&html)
+        .and_then(|capture| capture.get(1).or_else(|| capture.get(2)))
+        .map(|value| value.as_str().trim().replace("&amp;", "&"))
+        .filter(|value| !value.is_empty() && value.chars().count() <= config::MAX_URL_CHARS)
+}
+
+fn persist_prepared_image(
+    repository: &RadarRepository,
+    prepared: PreparedImage,
+    now: DateTime<Utc>,
+) -> Option<String> {
+    if let Ok(Some(existing)) = repository.image_by_content_hash(&prepared.content_hash) {
+        let existing_path = repository.image_directory().join(&existing.file_name);
+        if existing_path.is_file() {
+            return Some(existing.id);
+        }
+    }
+
+    let image_id = prepared.content_hash.clone();
+    let file_name = format!("{image_id}.jpg");
+    let image_path = repository.image_directory().join(&file_name);
+    if !image_path.is_file() {
+        let temporary_path = repository
+            .image_directory()
+            .join(format!(".{image_id}.tmp"));
+        if std::fs::write(&temporary_path, &prepared.bytes).is_err() {
+            return None;
+        }
+        if std::fs::rename(&temporary_path, &image_path).is_err() {
+            let _ = std::fs::remove_file(&temporary_path);
+            if !image_path.is_file() {
+                return None;
+            }
+        }
+    }
+
+    let stored = StoredImage {
+        id: image_id.clone(),
+        content_hash: prepared.content_hash,
+        file_name,
+        mime_type: "image/jpeg".to_string(),
+        width: prepared.width,
+        height: prepared.height,
+        byte_size: prepared.bytes.len() as u64,
+        created_at: now,
+        last_accessed_at: now,
+    };
+    if repository.insert_image(&stored).is_err() {
+        return None;
+    }
+    Some(image_id)
 }
 
 pub struct RadarService {
@@ -140,9 +283,11 @@ impl RadarService {
     }
 
     fn to_summary(
+        &self,
         article: &StoredArticle,
         now: DateTime<Utc>,
         related_count: usize,
+        include_image: bool,
     ) -> RadarArticleSummary {
         RadarArticleSummary {
             id: article.id.clone(),
@@ -159,14 +304,41 @@ impl RadarService {
             author: article.author.clone(),
             published_at: article.published_at.map(|value| value.to_rfc3339()),
             fetched_at: article.fetched_at.to_rfc3339(),
-            // O pipeline de imagens não está habilitado nesta entrega; o
-            // frontend usa placeholder editorial por categoria.
-            image: None,
+            image: include_image.then(|| self.image_ref(article)).flatten(),
             tags: article.tags.clone(),
             score: article.score,
             related_count,
             cache_state: news_state(article.fetched_at, now),
         }
+    }
+
+    fn image_ref(&self, article: &StoredArticle) -> Option<RadarImageRef> {
+        let image_id = article.image_id.as_deref()?;
+        if !security::is_valid_opaque_id(image_id) {
+            return None;
+        }
+        let image = self.repository.image_by_id(image_id).ok()??;
+        let file_name = image.file_name.as_str();
+        if file_name.contains(['/', '\\']) || file_name.contains("..") {
+            return None;
+        }
+        let bytes = std::fs::read(self.repository.image_directory().join(file_name)).ok()?;
+        if bytes.is_empty() || bytes.len() > config::MAX_IMAGE_BYTES {
+            return None;
+        }
+        let mime_type = match image.mime_type.as_str() {
+            "image/jpeg" | "image/png" | "image/webp" => image.mime_type.as_str(),
+            _ => return None,
+        };
+        Some(RadarImageRef {
+            id: image.id,
+            width: image.width,
+            height: image.height,
+            aspect_ratio: image.width as f64 / image.height.max(1) as f64,
+            dominant_tone: category_image_tone(article.category),
+            alt: article.title.clone(),
+            data_url: format!("data:{mime_type};base64,{}", BASE64.encode(bytes)),
+        })
     }
 
     fn build_news_section(
@@ -259,17 +431,17 @@ impl RadarService {
             None
         } else {
             let article = page.remove(0);
-            Some(Self::to_summary(article, now, related_for(article)))
+            Some(self.to_summary(article, now, related_for(article), true))
         };
         let featured: Vec<RadarArticleSummary> = page
             .iter()
             .take(config::FEATURED_COUNT)
-            .map(|article| Self::to_summary(article, now, related_for(article)))
+            .map(|article| self.to_summary(article, now, related_for(article), true))
             .collect();
         let list: Vec<RadarArticleSummary> = page
             .iter()
             .skip(config::FEATURED_COUNT)
-            .map(|article| Self::to_summary(article, now, related_for(article)))
+            .map(|article| self.to_summary(article, now, related_for(article), false))
             .collect();
 
         let categories_available: Vec<RadarNewsCategory> = {
@@ -453,7 +625,7 @@ impl RadarService {
             append_warning(&mut warnings, RadarWarningCode::ProviderCooldown);
         }
 
-        RadarSnapshot {
+        let snapshot = RadarSnapshot {
             schema_version: RADAR_SCHEMA_VERSION,
             generated_at: now.to_rfc3339(),
             weather,
@@ -464,7 +636,23 @@ impl RadarService {
                 .map(|entry| entry.to_status(now, false))
                 .collect(),
             warnings,
-        }
+        };
+
+        let image_ids: Vec<String> = snapshot
+            .news
+            .data
+            .as_ref()
+            .into_iter()
+            .flat_map(|collection| {
+                collection
+                    .lead
+                    .iter()
+                    .chain(collection.featured.iter())
+                    .filter_map(|article| article.image.as_ref().map(|image| image.id.clone()))
+            })
+            .collect();
+        let _ = self.repository.touch_images(&image_ids, now);
+        snapshot
     }
 
     // -----------------------------------------------------------------------
@@ -611,9 +799,11 @@ impl RadarService {
             }
         }
 
-        if !fetched.is_empty() {
-            self.persist_articles(fetched, now).await;
-        }
+        let images_failed = if fetched.is_empty() {
+            false
+        } else {
+            self.persist_articles(fetched, now).await
+        };
 
         // --- Clima ---------------------------------------------------------
         if let Some(location) = request.snapshot.location.as_ref() {
@@ -654,7 +844,12 @@ impl RadarService {
             }
         }
 
-        self.refresh_market(&client, now).await;
+        let ticker_symbols = if request.snapshot.ticker_symbols.is_empty() {
+            vec!["usd-brl".to_string(), "eur-brl".to_string()]
+        } else {
+            request.snapshot.ticker_symbols.clone()
+        };
+        self.refresh_market(&client, now, &ticker_symbols).await;
 
         // Limpeza fora do caminho crítico e fora de qualquer transação de rede.
         if let Ok(orphans) = self.repository.prune(now) {
@@ -668,6 +863,9 @@ impl RadarService {
         }
 
         let mut snapshot = self.build_snapshot(&request.snapshot, now);
+        if images_failed {
+            append_warning(&mut snapshot.warnings, RadarWarningCode::ImagesUnavailable);
+        }
         if snapshot.news.state == RadarCacheState::Unavailable {
             append_warning(&mut snapshot.warnings, RadarWarningCode::NewsRefreshFailed);
         }
@@ -682,9 +880,62 @@ impl RadarService {
         snapshot
     }
 
-    /// Normaliza, deduplica, ranqueia e grava o lote em uma transação única.
-    async fn persist_articles(&self, raw: Vec<news::RawArticle>, now: DateTime<Utc>) {
-        let mut stored: Vec<StoredArticle> = Vec::with_capacity(raw.len());
+    async fn download_and_store_image(
+        &self,
+        url: String,
+        image_hosts: &'static [&'static str],
+        now: DateTime<Utc>,
+    ) -> Option<String> {
+        let client = self.client.as_ref()?.clone();
+        let image_url = security::validate_url_against_allowlist(&url, image_hosts).ok()?;
+        let fetched = client
+            .fetch(super::http::FetchSpec {
+                url: image_url,
+                allowlist: image_hosts,
+                max_bytes: config::MAX_IMAGE_BYTES,
+                expected: super::http::ExpectedContent::Image,
+                total_timeout: config::IMAGE_TIMEOUT,
+            })
+            .await
+            .ok()?;
+        let prepared = tokio::task::spawn_blocking(move || prepare_image(&fetched.bytes))
+            .await
+            .ok()??;
+        let repository = Arc::clone(&self.repository);
+        tokio::task::spawn_blocking(move || persist_prepared_image(&repository, prepared, now))
+            .await
+            .ok()?
+    }
+
+    async fn discover_open_graph_image(
+        &self,
+        article_url: String,
+        article_hosts: &'static [&'static str],
+        image_hosts: &'static [&'static str],
+        now: DateTime<Utc>,
+    ) -> Option<String> {
+        let client = self.client.as_ref()?.clone();
+        let article_url = security::validate_url_against_allowlist(&article_url, article_hosts).ok()?;
+        let fetched = client
+            .fetch(super::http::FetchSpec {
+                url: article_url,
+                allowlist: article_hosts,
+                max_bytes: config::MAX_OPEN_GRAPH_BYTES,
+                expected: super::http::ExpectedContent::Html,
+                total_timeout: config::REQUEST_TIMEOUT,
+            })
+            .await
+            .ok()?;
+        let image_url = extract_open_graph_image(&fetched.bytes)?;
+        let image_url = fetched.final_url.join(&image_url).ok()?;
+        let image_url = security::validate_url_against_allowlist(image_url.as_str(), image_hosts).ok()?;
+        self.download_and_store_image(image_url.to_string(), image_hosts, now)
+            .await
+    }
+
+    /// Normalizes, deduplicates, ranks, and persists one news batch.
+    async fn persist_articles(&self, raw: Vec<news::RawArticle>, now: DateTime<Utc>) -> bool {
+        let mut pending: Vec<PendingArticle> = Vec::with_capacity(raw.len());
         let mut rejected = 0u32;
         for article in &raw {
             let Some(provider) = sources::provider_by_id(&article.source_id) else {
@@ -692,10 +943,131 @@ impl RadarService {
                 continue;
             };
             match normalize::to_stored(article, provider, now) {
-                Some(value) => stored.push(value),
+                Some(value) => pending.push(PendingArticle {
+                    article: value,
+                    media_url: article.best_media().map(|media| media.url.clone()),
+                    article_hosts: provider.article_hosts,
+                    image_hosts: provider.image_hosts,
+                }),
                 None => rejected += 1,
             }
         }
+
+        // Reuse a local image before trying the feed URL again. A missing blob
+        // is treated as a cache miss so it can be repaired by the next cycle.
+        let existing_candidates: Vec<String> = pending
+            .iter()
+            .map(|entry| entry.article.id.clone())
+            .collect();
+        let repository = Arc::clone(&self.repository);
+        let existing_images = tokio::task::spawn_blocking(move || {
+            existing_candidates
+                .into_iter()
+                .filter_map(|article_id| {
+                    let image_id = repository
+                        .article_by_id(&article_id)
+                        .ok()
+                        .flatten()?
+                        .image_id?;
+                    let image = repository.image_by_id(&image_id).ok().flatten()?;
+                    let path = repository.image_directory().join(&image.file_name);
+                    path.is_file().then(|| (article_id, image.id))
+                })
+                .collect::<HashMap<_, _>>()
+        })
+        .await
+        .unwrap_or_default();
+        for entry in &mut pending {
+            if let Some(image_id) = existing_images.get(&entry.article.id) {
+                entry.article.image_id = Some(image_id.clone());
+            } else {
+                entry.article.image_id = None;
+            }
+        }
+
+        // Images are optional enrichment. A failed image must never hide a
+        // valid article or put its news provider into cooldown.
+        let mut images_failed = false;
+        let image_jobs: Vec<(usize, String, &'static [&'static str])> = pending
+            .iter()
+            .enumerate()
+            .filter_map(|(index, entry)| {
+                if entry.article.image_id.is_some() {
+                    return None;
+                }
+                Some((index, entry.media_url.clone()?, entry.image_hosts))
+            })
+            .collect();
+        for chunk in image_jobs.chunks(config::MAX_CONCURRENT_IMAGE_DOWNLOADS) {
+            let results = join_all(chunk.iter().map(|(index, url, image_hosts)| {
+                let url = url.clone();
+                async move {
+                    (
+                        *index,
+                        self.download_and_store_image(url, *image_hosts, now).await,
+                    )
+                }
+            }))
+            .await;
+            for (index, image_id) in results {
+                if image_id.is_none() {
+                    images_failed = true;
+                }
+                pending[index].article.image_id = image_id;
+            }
+        }
+
+        let open_graph_jobs: Vec<(
+            usize,
+            String,
+            &'static [&'static str],
+            &'static [&'static str],
+        )> = pending
+            .iter()
+            .enumerate()
+            .filter(|(_, entry)| {
+                entry.article.image_id.is_none()
+                    && !entry.article_hosts.is_empty()
+                    && !entry.image_hosts.is_empty()
+            })
+            .take(config::MAX_OPEN_GRAPH_LOOKUPS_PER_CYCLE)
+            .map(|(index, entry)| {
+                (
+                    index,
+                    entry.article.canonical_url.clone(),
+                    entry.article_hosts,
+                    entry.image_hosts,
+                )
+            })
+            .collect();
+        for chunk in open_graph_jobs.chunks(config::MAX_CONCURRENT_IMAGE_DOWNLOADS) {
+            let results = join_all(chunk.iter().map(|(index, article_url, article_hosts, image_hosts)| {
+                let article_url = article_url.clone();
+                async move {
+                    (
+                        *index,
+                        self.discover_open_graph_image(
+                            article_url,
+                            *article_hosts,
+                            *image_hosts,
+                            now,
+                        )
+                        .await,
+                    )
+                }
+            }))
+            .await;
+            for (index, image_id) in results {
+                if image_id.is_none() {
+                    images_failed = true;
+                }
+                pending[index].article.image_id = image_id;
+            }
+        }
+        let mut stored: Vec<StoredArticle> = pending
+            .into_iter()
+            .map(|entry| entry.article)
+            .collect();
 
         // A partir daqui é tudo CPU e SQLite: leitura da janela de dedupe,
         // comparação de bigramas e uma transação que pode escrever centenas de
@@ -726,7 +1098,7 @@ impl RadarService {
 
         let Ok((outcome, written)) = joined else {
             warn!("radar article persistence task failed: error_kind=storage");
-            return;
+            return images_failed;
         };
 
         {
@@ -744,11 +1116,18 @@ impl RadarService {
             ),
             None => warn!("radar cache write failed: error_kind=storage"),
         }
+        images_failed
     }
 
-    async fn refresh_market(&self, client: &SecureHttpClient, now: DateTime<Utc>) {
+    async fn refresh_market(
+        &self,
+        client: &SecureHttpClient,
+        now: DateTime<Utc>,
+        ticker_symbols: &[String],
+    ) {
         // PTAX: apenas as moedas efetivamente suportadas.
-        for symbol in ["usd-brl", "eur-brl"] {
+        for symbol in ticker_symbols {
+            let symbol = symbol.as_str();
             let Some((currency, label)) = market::ptax_currency_for(symbol) else {
                 continue;
             };
@@ -858,7 +1237,7 @@ impl RadarService {
             })
             .unwrap_or_default()
             .iter()
-            .map(|related| Self::to_summary(related, now, 0))
+            .map(|related| self.to_summary(related, now, 0, false))
             .collect();
 
         // A abertura externa só é oferecida quando o host armazenado ainda
@@ -866,6 +1245,11 @@ impl RadarService {
         let can_open_externally = provider
             .map(|provider| Self::article_host_is_allowed(&article, provider))
             .unwrap_or(false);
+
+        let image = self.image_ref(&article);
+        if let Some(image) = image.as_ref() {
+            let _ = self.repository.touch_images(&[image.id.clone()], now);
+        }
 
         Ok(RadarArticlePreview {
             id: article.id.clone(),
@@ -883,7 +1267,7 @@ impl RadarService {
             }),
             author: article.author.clone(),
             published_at: article.published_at.map(|value| value.to_rfc3339()),
-            image: None,
+            image,
             tags: article.tags.clone(),
             related,
             can_open_externally,
@@ -967,6 +1351,15 @@ fn append_warning(warnings: &mut Vec<RadarWarningCode>, warning: RadarWarningCod
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn extracts_open_graph_images_from_both_attribute_orders() {
+        let first = br#"<meta property="og:image" content="https://img.example/a.jpg">"#;
+        let second = br#"<meta content="https://img.example/b.jpg" property="og:image">"#;
+        assert_eq!(extract_open_graph_image(first).as_deref(), Some("https://img.example/a.jpg"));
+        assert_eq!(extract_open_graph_image(second).as_deref(), Some("https://img.example/b.jpg"));
+        assert!(extract_open_graph_image(br#"<meta property="og:image" content="">"#).is_none());
+    }
 
     fn service() -> RadarService {
         let directory = std::env::temp_dir().join(format!(

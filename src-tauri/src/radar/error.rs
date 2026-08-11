@@ -3,8 +3,8 @@
 //! O `Display` de cada erro é deliberadamente opaco: nunca inclui URL, título,
 //! consulta de cidade ou coordenada. Logs usam apenas `error_kind`.
 //!
-//! Algumas variantes pertencem a etapas ainda não entregues (imagens) e por
-//! isso não têm produtor no código atual.
+//! Algumas variantes são reservadas para falhas de enriquecimento opcional e
+//! podem não aparecer em todos os ciclos.
 #![allow(dead_code)]
 
 use std::fmt;

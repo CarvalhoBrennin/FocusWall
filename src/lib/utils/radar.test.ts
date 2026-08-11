@@ -356,4 +356,42 @@ describe('radar utils', () => {
     expect(normalizeRadarArticlePreview({ ...article({ id: 'curto' }) })).toBeNull();
     expect(normalizeRadarArticlePreview(null)).toBeNull();
   });
+
+  it('accepts local cached image data and rejects external image sources', () => {
+    const localImage = 'data:image/jpeg;base64,/9j/4AAQ';
+    const snapshot = snapshotOf({
+      news: {
+        state: 'fresh',
+        data: collection([article({
+          image: {
+            id: ARTICLE_ID,
+            width: 640,
+            height: 360,
+            aspectRatio: 640 / 360,
+            dominantTone: 'cool',
+            alt: 'Imagem de teste',
+            dataUrl: localImage
+          }
+        })]),
+        fetchedAt: '2026-07-29T12:00:00Z'
+      }
+    });
+    expect(snapshot?.news.data?.lead?.image?.dataUrl).toBe(localImage);
+    expect(normalizeRadarArticlePreview({
+      ...article({
+        image: {
+          id: ARTICLE_ID,
+          width: 640,
+          height: 360,
+          aspectRatio: 640 / 360,
+          dominantTone: 'cool',
+          alt: 'Imagem externa',
+          dataUrl: 'https://example.com/image.jpg'
+        }
+      }),
+      sourceAttribution: 'Fonte',
+      related: [],
+      canOpenExternally: false
+    })?.image).toBeNull();
+  });
 });

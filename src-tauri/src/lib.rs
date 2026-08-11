@@ -3,6 +3,8 @@ mod media;
 mod metrics;
 mod ollama;
 mod radar;
+mod webview_identity;
+mod youtube_music;
 
 use dashboard_state::{get_app_data_path, load_state, save_state};
 
@@ -1623,6 +1625,7 @@ pub fn run() {
     let app = tauri::Builder::default()
         .manage(RuntimeState::default())
         .manage(radar::RadarRuntime::new())
+        .manage(youtube_music::MusicRuntime::default())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
@@ -1630,6 +1633,14 @@ pub fn run() {
         ))
         .setup(|app| {
             build_tray(app.handle())?;
+
+            if let Some(window) = app.get_webview_window(MAIN_WINDOW_LABEL) {
+                if let Err(error) = webview_identity::install_youtube_player_identity(&window) {
+                    warn!("Could not install YouTube WebView2 identity: {error}");
+                }
+            } else {
+                warn!("Main WebView not found while configuring YouTube player identity.");
+            }
 
             show_main_window(app.handle());
 
@@ -1678,6 +1689,14 @@ pub fn run() {
             media::media_toggle_playback,
             media::media_skip_next,
             media::media_skip_previous,
+            youtube_music::youtube_music_get_auth_status,
+            youtube_music::youtube_music_save_client_id,
+            youtube_music::youtube_music_connect,
+            youtube_music::youtube_music_disconnect,
+            youtube_music::youtube_music_list_playlists,
+            youtube_music::youtube_music_list_playlist_items,
+            youtube_music::youtube_music_open_google_console,
+            youtube_music::youtube_music_open_api_library,
             ollama::check_ollama_health,
             ollama::start_ollama_service,
             ollama::unload_ollama_model,

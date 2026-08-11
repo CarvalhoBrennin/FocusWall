@@ -407,6 +407,8 @@ pub struct RadarImageRef {
     pub aspect_ratio: f64,
     pub dominant_tone: RadarImageTone,
     pub alt: String,
+    /// Local cache payload. It is a data URL, never a provider URL.
+    pub data_url: String,
 }
 
 // ---------------------------------------------------------------------------
@@ -571,6 +573,8 @@ pub struct RadarSnapshotRequest {
     pub followed_topics: Vec<String>,
     #[serde(default)]
     pub preferred_sources: Vec<String>,
+    #[serde(default)]
+    pub ticker_symbols: Vec<String>,
     /// Quantos artigos a UI já solicitou (paginação incremental).
     #[serde(default)]
     pub page_size: Option<usize>,
@@ -623,9 +627,8 @@ pub struct StoredArticle {
 
 /// Metadados de uma imagem processada no cache local.
 ///
-/// A camada de armazenamento está pronta e testada (LRU, quota, órfãs), mas o
-/// download e o reencode ainda não foram entregues — ver etapa 6 no relatório.
-#[allow(dead_code)]
+/// Metadados da imagem processada e persistida no cache local. O blob nunca
+/// atravessa o banco; o serviço lê o arquivo e monta uma data URL no DTO.
 #[derive(Debug, Clone, PartialEq)]
 pub struct StoredImage {
     pub id: String,
@@ -996,6 +999,7 @@ mod tests {
             "blockedTopics": ["futebol"],
             "followedTopics": ["inteligência artificial"],
             "preferredSources": ["agencia-brasil"],
+            "tickerSymbols": ["usd-brl", "eur-brl"],
             "pageSize": 24
         });
         let request: RadarSnapshotRequest = serde_json::from_value(payload).expect("request");
@@ -1005,6 +1009,7 @@ mod tests {
         );
         assert_eq!(request.selected_category, Some(RadarNewsCategory::Security));
         assert_eq!(request.muted_sources, vec!["tabnews".to_string()]);
+        assert_eq!(request.ticker_symbols, vec!["usd-brl", "eur-brl"]);
         assert_eq!(request.page_size, Some(24));
     }
 

@@ -38,6 +38,7 @@ function normalizeRequest(request: RadarSnapshotRequest): Record<string, unknown
     blockedTopics: request.blockedTopics ?? [],
     followedTopics: request.followedTopics ?? [],
     preferredSources: request.preferredSources ?? [],
+    tickerSymbols: request.tickerSymbols ?? [],
     pageSize: request.pageSize ?? null
   };
 }

@@ -78,7 +78,7 @@
 </script>
 
 {#if $radarLocationPickerOpen}
-  <section
+  <div
     bind:this={dialogElement}
     class="radar-location-picker"
     role="dialog"
@@ -102,7 +102,6 @@
       autocomplete="off"
       placeholder={$t('radar.locationSearchPlaceholder')}
       aria-controls="radar-location-results"
-      aria-expanded={results.length > 0}
       aria-describedby="radar-location-help"
       disabled={saving}
     />
@@ -130,5 +129,5 @@
     >
       {$t('radar.removeLocation')}
     </button>
-  </section>
+  </div>
 {/if}

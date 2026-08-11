@@ -81,6 +81,7 @@ fn validate_request(request: &RadarSnapshotRequest) -> Result<(), RadarCommandEr
         || request.blocked_topics.len() > 64
         || request.followed_topics.len() > 64
         || request.preferred_sources.len() > 32
+        || request.ticker_symbols.len() > 12
     {
         return Err(RadarCommandError::INVALID_REQUEST);
     }

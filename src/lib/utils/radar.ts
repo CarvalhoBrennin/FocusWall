@@ -65,6 +65,7 @@ const PROVIDER_STATES = new Set([
   'disabled'
 ]);
 const IMAGE_TONES = new Set(['neutral', 'warm', 'cool', 'olive']);
+const MAX_IMAGE_DATA_URL_CHARS = 7_000_000;
 
 function record(value: unknown): Record<string, unknown> | null {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
@@ -347,14 +348,20 @@ function normalizeImage(value: unknown): RadarImageRef | null {
   const width = integer(image.width, 1, 20000);
   const height = integer(image.height, 1, 20000);
   const tone = member<RadarImageRef['dominantTone']>(image.dominantTone, IMAGE_TONES);
-  if (!id || width == null || height == null || !tone) return null;
+  const dataUrl = typeof image.dataUrl === 'string' &&
+    /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(image.dataUrl) &&
+    image.dataUrl.length <= MAX_IMAGE_DATA_URL_CHARS
+    ? image.dataUrl
+    : null;
+  if (!id || width == null || height == null || !tone || !dataUrl) return null;
   return {
     id,
     width,
     height,
     aspectRatio: finite(image.aspectRatio, 0.1, 10) ?? width / height,
     dominantTone: tone,
-    alt: text(image.alt, 240)
+    alt: text(image.alt, 240),
+    dataUrl
   };
 }
 

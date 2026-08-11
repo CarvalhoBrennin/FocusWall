@@ -65,6 +65,7 @@
 .radar-hour.is-now { border-color: var(--control-border-strong); background: var(--control-bg); }
 .radar-hour strong { color: var(--ink-strong); font-size: .68rem; }
 .radar-hour span, .radar-hour small { color: var(--ink-muted); font-size: .64rem; }
+.radar-hour-condition { max-width: 7rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .radar-wx-days summary { color: var(--ink-muted); cursor: pointer; font-size: .7rem; list-style-position: inside; }
 .radar-wx-days summary:hover { color: var(--ink-strong); }
@@ -88,9 +89,13 @@
 
 /* -------------------------------- Notícias --------------------------------- */
 
-.radar-news { display: flex; flex-direction: column; gap: .9rem; }
+.radar-news { display: flex; flex-direction: column; gap: 1rem; }
+.radar-news-heading { display: flex; align-items: end; justify-content: space-between; gap: 1rem; }
+.radar-news-heading h2 { margin: .12rem 0 0; color: var(--ink-strong); font-family: var(--font-display); font-size: 1.08rem; line-height: 1.1; }
+.radar-section-eyebrow { color: var(--ink-soft); font-size: .6rem; letter-spacing: .14em; text-transform: uppercase; }
+.radar-news-count { flex: none; color: var(--ink-muted); font-size: .68rem; }
 .radar-news-bar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
-.radar-filters { display: flex; flex-wrap: wrap; gap: .35rem; }
+.radar-filters { display: flex; max-width: 100%; flex-wrap: nowrap; gap: .35rem; overflow-x: auto; padding-bottom: .2rem; scrollbar-width: thin; }
 .radar-filters button { min-height: 1.9rem; padding: .3rem .58rem; font-size: .7rem; }
 .radar-filters button.is-active { border-color: var(--control-border-strong); background: var(--control-bg-active); color: var(--ink-strong); }
 
@@ -100,19 +105,31 @@
 .radar-news-settings fieldset { position: absolute; z-index: 4; top: calc(100% + .35rem); right: 0; display: flex; width: max-content; max-width: 20rem; flex-wrap: wrap; gap: .45rem .8rem; border: 1px solid var(--control-border-strong); margin: 0; background: var(--surface-dark-strong); box-shadow: var(--shadow-md); padding: .7rem .8rem; }
 .radar-news-settings label { display: inline-flex; align-items: center; gap: .4rem; color: var(--ink-main); font-size: .72rem; cursor: pointer; }
 .radar-news-settings input { margin: 0; }
+.radar-personalization { min-width: min(100%, 18rem); }
+.radar-personalization[open] { z-index: 5; }
+.radar-settings-help { max-width: 24rem; margin: .55rem 0; color: var(--ink-muted); font-size: .68rem; line-height: 1.4; }
+.radar-preference-grid { display: grid; gap: .5rem; }
+.radar-preference-grid label { display: grid; align-items: start; gap: .25rem; }
+.radar-preference-grid input { width: 100%; min-height: 2rem; border: 1px solid var(--control-border); background: var(--control-bg); color: var(--ink-main); padding: .35rem .5rem; font: inherit; font-size: .7rem; }
+.radar-save-preferences { margin-top: .65rem; }
+.radar-load-more { align-self: center; min-height: 2.25rem; border: 1px solid var(--control-border); background: var(--control-bg); color: var(--ink-main); padding: .5rem .85rem; font: inherit; font-size: .74rem; cursor: pointer; }
+.radar-load-more:hover { background: var(--control-bg-hover); color: var(--ink-strong); }
+.radar-load-more:disabled { cursor: default; opacity: .55; }
 
 .radar-section-warning { margin: 0; border-left: 2px solid var(--priority-medium-border); padding: .3rem .55rem; color: var(--ink-muted); font-size: .72rem; line-height: 1.4; }
 .radar-news-attribution { margin: 0; color: var(--ink-soft); font-size: .64rem; line-height: 1.5; }
 
 /* Manchete: a única peça com resumo. O resto vive de título e procedência. */
-.radar-lead button { display: grid; width: 100%; align-items: start; gap: .9rem; grid-template-columns: minmax(0, 19rem) minmax(0, 1fr); border: 0; background: transparent; color: inherit; padding: 0; text-align: left; cursor: pointer; }
+.radar-lead { border: 1px solid var(--divider); background: var(--card-bg-muted); padding: .75rem; }
+.radar-lead button { display: grid; width: 100%; align-items: start; gap: 1rem; grid-template-columns: minmax(0, 19rem) minmax(0, 1fr); border: 0; background: transparent; color: inherit; padding: 0; text-align: left; cursor: pointer; }
 .radar-lead-copy { display: flex; min-width: 0; flex-direction: column; gap: .35rem; }
 .radar-lead-title { color: var(--ink-strong); font-family: var(--font-display); font-size: clamp(1rem, 1.5vw, 1.18rem); line-height: 1.28; text-wrap: balance; overflow-wrap: anywhere; }
 .radar-lead-summary { color: var(--ink-main); font-size: .78rem; line-height: 1.45; overflow-wrap: anywhere; }
 .radar-lead button:hover .radar-lead-title { color: var(--accent-strong); }
 
 .radar-featured { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .9rem; border-top: 1px solid var(--divider); padding-top: .9rem; }
-.radar-featured-item button { display: grid; width: 100%; align-items: start; gap: .6rem; grid-template-columns: 5.5rem minmax(0, 1fr); border: 0; background: transparent; color: inherit; padding: 0; text-align: left; cursor: pointer; }
+.radar-featured-item { border-top: 1px solid var(--divider); padding-top: .7rem; }
+.radar-featured-item button { display: grid; width: 100%; align-items: start; gap: .7rem; grid-template-columns: 7rem minmax(0, 1fr); border: 0; background: transparent; color: inherit; padding: 0; text-align: left; cursor: pointer; }
 .radar-featured-copy { display: flex; min-width: 0; flex-direction: column; gap: .25rem; }
 .radar-featured-title { color: var(--ink-strong); font-size: .8rem; font-weight: 600; line-height: 1.32; overflow-wrap: anywhere; }
 .radar-featured-item button:hover .radar-featured-title { color: var(--accent-strong); }
@@ -124,14 +141,17 @@
 .radar-news-title { min-width: 0; color: var(--ink-main); font-size: .8rem; line-height: 1.35; overflow-wrap: anywhere; }
 .radar-news-meta { flex: none; color: var(--ink-muted); font-size: .66rem; }
 
-/* Capa editorial: bloco tonal enquanto o pipeline de imagens não é habilitado. */
-.radar-cover { position: relative; display: block; border: 1px solid var(--divider); background: var(--card-bg-muted); }
+/* Capa editorial: imagem local quando disponível, tom da categoria como fallback. */
+.radar-cover { position: relative; display: block; overflow: hidden; border: 1px solid var(--divider); background: var(--card-bg-muted); }
 .radar-cover.is-lead { aspect-ratio: 16 / 9; }
 .radar-cover.is-featured { aspect-ratio: 4 / 3; }
 .radar-cover.tone-warm { background: var(--accent-gold-soft); }
 .radar-cover.tone-cool { background: var(--accent-sky-soft); }
 .radar-cover.tone-olive { background: var(--accent-olive-soft); }
-.radar-cover-label { position: absolute; bottom: .32rem; left: .42rem; color: var(--ink-soft); font-size: .58rem; letter-spacing: .12em; text-transform: uppercase; }
+.radar-cover img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.radar-cover-fallback { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: space-between; padding: .5rem; }
+.radar-cover-fallback-mark { color: color-mix(in srgb, var(--ink-strong) 42%, transparent); font-family: var(--font-display); font-size: clamp(2.4rem, 5vw, 4.4rem); line-height: .9; }
+.radar-cover-label { color: var(--ink-soft); font-size: .58rem; letter-spacing: .12em; text-transform: uppercase; }
 
 /* --------------------------------- Ticker ---------------------------------- */
 
@@ -142,6 +162,7 @@
 .radar-ticker b { color: var(--ink-strong); font-weight: 600; }
 .radar-ticker-tag { border: 1px solid var(--divider); padding: 0 .25rem; color: var(--ink-soft); font-size: .56rem; letter-spacing: .1em; }
 .radar-ticker-label { color: var(--ink-main); }
+.radar-ticker-detail { color: var(--ink-soft); font-size: .6rem; }
 .radar-up { color: var(--success); }
 .radar-down { color: var(--danger); }
 
@@ -177,6 +198,7 @@
 .radar-drawer { position: absolute; inset-block: 0; inset-inline-end: 0; z-index: 20; display: flex; width: min(600px, 92%); flex-direction: column; gap: .75rem; border-inline-start: 1px solid var(--control-border-strong); background: var(--surface-dark-strong); box-shadow: var(--shadow-md); padding: 1.25rem; overflow-y: auto; overscroll-behavior: contain; }
 .radar-drawer-header { display: flex; align-items: flex-start; justify-content: space-between; gap: .75rem; }
 .radar-drawer-header h2 { margin: 0; font-size: 1.05rem; line-height: 1.35; overflow-wrap: anywhere; }
+.radar-drawer > .radar-cover { flex: none; width: 100%; }
 .radar-subsection { display: flex; flex-direction: column; gap: .55rem; }
 .radar-subsection h3 { margin: 0; color: var(--ink-main); font-size: .78rem; }
 .radar-drawer-close, .radar-drawer-open { border: 1px solid var(--control-border); background: var(--control-bg); color: inherit; padding: .4rem .7rem; font: inherit; cursor: pointer; }

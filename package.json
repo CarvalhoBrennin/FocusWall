@@ -17,7 +17,7 @@
     "tauri:dev": "npx tauri dev",
     "tauri:build": "npx tauri build --no-bundle",
     "tauri:build:installer": "npx tauri build",
-    "open": "abrir-dashboard.bat",
+    "open": "abrirfocuswall.bat",
     "open:dev": "npm run tauri:dev",
     "dist": "npm run tauri:build && build-bootstrapper.bat",
     "seed:demo-may": "node tools/seed-demo-may.mjs"

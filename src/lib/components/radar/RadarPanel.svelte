@@ -7,6 +7,7 @@
     radarErrorKey,
     radarLocationPickerOpen,
     radarPhase,
+    radarNewsPageSize,
     radarRefreshAvailableAt,
     radarSelectedArticleId,
     radarSelectedCategory,
@@ -33,7 +34,9 @@
     mutedSources: $data.radarPreferences.mutedSources,
     blockedTopics: $data.radarPreferences.blockedTopics,
     followedTopics: $data.radarPreferences.followedTopics,
-    preferredSources: $data.radarPreferences.preferredSources
+    preferredSources: $data.radarPreferences.preferredSources,
+    tickerSymbols: $data.radarPreferences.tickerSymbols,
+    pageSize: $radarNewsPageSize
   });
 
   // O fundo fica inerte quando o seletor de cidade ou o drawer está aberto.
@@ -78,6 +81,7 @@
         section={$radarSnapshot?.news ?? null}
         warnings={$radarSnapshot?.warnings ?? []}
         loading={$radarPhase === 'loading'}
+        refreshing={$radarPhase === 'refreshing'}
         categories={request.categories}
       />
     </div>

@@ -30,6 +30,8 @@ type RadarClock = {
 
 const REEVALUATE_MS = 5 * 60 * 1000;
 const MANUAL_COOLDOWN_MS = 30 * 1000;
+const INITIAL_PAGE_SIZE = 16;
+const PAGE_SIZE_INCREMENT = 12;
 
 const defaultClock: RadarClock = {
   now: () => Date.now(),
@@ -68,7 +70,11 @@ export function createRadarController(
       [...value.categories].sort().join(','),
       value.selectedCategory ?? 'all',
       [...(value.mutedSources ?? [])].sort().join(','),
-      [...(value.blockedTopics ?? [])].sort().join(',')
+      [...(value.blockedTopics ?? [])].sort().join(','),
+      [...(value.followedTopics ?? [])].sort().join(','),
+      [...(value.preferredSources ?? [])].sort().join(','),
+      [...(value.tickerSymbols ?? [])].sort().join(','),
+      value.pageSize ?? INITIAL_PAGE_SIZE
     ].join('|');
   };
 
@@ -159,6 +165,7 @@ export function createRadarController(
       warning === 'newsSourceUnavailable' ||
       warning === 'newsAllSourcesUnavailable' ||
       warning === 'providerCooldown' ||
+      warning === 'imagesUnavailable' ||
       warning === 'cacheWriteFailed' ||
       warning === 'cacheReadFailed' ||
       warning === 'cacheRecovered'
@@ -169,7 +176,12 @@ export function createRadarController(
   const needsRefresh = (value: RadarSnapshot | null): boolean => {
     if (!value) return true;
     const weatherNeeded = request?.location ? value.weather.state !== 'fresh' : false;
-    const newsNeeded = value.news.state !== 'fresh' || value.warnings.includes('newsSourceUnavailable');
+    const visibleArticles = collectionArticles(value.news.data).slice(0, 4);
+    const imageEnrichmentNeeded = visibleArticles.some((article) => article.image == null) &&
+      !value.warnings.includes('imagesUnavailable');
+    const newsNeeded = value.news.state !== 'fresh' ||
+      value.warnings.includes('newsSourceUnavailable') ||
+      imageEnrichmentNeeded;
     return weatherNeeded || newsNeeded;
   };
 
@@ -300,6 +312,7 @@ export function createRadarController(
       lastRefreshAttemptAt.set(null);
       refreshAvailableAt.set(null);
       lastManualAt = null;
+      radarNewsPageSize.set(INITIAL_PAGE_SIZE);
     }
   };
 }
@@ -310,6 +323,15 @@ export const radarSnapshot = controller.snapshot;
 export const radarErrorKey = controller.errorKey;
 export const radarLastRefreshAttemptAt = controller.lastRefreshAttemptAt;
 export const radarRefreshAvailableAt = controller.refreshAvailableAt;
+export const radarNewsPageSize = writable(INITIAL_PAGE_SIZE);
+
+export function loadMoreRadarNews(): void {
+  radarNewsPageSize.update((value) => value + PAGE_SIZE_INCREMENT);
+}
+
+export function resetRadarNewsPageSize(): void {
+  radarNewsPageSize.set(INITIAL_PAGE_SIZE);
+}
 
 /** `'all'` significa "sem filtro"; o backend então pagina por todas as categorias. */
 export const radarSelectedCategory = writable<RadarNewsCategory | 'all'>('all');

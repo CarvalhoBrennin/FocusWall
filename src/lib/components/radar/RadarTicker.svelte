@@ -19,6 +19,12 @@
       signDisplay: 'always'
     }).format(value)}%`;
   }
+
+  function observedLabel(value: string): string {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '';
+    return new Intl.DateTimeFormat($locale, { hour: '2-digit', minute: '2-digit' }).format(date);
+  }
 </script>
 
 {#if items.length}
@@ -29,6 +35,9 @@
           <span class="radar-ticker-tag">{$t(`radar.quote.${item.quoteKind}` as MessageKey)}</span>
           <span class="radar-ticker-label">{item.label}</span>
           <b class="radar-num">{item.value}</b>
+          <span class="radar-ticker-detail" title={item.providerName}>
+            {item.detail ?? observedLabel(item.observedAt)}
+          </span>
           {#if item.variation != null}
             <span class={item.variation >= 0 ? 'radar-up' : 'radar-down'}>
               <span aria-hidden="true">{item.variation >= 0 ? '▲' : '▼'}</span>

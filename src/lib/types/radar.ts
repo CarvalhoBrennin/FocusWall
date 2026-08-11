@@ -167,6 +167,8 @@ export type RadarImageRef = {
   aspectRatio: number;
   dominantTone: RadarImageTone;
   alt: string;
+  /** Local cached image encoded as a data URL; never an external URL. */
+  dataUrl: string;
 };
 
 /** DTO de listagem. Deliberadamente **sem** `canonicalUrl`. */
@@ -263,6 +265,7 @@ export type RadarSnapshotRequest = {
   blockedTopics?: string[];
   followedTopics?: string[];
   preferredSources?: string[];
+  tickerSymbols?: string[];
   pageSize?: number | null;
 };
 

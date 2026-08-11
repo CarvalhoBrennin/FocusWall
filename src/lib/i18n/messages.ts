@@ -66,6 +66,136 @@ export type MessageKey =
   | 'tasks.performance'
   | 'tasks.radar'
   | 'tasks.currentContext'
+  | 'music.accountConnected'
+  | 'music.accountDisconnected'
+  | 'music.authorizationBrowser'
+  | 'music.backToLibrary'
+  | 'music.configurationBody'
+  | 'music.configurationEyebrow'
+  | 'music.configurationTitle'
+  | 'music.connectAction'
+  | 'music.connectBody'
+  | 'music.connectTitle'
+  | 'music.connected'
+  | 'music.connecting'
+  | 'music.connectingPlayer'
+  | 'music.desktopBody'
+  | 'music.desktopEyebrow'
+  | 'music.desktopTitle'
+  | 'music.dismissMessage'
+  | 'music.emptyPlaylist'
+  | 'music.emptyPlaylistBody'
+  | 'music.filteredResult'
+  | 'music.libraryEmpty'
+  | 'music.libraryEmptyBody'
+  | 'music.libraryLabel'
+  | 'music.libraryRefreshing'
+  | 'music.libraryRefreshingBody'
+  | 'music.librarySubtitle'
+  | 'music.libraryTitle'
+  | 'music.loadingTracks'
+  | 'music.loadingTracksBody'
+  | 'music.miniIdleTitle'
+  | 'music.miniPlayerLabel'
+  | 'music.mute'
+  | 'music.next'
+  | 'music.nextTrack'
+  | 'music.noActivePlayback'
+  | 'music.noTrackSelected'
+  | 'music.noTrackSelectedBody'
+  | 'music.notConnected'
+  | 'music.nowPlaying'
+  | 'music.officialPlayerLabel'
+  | 'music.openPlaylist'
+  | 'music.panelLabel'
+  | 'music.pause'
+  | 'music.play'
+  | 'music.playAll'
+  | 'music.playTrack'
+  | 'music.playbackControls'
+  | 'music.playbackFailed'
+  | 'music.playerApiInitFailed'
+  | 'music.playerAutoplayBlocked'
+  | 'music.playerConnecting'
+  | 'music.playerControlFailed'
+  | 'music.playerEmbedBlocked'
+  | 'music.playerGenericError'
+  | 'music.playerIdentityRejected'
+  | 'music.playerInvalidTrack'
+  | 'music.playerLoadFailed'
+  | 'music.playerLoadFailedShort'
+  | 'music.playerLoadTimeout'
+  | 'music.playerLoading'
+  | 'music.playerLoopFailed'
+  | 'music.playerMuteFailed'
+  | 'music.playerNextFailed'
+  | 'music.playerPaused'
+  | 'music.playerPlaying'
+  | 'music.playerPreviousFailed'
+  | 'music.playerQueueEnd'
+  | 'music.playerQueueFallback'
+  | 'music.playerQueueLoadFailed'
+  | 'music.playerRejectedTrack'
+  | 'music.playerRestartFailed'
+  | 'music.playerSeekFailed'
+  | 'music.playerShuffleFailed'
+  | 'music.playerSkippingNext'
+  | 'music.playerStartFailed'
+  | 'music.playerTrackLoadFailed'
+  | 'music.playerUnavailableTrack'
+  | 'music.playerVolumeFailed'
+  | 'music.playerWaiting'
+  | 'music.playlist'
+  | 'music.playlistEyebrow'
+  | 'music.playlists'
+  | 'music.preparingPlayer'
+  | 'music.previous'
+  | 'music.previousTrack'
+  | 'music.progressA11y'
+  | 'music.queueEyebrow'
+  | 'music.queueLabel'
+  | 'music.refreshPlaylists'
+  | 'music.refreshTracks'
+  | 'music.repeatQueue'
+  | 'music.retry'
+  | 'music.searchEmpty'
+  | 'music.searchEmptyBody'
+  | 'music.searchPlaylists'
+  | 'music.searchTracks'
+  | 'music.selectTrack'
+  | 'music.selectedPlaylistLabel'
+  | 'music.settingsConnect'
+  | 'music.settingsDesktopCredential'
+  | 'music.settingsDisconnect'
+  | 'music.settingsDisconnecting'
+  | 'music.settingsEyebrow'
+  | 'music.settingsKeepSecret'
+  | 'music.settingsLoading'
+  | 'music.settingsOpenApi'
+  | 'music.settingsOpenOauth'
+  | 'music.settingsPasteSecret'
+  | 'music.settingsSave'
+  | 'music.settingsSaved'
+  | 'music.settingsSaving'
+  | 'music.settingsSecretStored'
+  | 'music.settingsSecurity'
+  | 'music.settingsTitle'
+  | 'music.shuffle'
+  | 'music.syncingBody'
+  | 'music.syncingEyebrow'
+  | 'music.syncingTitle'
+  | 'music.toggleLoop'
+  | 'music.toggleShuffle'
+  | 'music.track'
+  | 'music.trackPosition'
+  | 'music.trackSearchEmpty'
+  | 'music.trackSearchEmptyBody'
+  | 'music.tracks'
+  | 'music.unmute'
+  | 'music.videoLabel'
+  | 'music.volume'
+  | 'music.youtubeBrand'
+  | 'music.youtubeEyebrow'
   | 'radar.panelLabel'
   | 'radar.refresh'
   | 'radar.refreshing'
@@ -76,6 +206,8 @@ export type MessageKey =
   | 'radar.fixture'
   | 'radar.weather'
   | 'radar.news'
+  | 'radar.newsEyebrow'
+  | 'radar.newsCount'
   | 'radar.location'
   | 'radar.changeLocation'
   | 'radar.removeLocation'
@@ -93,6 +225,7 @@ export type MessageKey =
   | 'radar.minimum'
   | 'radar.maximum'
   | 'radar.nextHours'
+  | 'radar.hourlyA11y'
   | 'radar.category.all'
   | 'radar.category.brasil'
   | 'radar.category.technology'
@@ -160,7 +293,18 @@ export type MessageKey =
   | 'radar.locationResultsCount'
   | 'radar.enabledCategories'
   | 'radar.categorySaveError'
+  | 'radar.personalization'
+  | 'radar.personalizationHelp'
+  | 'radar.followedTopics'
+  | 'radar.blockedTopics'
+  | 'radar.preferredSources'
+  | 'radar.mutedSources'
+  | 'radar.tickerSymbols'
+  | 'radar.preferencePlaceholder'
+  | 'radar.savePreferences'
+  | 'radar.loadMore'
   | 'radar.partialSourceWarning'
+  | 'radar.imagesUnavailable'
   | 'radar.cacheWriteFailed'
   | 'radar.cacheReadFailed'
   | 'radar.refreshFailedNoData'
@@ -468,7 +612,7 @@ const messages: Record<LocaleId, Record<MessageKey, string>> = {
     'tasks.calendar': 'Calendário',
     'tasks.files': 'Arquivos',
     'tasks.system': 'Sistema',
-    'tasks.media': 'Mídia',
+    'tasks.media': 'Música',
     'tasks.assistant': 'Wallbot',
     'tasks.neural': 'Neural',
     'tasks.opencode': 'OpenCode',
@@ -482,6 +626,136 @@ const messages: Record<LocaleId, Record<MessageKey, string>> = {
     'tasks.performance': 'Desempenho',
     'tasks.radar': 'Radar',
     'tasks.currentContext': 'Contexto atual',
+    'music.accountConnected': 'Conta do YouTube conectada.',
+    'music.accountDisconnected': 'Conta do YouTube desconectada.',
+    'music.authorizationBrowser': 'Conclua a autorização na janela do navegador.',
+    'music.backToLibrary': 'Voltar para a biblioteca',
+    'music.configurationBody': 'Adicione as credenciais OAuth nas configurações para conectar sua biblioteca.',
+    'music.configurationEyebrow': 'CONFIGURAÇÃO',
+    'music.configurationTitle': 'Configure o acesso ao YouTube.',
+    'music.connectAction': 'Conectar YouTube',
+    'music.connectBody': 'Autorize acesso somente de leitura às playlists para usar a biblioteca e o player integrado.',
+    'music.connectTitle': 'Conecte sua conta do YouTube.',
+    'music.connected': 'Conectado',
+    'music.connecting': 'Conectando…',
+    'music.connectingPlayer': 'Conectando à IFrame Player API do YouTube…',
+    'music.desktopBody': 'A integração com o YouTube depende dos recursos nativos do FocusWall para Windows.',
+    'music.desktopEyebrow': 'DESKTOP',
+    'music.desktopTitle': 'Mídia disponível no aplicativo desktop.',
+    'music.dismissMessage': 'Fechar mensagem',
+    'music.emptyPlaylist': 'Playlist vazia',
+    'music.emptyPlaylistBody': 'Não há faixas disponíveis nesta playlist.',
+    'music.filteredResult': 'RESULTADO FILTRADO',
+    'music.libraryEmpty': 'Nenhuma playlist encontrada',
+    'music.libraryEmptyBody': 'Crie ou salve uma playlist no YouTube e atualize esta biblioteca.',
+    'music.libraryLabel': 'Biblioteca do YouTube',
+    'music.libraryRefreshing': 'Atualizando biblioteca',
+    'music.libraryRefreshingBody': 'Buscando as playlists mais recentes da sua conta.',
+    'music.librarySubtitle': 'Playlists salvas, prontas para tocar sem tirar você do fluxo.',
+    'music.libraryTitle': 'Sua biblioteca',
+    'music.loadingTracks': 'Carregando faixas',
+    'music.loadingTracksBody': 'Sincronizando a fila desta playlist.',
+    'music.miniIdleTitle': 'FocusWall Music',
+    'music.miniPlayerLabel': 'Player persistente do YouTube',
+    'music.mute': 'Silenciar',
+    'music.next': 'Próxima',
+    'music.nextTrack': 'Próxima faixa',
+    'music.noActivePlayback': 'Nenhuma reprodução ativa',
+    'music.noTrackSelected': 'Escolha uma faixa',
+    'music.noTrackSelectedBody': 'Abra uma playlist e inicie a reprodução para carregar o player.',
+    'music.notConnected': 'Não conectado',
+    'music.nowPlaying': 'TOCANDO AGORA',
+    'music.officialPlayerLabel': 'Player oficial do YouTube',
+    'music.openPlaylist': 'Abrir playlist',
+    'music.panelLabel': 'Mídia e reprodução',
+    'music.pause': 'Pausar',
+    'music.play': 'Reproduzir',
+    'music.playAll': 'Tocar tudo',
+    'music.playTrack': 'Tocar faixa',
+    'music.playbackControls': 'Controles de reprodução',
+    'music.playbackFailed': 'Falha na reprodução',
+    'music.playerApiInitFailed': 'A API do player do YouTube não foi inicializada.',
+    'music.playerAutoplayBlocked': 'A reprodução automática foi bloqueada. Use o botão de reproduzir.',
+    'music.playerConnecting': 'Conectando',
+    'music.playerControlFailed': 'Não foi possível alterar o estado de reprodução.',
+    'music.playerEmbedBlocked': 'Esta faixa não permite reprodução incorporada.',
+    'music.playerGenericError': 'O player do YouTube retornou um erro inesperado.',
+    'music.playerIdentityRejected': 'O YouTube recusou a identidade desta incorporação. Reinicie o player ou verifique a origem configurada.',
+    'music.playerInvalidTrack': 'A faixa selecionada não possui um vídeo reproduzível.',
+    'music.playerLoadFailed': 'Não foi possível carregar a API do player do YouTube.',
+    'music.playerLoadFailedShort': 'Não foi possível recriar o player do YouTube.',
+    'music.playerLoadTimeout': 'O player do YouTube demorou demais para carregar.',
+    'music.playerLoading': 'Carregando',
+    'music.playerLoopFailed': 'Não foi possível alterar a repetição da fila.',
+    'music.playerMuteFailed': 'Não foi possível alterar o áudio.',
+    'music.playerNextFailed': 'Não foi possível avançar para a próxima faixa.',
+    'music.playerPaused': 'Pausado',
+    'music.playerPlaying': 'Reproduzindo',
+    'music.playerPreviousFailed': 'Não foi possível voltar para a faixa anterior.',
+    'music.playerQueueEnd': 'Você chegou ao fim da fila.',
+    'music.playerQueueFallback': 'A fila do YouTube foi rejeitada. Tentando reprodução faixa a faixa.',
+    'music.playerQueueLoadFailed': 'Não foi possível carregar a fila de reprodução.',
+    'music.playerRejectedTrack': 'O YouTube rejeitou esta faixa.',
+    'music.playerRestartFailed': 'Não foi possível reiniciar a faixa atual.',
+    'music.playerSeekFailed': 'Não foi possível alterar a posição da faixa.',
+    'music.playerShuffleFailed': 'Não foi possível alterar o modo aleatório.',
+    'music.playerSkippingNext': 'Pulando para a próxima faixa disponível.',
+    'music.playerStartFailed': 'Não foi possível iniciar a reprodução.',
+    'music.playerTrackLoadFailed': 'Não foi possível carregar esta faixa.',
+    'music.playerUnavailableTrack': 'Esta faixa não está mais disponível.',
+    'music.playerVolumeFailed': 'Não foi possível alterar o volume.',
+    'music.playerWaiting': 'Aguardando',
+    'music.playlist': 'playlist',
+    'music.playlistEyebrow': 'PLAYLIST',
+    'music.playlists': 'playlists',
+    'music.preparingPlayer': 'Preparando player',
+    'music.previous': 'Anterior',
+    'music.previousTrack': 'Faixa anterior',
+    'music.progressA11y': '{current} de {duration}',
+    'music.queueEyebrow': 'FILA',
+    'music.queueLabel': 'Fila de reprodução',
+    'music.refreshPlaylists': 'Atualizar playlists',
+    'music.refreshTracks': 'Atualizar faixas',
+    'music.repeatQueue': 'Repetir fila',
+    'music.retry': 'Tentar novamente',
+    'music.searchEmpty': 'Nenhum resultado',
+    'music.searchEmptyBody': 'Tente outro nome para encontrar uma playlist.',
+    'music.searchPlaylists': 'Buscar playlists…',
+    'music.searchTracks': 'Buscar nesta playlist…',
+    'music.selectTrack': 'Selecione uma faixa',
+    'music.selectedPlaylistLabel': 'Playlist selecionada',
+    'music.settingsConnect': 'Conectar conta',
+    'music.settingsDesktopCredential': 'Use uma credencial OAuth do tipo aplicativo para computador.',
+    'music.settingsDisconnect': 'Desconectar conta',
+    'music.settingsDisconnecting': 'Desconectando…',
+    'music.settingsEyebrow': 'YOUTUBE OAUTH',
+    'music.settingsKeepSecret': 'Deixe vazio para manter o segredo atual',
+    'music.settingsLoading': 'Carregando configuração do YouTube…',
+    'music.settingsOpenApi': 'Abrir YouTube Data API',
+    'music.settingsOpenOauth': 'Abrir Google OAuth',
+    'music.settingsPasteSecret': 'Cole o OAuth Client Secret',
+    'music.settingsSave': 'Salvar credenciais',
+    'music.settingsSaved': 'Credenciais do YouTube salvas com proteção local.',
+    'music.settingsSaving': 'Salvando…',
+    'music.settingsSecretStored': 'Um Client Secret protegido já está armazenado. Deixe o campo vazio para mantê-lo.',
+    'music.settingsSecurity': 'O Client Secret e o refresh token são protegidos pelo Windows DPAPI antes de serem persistidos localmente.',
+    'music.settingsTitle': 'Integração de mídia',
+    'music.shuffle': 'Aleatório',
+    'music.syncingBody': 'Validando a sessão e preparando as playlists do YouTube.',
+    'music.syncingEyebrow': 'MÍDIA',
+    'music.syncingTitle': 'Sincronizando sua biblioteca.',
+    'music.toggleLoop': 'Ativar ou desativar repetição',
+    'music.toggleShuffle': 'Ativar ou desativar modo aleatório',
+    'music.track': 'faixa',
+    'music.trackPosition': 'Posição da faixa',
+    'music.trackSearchEmpty': 'Nenhuma faixa encontrada',
+    'music.trackSearchEmptyBody': 'Ajuste a busca para ver outras faixas.',
+    'music.tracks': 'faixas',
+    'music.unmute': 'Ativar som',
+    'music.videoLabel': 'Vídeo oficial do YouTube',
+    'music.volume': 'Volume',
+    'music.youtubeBrand': 'YouTube',
+    'music.youtubeEyebrow': 'YOUTUBE',
     'radar.panelLabel': 'Radar de contexto atual',
     'radar.refresh': 'Atualizar',
     'radar.refreshing': 'Atualizando...',
@@ -492,6 +766,8 @@ const messages: Record<LocaleId, Record<MessageKey, string>> = {
     'radar.fixture': 'Modo demonstração: dados fictícios, sem acesso aos provedores.',
     'radar.weather': 'Clima',
     'radar.news': 'Notícias',
+    'radar.newsEyebrow': 'Em destaque',
+    'radar.newsCount': '{count} matérias disponíveis',
     'radar.location': 'Localização',
     'radar.changeLocation': 'Alterar localização',
     'radar.removeLocation': 'Remover localização',
@@ -509,24 +785,35 @@ const messages: Record<LocaleId, Record<MessageKey, string>> = {
     'radar.minimum': 'Mín.',
     'radar.maximum': 'Máx.',
     'radar.nextHours': 'Próximas horas',
+    'radar.hourlyA11y': '{time}: {temperature}, {condition}; chuva {precipitation}',
     'radar.category.all': 'Tudo',
     'radar.category.brasil': 'Brasil',
     'radar.category.technology': 'Tecnologia',
     'radar.category.development': 'Desenvolvimento',
-    'radar.category.security': 'Seguranca',
+    'radar.category.security': 'Segurança',
     'radar.category.business': 'Economia',
-    'radar.category.science': 'Ciencia',
+    'radar.category.science': 'Ciência',
     'radar.category.world': 'Mundo',
+    'radar.personalization': 'Personalizar Radar',
+    'radar.personalizationHelp': 'Separe os itens por vírgula. Eles influenciam o ranking e o ticker.',
+    'radar.followedTopics': 'Tópicos acompanhados',
+    'radar.blockedTopics': 'Tópicos bloqueados',
+    'radar.preferredSources': 'Fontes preferidas',
+    'radar.mutedSources': 'Fontes silenciadas',
+    'radar.tickerSymbols': 'Indicadores do ticker',
+    'radar.preferencePlaceholder': 'ex.: inteligência artificial, economia',
+    'radar.savePreferences': 'Salvar preferências',
+    'radar.loadMore': 'Carregar mais notícias',
     'radar.relatedCount': '{count} relacionadas',
-    'radar.previewLoading': 'Carregando materia...',
-    'radar.previewError': 'Nao foi possivel carregar esta materia.',
+    'radar.previewLoading': 'Carregando matéria...',
+    'radar.previewError': 'Não foi possível carregar esta matéria.',
     'radar.closePreview': 'Fechar',
-    'radar.openInBrowser': 'Abrir materia completa no navegador',
-    'radar.openUnavailable': 'Esta materia nao pode ser aberta externamente.',
+    'radar.openInBrowser': 'Abrir matéria completa no navegador',
+    'radar.openUnavailable': 'Esta matéria não pode ser aberta externamente.',
     'radar.relatedArticles': 'Relacionadas',
-    'radar.sevenDays': 'Proximos 7 dias',
-    'radar.estimateBadge': 'Estimativa meteorologica',
-    'radar.alerts': 'Sinalizacoes',
+    'radar.sevenDays': 'Próximos 7 dias',
+    'radar.estimateBadge': 'Estimativa meteorológica',
+    'radar.alerts': 'Sinalizações',
     'radar.alert.heavyRain': 'Chuva intensa prevista',
     'radar.alert.storm': 'Alta probabilidade de tempestade',
     'radar.alert.strongWind': 'Vento forte',
@@ -536,9 +823,10 @@ const messages: Record<LocaleId, Record<MessageKey, string>> = {
     'radar.alert.veryHighUv': 'UV muito alto',
     'radar.newsEmpty': 'Nenhuma notícia disponível nesta categoria.',
     'radar.newsUnavailable': 'As notícias estão indisponíveis no momento.',
+    'radar.imagesUnavailable': 'Algumas imagens não puderam ser carregadas; a notícia continua disponível.',
     'radar.weatherUnavailable': 'O clima está indisponível no momento.',
     'radar.usingCachedData': 'Exibindo dados em cache.',
-    'radar.openArticle': 'Abrir notícia no navegador padrão',
+    'radar.openArticle': 'Abrir prévia da notícia',
     'radar.openArticleError': 'Não foi possível abrir o conteúdo externo.',
     'radar.source': 'Fonte',
     'radar.attributionWeather': 'Dados meteorológicos por Open-Meteo',
@@ -648,7 +936,7 @@ const messages: Record<LocaleId, Record<MessageKey, string>> = {
     'system.type': 'Tipo',
     'system.application': 'Aplicativo',
     'system.systemProcess': 'Sistema',
-    'tasks.nowPlaying': 'Tocando agora',
+    'tasks.nowPlaying': 'YouTube • biblioteca',
     'tasks.operator': 'Operador local',
     'tasks.knowledge': 'Conhecimento conectado',
     'tasks.listArea': 'Área principal de tarefas',
@@ -886,7 +1174,7 @@ const messages: Record<LocaleId, Record<MessageKey, string>> = {
     'tasks.calendar': 'Calendar',
     'tasks.files': 'Files',
     'tasks.system': 'System',
-    'tasks.media': 'Media',
+    'tasks.media': 'Music',
     'tasks.assistant': 'Wallbot',
     'tasks.neural': 'Neural',
     'tasks.opencode': 'OpenCode',
@@ -900,6 +1188,136 @@ const messages: Record<LocaleId, Record<MessageKey, string>> = {
     'tasks.performance': 'Performance',
     'tasks.radar': 'Radar',
     'tasks.currentContext': 'Current context',
+    'music.accountConnected': 'YouTube account connected.',
+    'music.accountDisconnected': 'YouTube account disconnected.',
+    'music.authorizationBrowser': 'Complete authorization in the browser window.',
+    'music.backToLibrary': 'Back to library',
+    'music.configurationBody': 'Add the OAuth credentials in settings to connect your library.',
+    'music.configurationEyebrow': 'SETUP',
+    'music.configurationTitle': 'Configure YouTube access.',
+    'music.connectAction': 'Connect YouTube',
+    'music.connectBody': 'Authorize read-only playlist access to use the integrated library and player.',
+    'music.connectTitle': 'Connect your YouTube account.',
+    'music.connected': 'Connected',
+    'music.connecting': 'Connecting…',
+    'music.connectingPlayer': 'Connecting to the YouTube IFrame Player API…',
+    'music.desktopBody': 'YouTube integration depends on native FocusWall for Windows capabilities.',
+    'music.desktopEyebrow': 'DESKTOP',
+    'music.desktopTitle': 'Media is available in the desktop app.',
+    'music.dismissMessage': 'Dismiss message',
+    'music.emptyPlaylist': 'Empty playlist',
+    'music.emptyPlaylistBody': 'There are no tracks available in this playlist.',
+    'music.filteredResult': 'FILTERED RESULT',
+    'music.libraryEmpty': 'No playlists found',
+    'music.libraryEmptyBody': 'Create or save a playlist on YouTube, then refresh this library.',
+    'music.libraryLabel': 'YouTube library',
+    'music.libraryRefreshing': 'Refreshing library',
+    'music.libraryRefreshingBody': 'Fetching the latest playlists from your account.',
+    'music.librarySubtitle': 'Saved playlists, ready to play without taking you out of your flow.',
+    'music.libraryTitle': 'Your library',
+    'music.loadingTracks': 'Loading tracks',
+    'music.loadingTracksBody': 'Syncing this playlist queue.',
+    'music.miniIdleTitle': 'FocusWall Music',
+    'music.miniPlayerLabel': 'Persistent YouTube player',
+    'music.mute': 'Mute',
+    'music.next': 'Next',
+    'music.nextTrack': 'Next track',
+    'music.noActivePlayback': 'No active playback',
+    'music.noTrackSelected': 'Choose a track',
+    'music.noTrackSelectedBody': 'Open a playlist and start playback to load the player.',
+    'music.notConnected': 'Not connected',
+    'music.nowPlaying': 'NOW PLAYING',
+    'music.officialPlayerLabel': 'Official YouTube player',
+    'music.openPlaylist': 'Open playlist',
+    'music.panelLabel': 'Media and playback',
+    'music.pause': 'Pause',
+    'music.play': 'Play',
+    'music.playAll': 'Play all',
+    'music.playTrack': 'Play track',
+    'music.playbackControls': 'Playback controls',
+    'music.playbackFailed': 'Playback failed',
+    'music.playerApiInitFailed': 'The YouTube player API did not initialize.',
+    'music.playerAutoplayBlocked': 'Autoplay was blocked. Use the play button.',
+    'music.playerConnecting': 'Connecting',
+    'music.playerControlFailed': 'Could not change playback state.',
+    'music.playerEmbedBlocked': 'This track does not allow embedded playback.',
+    'music.playerGenericError': 'The YouTube player returned an unexpected error.',
+    'music.playerIdentityRejected': 'YouTube rejected this embed identity. Restart the player or verify the configured origin.',
+    'music.playerInvalidTrack': 'The selected track does not have a playable video.',
+    'music.playerLoadFailed': 'Could not load the YouTube player API.',
+    'music.playerLoadFailedShort': 'Could not recreate the YouTube player.',
+    'music.playerLoadTimeout': 'The YouTube player took too long to load.',
+    'music.playerLoading': 'Loading',
+    'music.playerLoopFailed': 'Could not change queue repeat.',
+    'music.playerMuteFailed': 'Could not change audio state.',
+    'music.playerNextFailed': 'Could not go to the next track.',
+    'music.playerPaused': 'Paused',
+    'music.playerPlaying': 'Playing',
+    'music.playerPreviousFailed': 'Could not go to the previous track.',
+    'music.playerQueueEnd': 'You reached the end of the queue.',
+    'music.playerQueueFallback': 'The YouTube queue was rejected. Trying track-by-track playback.',
+    'music.playerQueueLoadFailed': 'Could not load the playback queue.',
+    'music.playerRejectedTrack': 'YouTube rejected this track.',
+    'music.playerRestartFailed': 'Could not restart the current track.',
+    'music.playerSeekFailed': 'Could not change the track position.',
+    'music.playerShuffleFailed': 'Could not change shuffle mode.',
+    'music.playerSkippingNext': 'Skipping to the next available track.',
+    'music.playerStartFailed': 'Could not start playback.',
+    'music.playerTrackLoadFailed': 'Could not load this track.',
+    'music.playerUnavailableTrack': 'This track is no longer available.',
+    'music.playerVolumeFailed': 'Could not change the volume.',
+    'music.playerWaiting': 'Waiting',
+    'music.playlist': 'playlist',
+    'music.playlistEyebrow': 'PLAYLIST',
+    'music.playlists': 'playlists',
+    'music.preparingPlayer': 'Preparing player',
+    'music.previous': 'Previous',
+    'music.previousTrack': 'Previous track',
+    'music.progressA11y': '{current} of {duration}',
+    'music.queueEyebrow': 'QUEUE',
+    'music.queueLabel': 'Playback queue',
+    'music.refreshPlaylists': 'Refresh playlists',
+    'music.refreshTracks': 'Refresh tracks',
+    'music.repeatQueue': 'Repeat queue',
+    'music.retry': 'Try again',
+    'music.searchEmpty': 'No results',
+    'music.searchEmptyBody': 'Try another name to find a playlist.',
+    'music.searchPlaylists': 'Search playlists…',
+    'music.searchTracks': 'Search this playlist…',
+    'music.selectTrack': 'Select a track',
+    'music.selectedPlaylistLabel': 'Selected playlist',
+    'music.settingsConnect': 'Connect account',
+    'music.settingsDesktopCredential': 'Use an OAuth credential configured as a desktop application.',
+    'music.settingsDisconnect': 'Disconnect account',
+    'music.settingsDisconnecting': 'Disconnecting…',
+    'music.settingsEyebrow': 'YOUTUBE OAUTH',
+    'music.settingsKeepSecret': 'Leave blank to keep the current secret',
+    'music.settingsLoading': 'Loading YouTube settings…',
+    'music.settingsOpenApi': 'Open YouTube Data API',
+    'music.settingsOpenOauth': 'Open Google OAuth',
+    'music.settingsPasteSecret': 'Paste the OAuth Client Secret',
+    'music.settingsSave': 'Save credentials',
+    'music.settingsSaved': 'YouTube credentials saved with local protection.',
+    'music.settingsSaving': 'Saving…',
+    'music.settingsSecretStored': 'A protected Client Secret is already stored. Leave the field blank to keep it.',
+    'music.settingsSecurity': 'The Client Secret and refresh token are protected with Windows DPAPI before being persisted locally.',
+    'music.settingsTitle': 'Media integration',
+    'music.shuffle': 'Shuffle',
+    'music.syncingBody': 'Validating the session and preparing your YouTube playlists.',
+    'music.syncingEyebrow': 'MEDIA',
+    'music.syncingTitle': 'Syncing your library.',
+    'music.toggleLoop': 'Toggle queue repeat',
+    'music.toggleShuffle': 'Toggle shuffle mode',
+    'music.track': 'track',
+    'music.trackPosition': 'Track position',
+    'music.trackSearchEmpty': 'No tracks found',
+    'music.trackSearchEmptyBody': 'Adjust your search to see other tracks.',
+    'music.tracks': 'tracks',
+    'music.unmute': 'Unmute',
+    'music.videoLabel': 'Official YouTube video',
+    'music.volume': 'Volume',
+    'music.youtubeBrand': 'YouTube',
+    'music.youtubeEyebrow': 'YOUTUBE',
     'radar.panelLabel': 'Current context radar',
     'radar.refresh': 'Refresh',
     'radar.refreshing': 'Refreshing...',
@@ -910,6 +1328,8 @@ const messages: Record<LocaleId, Record<MessageKey, string>> = {
     'radar.fixture': 'Demo mode: fictional data, no provider access.',
     'radar.weather': 'Weather',
     'radar.news': 'News',
+    'radar.newsEyebrow': 'In focus',
+    'radar.newsCount': '{count} articles available',
     'radar.location': 'Location',
     'radar.changeLocation': 'Change location',
     'radar.removeLocation': 'Remove location',
@@ -927,6 +1347,7 @@ const messages: Record<LocaleId, Record<MessageKey, string>> = {
     'radar.minimum': 'Min.',
     'radar.maximum': 'Max.',
     'radar.nextHours': 'Next hours',
+    'radar.hourlyA11y': '{time}: {temperature}, {condition}; precipitation {precipitation}',
     'radar.category.all': 'All',
     'radar.category.brasil': 'Brazil',
     'radar.category.technology': 'Technology',
@@ -935,6 +1356,16 @@ const messages: Record<LocaleId, Record<MessageKey, string>> = {
     'radar.category.business': 'Business',
     'radar.category.science': 'Science',
     'radar.category.world': 'World',
+    'radar.personalization': 'Personalize Radar',
+    'radar.personalizationHelp': 'Separate items with commas. They influence ranking and the ticker.',
+    'radar.followedTopics': 'Followed topics',
+    'radar.blockedTopics': 'Blocked topics',
+    'radar.preferredSources': 'Preferred sources',
+    'radar.mutedSources': 'Muted sources',
+    'radar.tickerSymbols': 'Ticker indicators',
+    'radar.preferencePlaceholder': 'e.g. artificial intelligence, economy',
+    'radar.savePreferences': 'Save preferences',
+    'radar.loadMore': 'Load more news',
     'radar.relatedCount': '{count} related',
     'radar.previewLoading': 'Loading article...',
     'radar.previewError': 'This article could not be loaded.',
@@ -954,9 +1385,10 @@ const messages: Record<LocaleId, Record<MessageKey, string>> = {
     'radar.alert.veryHighUv': 'Very high UV',
     'radar.newsEmpty': 'No news is available for this category.',
     'radar.newsUnavailable': 'News is currently unavailable.',
+    'radar.imagesUnavailable': 'Some images could not be loaded; the article is still available.',
     'radar.weatherUnavailable': 'Weather is currently unavailable.',
     'radar.usingCachedData': 'Showing cached data.',
-    'radar.openArticle': 'Open article in the default browser',
+    'radar.openArticle': 'Open article preview',
     'radar.openArticleError': 'The external content could not be opened.',
     'radar.source': 'Source',
     'radar.attributionWeather': 'Weather data by Open-Meteo',
@@ -1066,7 +1498,7 @@ const messages: Record<LocaleId, Record<MessageKey, string>> = {
     'system.type': 'Type',
     'system.application': 'Application',
     'system.systemProcess': 'System',
-    'tasks.nowPlaying': 'Now playing',
+    'tasks.nowPlaying': 'YouTube • library',
     'tasks.operator': 'Local operator',
     'tasks.knowledge': 'Connected knowledge',
     'tasks.listArea': 'Main task area',

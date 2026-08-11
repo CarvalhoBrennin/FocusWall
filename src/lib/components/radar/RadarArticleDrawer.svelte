@@ -18,6 +18,7 @@
     radarSelectedArticleId
   } from '../../stores/radar-store.js';
   import { trapFocus } from '../../utils/focus-trap.js';
+  import RadarArticleCover from './RadarArticleCover.svelte';
 
   let dialog = $state<HTMLElement | null>(null);
   let opening = $state(false);
@@ -80,6 +81,11 @@
     {:else if $radarArticlePreviewPhase === 'error' || !$radarArticlePreview}
       <p class="radar-drawer-status" role="alert">{$t('radar.previewError')}</p>
     {:else}
+      <RadarArticleCover
+        image={$radarArticlePreview.image}
+        category={$radarArticlePreview.category}
+        variant="lead"
+      />
       <p class="radar-drawer-meta">
         {$radarArticlePreview.sourceName}
         {#if $radarArticlePreview.author} · {$radarArticlePreview.author}{/if}

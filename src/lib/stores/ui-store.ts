@@ -8,6 +8,7 @@ export const modal = writable(null);
 export const settingsModal = writable(null);
 export const panelTab = writable<PanelTab>('execution');
 export const opencodeSessionActive = writable(false);
+export const musicSettingsRevision = writable(0);
 
 export function setPanelTab(tab: PanelTab) {
   if (!isPanelTabEnabled(tab)) {
@@ -94,4 +95,8 @@ export function showSettingsModal() {
 
 export function hideSettingsModal() {
   settingsModal.set(null);
+}
+
+export function notifyMusicSettingsChanged() {
+  musicSettingsRevision.update((revision) => revision + 1);
 }

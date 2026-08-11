@@ -232,8 +232,12 @@ fn hex(bytes: &[u8]) -> String {
 }
 
 pub fn sha256_hex(value: &str) -> String {
+    sha256_hex_bytes(value.as_bytes())
+}
+
+pub fn sha256_hex_bytes(value: &[u8]) -> String {
     let mut hasher = Sha256::new();
-    hasher.update(value.as_bytes());
+    hasher.update(value);
     hex(&hasher.finalize())
 }
 

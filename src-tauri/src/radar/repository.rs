@@ -4,9 +4,8 @@
 //! estado funcional do FocusWall (`dashboard-state.json`) nunca passa por aqui.
 //! Nenhuma consulta SQL é exposta ao frontend.
 //!
-//! Parte da API de imagens (inserção, busca por hash) só terá consumidor quando
-//! a etapa 6 for entregue; ela já está implementada e coberta por testes de
-//! LRU, quota e limpeza de órfãs.
+//! A API de imagens mantém inserção, busca por hash, LRU, quota e limpeza de
+//! órfãos em um único repositório.
 #![allow(dead_code)]
 
 use super::{

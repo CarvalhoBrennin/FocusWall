@@ -5,8 +5,8 @@
 //! Não usamos wildcard amplo (`*.cloudfront.net` e similares) — cada CDN é
 //! registrado pelo host exato observado nos testes de contrato.
 //!
-//! `image_hosts` já está declarado e validado por teste, mas só terá consumidor
-//! quando o pipeline de imagens (etapa 6) for entregue.
+//! `image_hosts` restringe tanto as URLs declaradas no feed quanto as imagens
+//! descobertas na página canônica da matéria.
 #![allow(dead_code)]
 
 use super::models::RadarNewsCategory;

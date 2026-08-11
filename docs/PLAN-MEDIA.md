@@ -1,3 +1,5 @@
+> **ARQUIVADO:** este plano descreve a antiga integração de Mídia/SMTC. A implementação ativa foi substituída pelo player YouTube documentado em [`PLAN-YOUTUBE-MUSIC.md`](./PLAN-YOUTUBE-MUSIC.md).
+
 # Mídia — Aba Now Playing
 
 ## Objetivo

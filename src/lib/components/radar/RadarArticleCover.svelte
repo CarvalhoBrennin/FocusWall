@@ -9,12 +9,7 @@
     variant?: 'lead' | 'featured';
   }>();
 
-  /**
-   * Capa editorial: o backend ainda entrega `image: null` (o pipeline de
-   * download/reencode não foi habilitado), então a capa é um bloco tonal
-   * derivado da categoria. Quando a imagem chegar, `dominantTone` já manda no
-   * tom e este componente é o único lugar que precisa renderizar o `<img>`.
-   */
+  /** The tonal cover remains the fallback for feeds without a valid image. */
   const CATEGORY_TONE: Record<RadarNewsCategory, RadarImageTone> = {
     brasil: 'olive',
     technology: 'cool',
@@ -27,9 +22,23 @@
 
   let tone = $derived(image?.dominantTone ?? CATEGORY_TONE[category as RadarNewsCategory] ?? 'neutral');
   let label = $derived($t(`radar.category.${category}` as MessageKey));
+  let imageFailed = $state(false);
+  let imageSource = $derived(image?.dataUrl ?? null);
+
+  $effect(() => {
+    imageSource;
+    imageFailed = false;
+  });
 </script>
 
-<!-- `span`, não `div`: a capa vive dentro do botão da matéria, que só aceita conteúdo de frase. -->
+<!-- `span`, not `div`: the cover lives inside the article button. -->
 <span class={`radar-cover is-${variant} tone-${tone}`} aria-hidden="true">
-  <span class="radar-cover-label">{label}</span>
+  {#if imageSource && !imageFailed}
+    <img src={imageSource} alt="" loading="lazy" decoding="async" onerror={() => imageFailed = true} />
+  {:else}
+    <span class="radar-cover-fallback" aria-hidden="true">
+      <span class="radar-cover-fallback-mark">{label.slice(0, 1)}</span>
+      <span class="radar-cover-label">{label}</span>
+    </span>
+  {/if}
 </span>

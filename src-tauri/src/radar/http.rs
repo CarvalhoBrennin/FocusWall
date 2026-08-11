@@ -29,9 +29,8 @@ use tokio::time::{timeout_at, Instant};
 // Tipo de conteúdo esperado
 // ---------------------------------------------------------------------------
 
-/// `Html` e `Image` existem para o pipeline de imagens (etapa 6), que ainda
-/// não foi entregue; a validação de ambos já está implementada e testada.
-#[allow(dead_code)]
+/// `Html` é usado para descobrir metadados e `Image` para o cache local de
+/// imagens. Ambos passam por validação de tipo e assinatura antes do uso.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ExpectedContent {
     Json,
@@ -157,11 +156,11 @@ pub struct SecureHttpClient {
 #[derive(Debug)]
 pub struct FetchedBody {
     pub bytes: Vec<u8>,
-    /// Consumido pelo pipeline de imagens (etapa 6, não entregue).
+    /// Tipo declarado pelo servidor, usado apenas como sinal adicional de
+    /// validação; o conteúdo ainda é conferido pelos bytes.
     #[allow(dead_code)]
     pub content_type: Option<String>,
-    /// URL após os redirects validados. Idem.
-    #[allow(dead_code)]
+    /// URL após os redirects validados, usada para resolver URLs relativas.
     pub final_url: Url,
 }
 

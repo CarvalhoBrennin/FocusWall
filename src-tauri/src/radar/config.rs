@@ -4,10 +4,9 @@
 //! único ponto de verdade e para que nenhum número mágico apareça espalhado
 //! pelos providers.
 //!
-//! Parte das constantes de imagem e de cripto ainda não tem consumidor: o
-//! pipeline de imagens (etapa 6) e o provider de cripto não foram entregues
-//! nesta rodada. Elas ficam aqui porque os limites já foram decididos e
-//! revisados; ver `RADAR_FINAL_REPORT.md` para o escopo pendente.
+//! As constantes de imagem e de mercado ficam aqui mesmo quando algum
+//! provider opcional não estiver habilitado, para que limites e TTLs tenham
+//! uma única fonte de verdade.
 #![allow(dead_code)]
 
 use std::time::Duration;

@@ -1,4 +1,5 @@
 <script>
+  import { onDestroy, onMount } from 'svelte';
   import TaskHeader from './TaskHeader.svelte';
   import Composer from './Composer.svelte';
   import TaskList from './TaskList.svelte';
@@ -25,12 +26,42 @@
   let CalendarPanel = $state(null);
   let FilesPanel = $state(null);
   let SystemPanel = $state(null);
-  let MediaPanel = $state(null);
+  let MusicPanel = $state(null);
   let RadarPanel = $state(null);
   let AssistantPanel = $state(null);
   let OpenCodePanel = $state(null);
   let NeuralPanel = $state(null);
   let VivariumTab = $state(null);
+  let musicPanelPromise = null;
+  let musicPreloadHandle = 0;
+
+  function loadMusicPanel() {
+    if (MusicPanel) return Promise.resolve(MusicPanel);
+    if (!musicPanelPromise) {
+      musicPanelPromise = import('./music/MusicPanel.svelte')
+        .then((mod) => {
+          MusicPanel = mod.default;
+          return MusicPanel;
+        })
+        .catch((error) => {
+          musicPanelPromise = null;
+          throw error;
+        });
+    }
+    return musicPanelPromise;
+  }
+
+  function scheduleMusicPreload() {
+    const preload = () => {
+      void loadMusicPanel().catch(() => {});
+    };
+
+    if (typeof window.requestIdleCallback === 'function') {
+      musicPreloadHandle = window.requestIdleCallback(preload, { timeout: 2000 });
+    } else {
+      musicPreloadHandle = window.setTimeout(preload, 1200);
+    }
+  }
 
   $effect(() => {
     if ($panelTab === 'calendar') {
@@ -71,11 +102,11 @@
 
     if ($panelTab === 'media') {
       mediaMounted = true;
-      if (!MediaPanel) {
-        import('./media/MediaPanel.svelte').then((mod) => {
-          MediaPanel = mod.default;
-        });
+      if (!MusicPanel) {
+        void loadMusicPanel().catch(() => {});
       }
+    } else if (!MusicPanel) {
+      mediaMounted = false;
     }
 
     if (ASSISTANT_TAB_ENABLED && $panelTab === 'assistant') {
@@ -112,6 +143,16 @@
           VivariumTab = mod.default;
         });
       }
+    }
+  });
+
+  onMount(scheduleMusicPreload);
+
+  onDestroy(() => {
+    if (typeof window.cancelIdleCallback === 'function' && musicPreloadHandle) {
+      window.cancelIdleCallback(musicPreloadHandle);
+    } else if (musicPreloadHandle) {
+      window.clearTimeout(musicPreloadHandle);
     }
   });
 </script>
@@ -208,7 +249,7 @@
         </div>
       {/if}
 
-      {#if mediaMounted && MediaPanel}
+      {#if mediaMounted && MusicPanel}
         <div
           id="media-panel"
           class="panel-view"
@@ -218,7 +259,7 @@
           tabindex={$panelTab === 'media' ? 0 : -1}
           aria-hidden={$panelTab !== 'media'}
         >
-          <MediaPanel active={$panelTab === 'media'} />
+          <MusicPanel active={$panelTab === 'media'} />
         </div>
       {/if}
 

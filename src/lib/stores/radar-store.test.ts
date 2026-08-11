@@ -21,7 +21,15 @@ function collection(category: RadarNewsCategory = 'technology'): RadarNewsCollec
       author: null,
       publishedAt: '2026-07-29T11:00:00Z',
       fetchedAt: '2026-07-29T12:00:00Z',
-      image: null,
+      image: {
+        id: 'i'.repeat(64),
+        width: 640,
+        height: 360,
+        aspectRatio: 16 / 9,
+        dominantTone: 'cool',
+        alt: 'Imagem de teste',
+        dataUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII='
+      },
       tags: [],
       score: 0.5,
       relatedCount: 0,
@@ -176,6 +184,22 @@ describe('radar controller', () => {
     await flush();
     expect(load).toHaveBeenCalledTimes(1);
     expect(refresh).toHaveBeenCalledTimes(1);
+    controller.deactivate();
+  });
+
+  it('refreshes when personalization or page size changes', async () => {
+    const load = vi.fn().mockResolvedValue(fresh);
+    const refresh = vi.fn().mockResolvedValue(fresh);
+    const controller = createRadarController({ load, refresh });
+    const base = { ...request, categories: [...request.categories], pageSize: 16 };
+    controller.activate(base);
+    await flush();
+    controller.activate({ ...base, followedTopics: ['energia'] });
+    await flush();
+    controller.activate({ ...base, followedTopics: ['energia'], pageSize: 28 });
+    await flush();
+    expect(load).toHaveBeenCalledTimes(3);
+    expect(refresh).not.toHaveBeenCalled();
     controller.deactivate();
   });
 

@@ -4,8 +4,8 @@
 //! [`RawArticle`] nunca atravessa o IPC — ele carrega URL canônica e candidatos
 //! de mídia. O que chega ao frontend é sempre [`super::models::RadarArticleSummary`].
 
-// A descoberta de mídia já é feita pelo parser e testada, mas o download e o
-// processamento (etapa 6) não foram entregues — daí os itens sem consumidor.
+// A descoberta de mídia é feita pelo parser; o serviço faz o download e o
+// processamento opcional depois da normalização do artigo.
 #![allow(dead_code)]
 
 pub mod dedupe;

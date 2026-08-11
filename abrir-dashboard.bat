@@ -1,69 +1,70 @@
 @echo off
-setlocal EnableDelayedExpansion
+setlocal EnableExtensions
 
 set "ROOT=%~dp0"
 cd /d "%ROOT%"
 
-if exist "%USERPROFILE%\.cargo\bin" (
-    set "PATH=%USERPROFILE%\.cargo\bin;%PATH%"
-)
+if not exist "%ROOT%package.json" goto PROJECT_NOT_FOUND
+if not exist "%ROOT%src-tauri\Cargo.toml" goto TAURI_NOT_FOUND
 
-set "INSTALLED=%LOCALAPPDATA%\FocusWall\focus-desktop-dashboard.exe"
-set "RELEASE_EXE=%ROOT%src-tauri\target\release\focus-desktop-dashboard.exe"
-set "DIST_INDEX=%ROOT%dist\index.html"
-
+if /I "%~1"=="--dev" goto DEV_MODE
 if /I "%~1"=="--debug" goto DEV_MODE
-if /I "%~1"=="--installed" goto USE_INSTALLED
-if /I "%~1"=="--build" goto FORCE_BUILD_AND_OPEN
-if /I "%~1"=="--release" goto OPEN_APP
+if /I "%~1"=="--run" goto RUN_MODE
+if /I "%~1"=="--rebuild" goto RELEASE_MODE
+if /I "%~1"=="--help" goto HELP
 
-REM Padrao: abre se o build estiver atualizado; recompila so se codigo mudou.
-goto OPEN_APP
-
-:OPEN_APP
-call :CHECK_BUILD_STALE
-if errorlevel 1 goto REBUILD_AND_OPEN
-echo Build atual. Abrindo sem recompilar...
-goto LAUNCH_APP
-
-:REBUILD_AND_OPEN
-echo Alteracoes detectadas no codigo. Recompilando...
-call :DO_TAURI_BUILD
-if errorlevel 1 exit /b %ERRORLEVEL%
-goto LAUNCH_APP
-
-:FORCE_BUILD_AND_OPEN
-call :DO_TAURI_BUILD
-if errorlevel 1 exit /b %ERRORLEVEL%
-goto LAUNCH_APP
-
-:LAUNCH_APP
-if not exist "%RELEASE_EXE%" goto TRY_INSTALLED
-if not exist "%DIST_INDEX%" goto NEED_BUILD
-echo Abrindo FocusWall...
-call :START_ASSISTANT
-start "" "%RELEASE_EXE%"
-exit /b 0
-
-:TRY_INSTALLED
-if /I "%~1"=="--release" goto NOT_FOUND
-
-:USE_INSTALLED
-if exist "%INSTALLED%" (
-    echo Abrindo FocusWall instalado...
-    call :START_ASSISTANT
-    start "" "%INSTALLED%"
-    exit /b 0
-)
-goto NOT_FOUND
+goto OPEN_MODE
 
 :DEV_MODE
-echo Modo desenvolvimento: iniciando Vite + Tauri...
+echo Iniciando FocusWall em modo de desenvolvimento...
+call :ENSURE_TOOLS
+if errorlevel 1 goto FAILED
 call :START_ASSISTANT
-call :ENSURE_NPM_DEPS
-if errorlevel 1 exit /b %ERRORLEVEL%
-call npm run tauri:dev
-exit /b %ERRORLEVEL%
+call "%ROOT%node_modules\.bin\tauri.cmd" dev
+set "EXIT_CODE=%ERRORLEVEL%"
+goto FINISH
+
+:RUN_MODE
+call :ENSURE_TOOLS
+if errorlevel 1 goto FAILED
+set "APP=%ROOT%src-tauri\target\release\focus-desktop-dashboard.exe"
+if not exist "%APP%" (
+    echo Executavel release nao encontrado. Gerando o build agora...
+    goto RELEASE_MODE
+)
+goto START_APP
+
+:OPEN_MODE
+call :ENSURE_TOOLS
+if errorlevel 1 goto FAILED
+set "APP=%ROOT%src-tauri\target\release\focus-desktop-dashboard.exe"
+if not exist "%APP%" goto RELEASE_MODE
+if not exist "%ROOT%dist\index.html" goto RELEASE_MODE
+node "%ROOT%tools\is-build-stale.mjs"
+if errorlevel 1 goto RELEASE_MODE
+goto START_APP
+
+:RELEASE_MODE
+echo Preparando o build do FocusWall...
+call :ENSURE_TOOLS
+if errorlevel 1 goto FAILED
+
+call :STOP_RUNNING_APP
+if errorlevel 1 goto FAILED
+
+echo Compilando o aplicativo desktop...
+call "%ROOT%node_modules\.bin\tauri.cmd" build --no-bundle
+if errorlevel 1 goto BUILD_FAILED
+
+set "APP=%ROOT%src-tauri\target\release\focus-desktop-dashboard.exe"
+if not exist "%APP%" goto APP_NOT_FOUND
+
+:START_APP
+call :START_ASSISTANT
+echo Abrindo o FocusWall...
+start "FocusWall" "%APP%"
+set "EXIT_CODE=0"
+goto FINISH
 
 :START_ASSISTANT
 call :CHECK_OLLAMA_ONLINE
@@ -97,101 +98,94 @@ if exist "%ProgramFiles(x86)%\Ollama\ollama.exe" (
     set "OLLAMA_CMD=%ProgramFiles(x86)%\Ollama\ollama.exe"
     exit /b 0
 )
-echo Assistente local nao encontrado. Instale o Ollama ou use o botao "Iniciar assistente" na aba Assistente.
 exit /b 1
 
-:CHECK_BUILD_STALE
-if not exist "%RELEASE_EXE%" exit /b 1
-if not exist "%DIST_INDEX%" exit /b 1
-where node >NUL 2>&1
-if errorlevel 1 exit /b 1
-node "tools\is-build-stale.mjs"
-exit /b %ERRORLEVEL%
+:ENSURE_TOOLS
+where node >nul 2>&1
+if errorlevel 1 (
+    echo ERRO: Node.js nao foi encontrado no PATH.
+    echo Instale o Node.js e abra um novo terminal.
+    exit /b 1
+)
 
-:CLOSE_RUNNING
-set "CLOSE_ATTEMPTS=0"
-:CLOSE_RETRY
-tasklist /FI "IMAGENAME eq focus-desktop-dashboard.exe" 2>NUL | find /I "focus-desktop-dashboard.exe" >NUL
-if errorlevel 1 exit /b 0
-set /A CLOSE_ATTEMPTS+=1
-if !CLOSE_ATTEMPTS! GTR 8 goto CLOSE_FAILED
-if !CLOSE_ATTEMPTS! EQU 1 echo Fechando FocusWall em execucao para atualizar o build...
-taskkill /F /IM focus-desktop-dashboard.exe >NUL 2>NUL
-ping 127.0.0.1 -n 2 >NUL
-goto CLOSE_RETRY
+where npm >nul 2>&1
+if errorlevel 1 (
+    echo ERRO: npm nao foi encontrado no PATH.
+    echo Reinstale o Node.js ou corrija o PATH.
+    exit /b 1
+)
 
-:CLOSE_FAILED
-echo.
-echo Nao foi possivel fechar FocusWall apos varias tentativas.
-echo Feche o aplicativo manualmente e tente novamente.
-echo.
-pause
-exit /b 1
+where cargo >nul 2>&1
+if errorlevel 1 (
+    echo ERRO: Rust Cargo nao foi encontrado no PATH.
+    echo Instale o Rust pelo site https://rustup.rs/ e abra um novo terminal.
+    exit /b 1
+)
 
-:ENSURE_NPM_DEPS
 if exist "%ROOT%node_modules\.bin\tauri.cmd" exit /b 0
+
 echo Dependencias npm nao encontradas. Instalando...
-if exist "%ROOT%package-lock.json" goto NPM_CI
-call npm install
-goto NPM_DEPS_DONE
-:NPM_CI
-call npm ci
-:NPM_DEPS_DONE
-if errorlevel 1 goto NPM_DEPS_FAIL
-if not exist "%ROOT%node_modules\.bin\tauri.cmd" goto NPM_TAURI_MISSING
+if exist "%ROOT%package-lock.json" (
+    call npm.cmd ci
+) else (
+    call npm.cmd install
+)
+if errorlevel 1 (
+    echo ERRO: Nao foi possivel instalar as dependencias npm.
+    exit /b 1
+)
+
+if not exist "%ROOT%node_modules\.bin\tauri.cmd" (
+    echo ERRO: Tauri CLI nao foi encontrado apos a instalacao.
+    exit /b 1
+)
 exit /b 0
 
-:NPM_DEPS_FAIL
-echo.
-echo Falha ao instalar dependencias npm.
-echo Verifique se Node.js 20 ou superior esta instalado.
-echo.
-pause
-exit /b 1
-
-:NPM_TAURI_MISSING
-echo.
-echo Tauri CLI nao encontrado apos npm install.
-echo Execute manualmente na pasta do projeto: npm install
-echo.
-pause
-exit /b 1
-
-:DO_TAURI_BUILD
-call :ENSURE_NPM_DEPS
-if errorlevel 1 exit /b %ERRORLEVEL%
-call :CLOSE_RUNNING
-if errorlevel 1 exit /b %ERRORLEVEL%
-echo Compilando FocusWall...
-call npm run tauri:build
-if errorlevel 1 goto BUILD_FAILED
+:STOP_RUNNING_APP
+set "FOCUSWALL_APP=%ROOT%src-tauri\target\release\focus-desktop-dashboard.exe"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$target = [IO.Path]::GetFullPath($env:FOCUSWALL_APP); Get-CimInstance Win32_Process | Where-Object { $_.Name -eq 'focus-desktop-dashboard.exe' -and $_.ExecutablePath -eq $target } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }; exit 0"
+set "FOCUSWALL_APP="
+timeout /t 1 /nobreak >nul
 exit /b 0
+
+:PROJECT_NOT_FOUND
+echo ERRO: package.json nao foi encontrado.
+echo Execute este arquivo a partir da pasta do projeto FocusWall.
+set "EXIT_CODE=1"
+goto FAILED
+
+:TAURI_NOT_FOUND
+echo ERRO: src-tauri\Cargo.toml nao foi encontrado.
+echo A pasta do projeto esta incompleta.
+set "EXIT_CODE=1"
+goto FAILED
 
 :BUILD_FAILED
-echo.
-echo Falha ao compilar o FocusWall.
-echo Feche o aplicativo se ele ainda estiver aberto e tente novamente.
-echo.
-pause
-exit /b %ERRORLEVEL%
+echo ERRO: O build do FocusWall falhou.
+set "EXIT_CODE=1"
+goto FAILED
 
-:NEED_BUILD
-echo Frontend nao compilado. Execute:
-echo   abrir-dashboard.bat --build
-echo.
-pause
-exit /b 1
+:APP_NOT_FOUND
+echo ERRO: O executavel nao foi gerado em:
+echo %ROOT%src-tauri\target\release\focus-desktop-dashboard.exe
+set "EXIT_CODE=1"
+goto FAILED
 
-:NOT_FOUND
-echo FocusWall nao encontrado.
-echo.
-echo Desenvolvedor:
-echo   abrir-dashboard.bat           - abre; recompila se codigo mudou
-echo   abrir-dashboard.bat --build   - forca recompilacao
-echo   abrir-dashboard.bat --debug   - modo dev com hot reload
-echo   npm run open:dev
-echo.
-echo Usuario final: execute o instalador Instalar-Focus-Setup.exe
+:HELP
+echo Uso:
+echo   abrir-dashboard.bat          Abre o release e recompila apenas se necessario.
+echo   abrir-dashboard.bat --run    Abre o ultimo release sem recompilar.
+echo   abrir-dashboard.bat --rebuild Forca um novo build release.
+echo   abrir-dashboard.bat --dev    Inicia o modo desenvolvimento com hot reload.
+echo   abrir-dashboard.bat --help   Mostra esta ajuda.
+set "EXIT_CODE=0"
+goto FINISH
+
+:FAILED
+if not defined EXIT_CODE set "EXIT_CODE=1"
 echo.
 pause
-exit /b 1
+
+:FINISH
+if not defined EXIT_CODE set "EXIT_CODE=0"
+exit /b %EXIT_CODE%

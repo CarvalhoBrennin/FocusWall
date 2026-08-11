@@ -13,7 +13,7 @@ O projeto nasceu como um painel pessoal de produtividade e contexto rápido: tar
 - bloco de tarefas do dia com histórico
 - calendário mensal com eventos simples e recorrentes (mensal/anual, útil para aniversários)
 - painel de arquivos locais (pastas conhecidas + navegação)
-- aba **Mídia** — now playing via SMTC (Windows), capas e controles
+- aba **Música** — playlists próprias do YouTube/YouTube Music, OAuth desktop e player integrado
 - aba **Sistema** — CPU, RAM, temperatura e apps com janela visível
 - aba **Assistente** — comandos locais via Ollama, com inicialização automática no app desktop e contexto compacto para conversas longas
 - relógio em tempo real
@@ -116,7 +116,8 @@ build-bootstrapper.bat
 - Métricas do sistema: [`docs/PLAN-METRICS.md`](docs/PLAN-METRICS.md)
 - Painel de arquivos: [`docs/PLAN-FILES.md`](docs/PLAN-FILES.md)
 - Aba Neural: [`docs/PLAN-NEURAL.md`](docs/PLAN-NEURAL.md)
-- Mídia / now playing: [`docs/PLAN-MEDIA.md`](docs/PLAN-MEDIA.md)
+- Música / YouTube: [`docs/PLAN-YOUTUBE-MUSIC.md`](docs/PLAN-YOUTUBE-MUSIC.md)
+- Configuração do YouTube: [`docs/YOUTUBE-MUSIC-SETUP.md`](docs/YOUTUBE-MUSIC-SETUP.md)
 - Auto-update (stub): [`docs/UPDATER.md`](docs/UPDATER.md)
 - Deploy: [`docs/DEPLOY.md`](docs/DEPLOY.md)
 
@@ -135,7 +136,7 @@ A aba **Radar** agrega condições meteorológicas e notícias de tecnologia/des
 - Clima e busca de cidades: Open-Meteo.
 - Notícias: GitHub Blog e Hacker News via RSS/Atom, processados no Rust por parser XML streaming com limites defensivos.
 - Preferências persistidas no estado principal: cidade selecionada e categorias habilitadas.
-- Cache operacional separado: `radar-cache.json`, não incluído no backup funcional.
+- Cache operacional separado: `radar-cache-v2.sqlite` e a pasta local de imagens, não incluídos no backup funcional.
 - A cidade e as coordenadas aproximadas permanecem no armazenamento local, mas a consulta meteorológica envia as coordenadas ao provider e a busca envia o texto somente após ação do usuário.
 - O preview web usa dados fictícios identificados e não consulta os providers.
 

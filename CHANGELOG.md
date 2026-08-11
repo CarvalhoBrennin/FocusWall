@@ -32,6 +32,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Música — YouTube integrado
+
+- Aba **Mídia** substituída visualmente por **Música**, preservando o identificador interno `media` para compatibilidade de navegação.
+- Biblioteca de playlists próprias via YouTube Data API v3 (`playlists.list(mine=true)` + paginação).
+- Lista de faixas via `playlistItems.list` e reprodução no YouTube IFrame Player API.
+- Controles FocusWall: play/pause, anterior/próxima, seek, volume, shuffle e loop.
+- OAuth 2.0 para desktop com navegador do sistema, redirect loopback, PKCE S256 e `state`.
+- Refresh token protegido com Windows DPAPI; access token permanece somente em memória.
+- CSP restrita aos hosts necessários do YouTube/thumbnails.
+- Identificação do player no WebView2 via `Referer` restrito aos hosts do YouTube, com tratamento explícito do erro 153.
+- Reprodução é pausada ao sair da aba Música para evitar player invisível em background.
+- Documentação: `docs/PLAN-YOUTUBE-MUSIC.md` e `docs/YOUTUBE-MUSIC-SETUP.md`.
+
 ### Radar — revisão de segurança, concorrência e confiabilidade
 
 - Normalização estrita impede que `null`, strings vazias e booleanos sejam convertidos em valores meteorológicos ou coordenadas zero.

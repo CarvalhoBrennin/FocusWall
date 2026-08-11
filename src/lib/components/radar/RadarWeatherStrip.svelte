@@ -84,7 +84,10 @@
       <ul class="radar-alert-list">
         {#each weather.alerts as alert (alert.id)}
           <li class={`radar-alert is-${alert.severity}`}>
-            <span>{$t(`radar.alert.${alert.kind}` as MessageKey)} · {alert.measuredValue}</span>
+            <span>
+              {$t(`radar.alert.${alert.kind}` as MessageKey)} · {alert.measuredValue}
+              {#if alert.windowLocal} · {alert.windowLocal}{/if}
+            </span>
             <!-- Rótulo obrigatório: o Radar não emite alerta oficial. -->
             <span class="radar-alert-estimate">{$t('radar.estimateBadge')}</span>
           </li>

@@ -33,7 +33,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; connect-src 'self' ipc: http://ipc.localhost http://127.0.0.1:11434 http://localhost:11434 https://economia.awesomeapi.com.br; script-src 'self' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' asset: https://asset.localhost blob: data:; worker-src 'self' blob:;"
+      "csp": "default-src 'self'; connect-src 'self' ipc: http://ipc.localhost http://127.0.0.1:11434 http://localhost:11434 https://economia.awesomeapi.com.br https://www.youtube.com https://www.youtube-nocookie.com https://s.ytimg.com; script-src 'self' blob: https://www.youtube.com https://s.ytimg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' asset: https://asset.localhost blob: data: https://i.ytimg.com https://yt3.ggpht.com https://lh3.googleusercontent.com; frame-src https://www.youtube.com https://www.youtube-nocookie.com; worker-src 'self' blob:;"
     }
   },
   "bundle": {

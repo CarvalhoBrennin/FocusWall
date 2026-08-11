@@ -44,6 +44,8 @@ live-provider-tests = []
 [target.'cfg(windows)'.dependencies]
 uiautomation = "0.25.0"
 wmi = "0.14"
+webview2-com = "=0.38.2"
+windows-core = "=0.61.2"
 windows = { version = "0.58", features = [
   "Win32_Foundation",
   "Win32_System_Com",

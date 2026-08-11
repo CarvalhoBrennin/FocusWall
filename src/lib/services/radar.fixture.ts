@@ -8,6 +8,7 @@
 import type {
   RadarArticlePreview,
   RadarArticleSummary,
+  RadarImageRef,
   RadarLocation,
   RadarNewsCategory,
   RadarSnapshot,
@@ -22,6 +23,7 @@ export const RADAR_FIXTURE_LOCATIONS: RadarLocation[] = [
 ];
 
 const FETCHED_AT = '2026-07-29T18:00:00.000Z';
+const FIXTURE_IMAGE_DATA_URL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
 
 /** IDs precisam ter a forma de SHA-256 para passar pelo validador de ID opaco. */
 function fixtureId(seed: number): string {
@@ -37,6 +39,23 @@ type FixtureSeed = {
   sourceName: string;
   tags: string[];
 };
+
+function fixtureImage(entry: FixtureSeed): RadarImageRef {
+  const dominantTone = entry.category === 'security' || entry.category === 'brasil'
+    ? 'warm'
+    : entry.category === 'technology' || entry.category === 'development'
+      ? 'cool'
+      : 'neutral';
+  return {
+    id: fixtureId(100 + entry.seed),
+    width: 640,
+    height: 360,
+    aspectRatio: 16 / 9,
+    dominantTone,
+    alt: entry.title,
+    dataUrl: FIXTURE_IMAGE_DATA_URL
+  };
+}
 
 const FIXTURE_SEEDS: FixtureSeed[] = [
   {
@@ -88,7 +107,7 @@ function fixtureArticle(entry: FixtureSeed): RadarArticleSummary {
     author: null,
     publishedAt: FETCHED_AT,
     fetchedAt: FETCHED_AT,
-    image: null,
+    image: fixtureImage(entry),
     tags: entry.tags,
     score: 0.5,
     relatedCount: 0,
@@ -222,7 +241,7 @@ export function createRadarFixturePreview(articleId: string): RadarArticlePrevie
     summary: article.summary,
     author: null,
     publishedAt: article.publishedAt,
-    image: null,
+    image: article.image,
     tags: article.tags,
     related: [],
     // O preview web não abre navegador: não há URL real por trás da fixture.
