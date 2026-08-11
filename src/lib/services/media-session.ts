@@ -82,6 +82,31 @@ export function mediaProgressPercent(positionMs: number, durationMs: number): nu
   return Math.max(0, Math.min(100, (positionMs / durationMs) * 100));
 }
 
+/**
+ * Resolução assumida para a barra de progresso, em passos discretos. Deliberadamente
+ * maior que qualquer largura plausível da barra: errar para cima só desperdiça
+ * algumas atualizações, errar para baixo produziria avanço aos saltos.
+ */
+const PROGRESS_RENDER_STEPS = 1200;
+
+/**
+ * Decide se ir de `currentMs` para `nextMs` muda algum pixel na tela.
+ *
+ * A posição alimenta dois consumidores com granularidades muito diferentes: a
+ * largura da barra (um passo de pixel equivale a `durationMs / STEPS`) e o texto
+ * de tempo decorrido (que só muda quando o segundo inteiro vira). Uma escrita só
+ * se justifica quando um dos dois muda.
+ */
+export function positionChangesRender(
+  currentMs: number,
+  nextMs: number,
+  durationMs: number
+): boolean {
+  if (Math.floor(currentMs / 1000) !== Math.floor(nextMs / 1000)) return true;
+  if (durationMs <= 0) return false;
+  return Math.abs(nextMs - currentMs) >= durationMs / PROGRESS_RENDER_STEPS;
+}
+
 export function interpolateMediaPosition(
   snapshot: MediaSnapshot,
   syncedAtMs: number,

@@ -495,10 +495,19 @@
   margin-left: auto;
 }
 
+/*
+ * A barra ocupa a altura toda e é encolhida por `scaleY` em vez de ter a própria
+ * `height` animada. Animar `height` obriga o navegador a recalcular layout a cada
+ * frame, nas seis barras ao mesmo tempo, durante toda a reprodução — e esse custo
+ * de layout rouba frames do resto da interface. `transform` roda só no
+ * compositor. O resultado visual é idêntico.
+ */
 .media-eq-bar {
   display: block;
   width: 2px;
-  height: 35%;
+  height: 100%;
+  transform: scaleY(0.35);
+  transform-origin: bottom;
   background: var(--media-accent, var(--accent));
   opacity: 0.85;
 }
@@ -1200,8 +1209,8 @@
 }
 
 @keyframes eqBounce {
-  0%, 100% { height: 28%; }
-  50% { height: 100%; }
+  0%, 100% { transform: scaleY(0.28); }
+  50% { transform: scaleY(1); }
 }
 
 @keyframes shimmer {

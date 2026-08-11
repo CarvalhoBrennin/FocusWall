@@ -8,6 +8,7 @@
     fetchMediaSnapshot,
     mediaCoverSrc,
     mediaProgressPercent,
+    positionChangesRender,
     positionFromAnchor,
     reconcilePositionAnchor,
     skipMediaNext,
@@ -300,9 +301,27 @@
     const duration = snapshot.durationMs;
     let running = true;
 
+    /*
+     * O loop continua em requestAnimationFrame — é o que mantém a barra colada
+     * ao refresh do monitor. O que mudou é que ele só escreve no estado quando o
+     * resultado renderizado muda de fato.
+     *
+     * Antes, cada frame escrevia `displayPositionMs`, e cada escrita recalculava
+     * `displayPercent` e atualizava a largura da barra mais os dois textos de
+     * tempo — 60 vezes por segundo. Mas a barra tem algumas centenas de pixels:
+     * numa faixa de 4 minutos, um passo de 1px equivale a mais de meio segundo de
+     * áudio. A esmagadora maioria dessas escritas repintava pixels idênticos.
+     *
+     * Comparar a posição projetada com a última escrita corta as atualizações
+     * reativas em ~30x sem diferença visual nenhuma: a barra ainda avança de um
+     * pixel por vez, e o texto de tempo ainda vira no segundo exato.
+     */
     const loop = () => {
       if (!running) return;
-      displayPositionMs = positionFromAnchor(posAnchor, duration, true);
+      const next = positionFromAnchor(posAnchor, duration, true);
+      if (positionChangesRender(displayPositionMs, next, duration)) {
+        displayPositionMs = next;
+      }
       tickRaf = requestAnimationFrame(loop);
     };
 

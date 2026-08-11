@@ -63,6 +63,64 @@ fn forget_sent_cover() {
     if let Ok(mut guard) = LAST_SENT_COVER.lock() {
         *guard = None;
     }
+    forget_cover_metadata();
+}
+
+/// Intervalo mínimo entre leituras completas do thumbnail para a MESMA faixa.
+///
+/// Sem isto, cada captura (1x/s enquanto toca) abre o stream WinRT, lê os bytes
+/// inteiros e decodifica a imagem só para obter largura e altura — trabalho que
+/// é jogado fora quando a deduplicação decide omitir o base64. A capa não muda
+/// no meio de uma faixa, então reler a cada segundo não traz informação nova.
+///
+/// O valor é curto de propósito. Fontes de navegador entregam um thumbnail de
+/// baixa resolução antes da arte real, e é por dimensão que o frontend percebe a
+/// troca — um teto de poucos segundos mantém essa detecção praticamente imediata.
+/// A promoção explícita não passa por aqui: ela usa `allow_omit = false`, que
+/// ignora o cache por completo.
+const COVER_METADATA_TTL: Duration = Duration::from_secs(5);
+
+struct CoverMetadata {
+    track_key: String,
+    mime: String,
+    width: Option<u32>,
+    height: Option<u32>,
+    read_at: Instant,
+}
+
+static COVER_METADATA: LazyLock<Mutex<Option<CoverMetadata>>> = LazyLock::new(|| Mutex::new(None));
+
+/// Metadados da capa desta faixa, se lidos há pouco. `None` obriga leitura completa.
+fn fresh_cover_metadata(track_key: &str) -> Option<(String, Option<u32>, Option<u32>)> {
+    let guard = COVER_METADATA.lock().ok()?;
+    let cached = guard.as_ref()?;
+    if cached.track_key != track_key || cached.read_at.elapsed() >= COVER_METADATA_TTL {
+        return None;
+    }
+    Some((cached.mime.clone(), cached.width, cached.height))
+}
+
+fn remember_cover_metadata(
+    track_key: &str,
+    mime: &str,
+    width: Option<u32>,
+    height: Option<u32>,
+) {
+    if let Ok(mut guard) = COVER_METADATA.lock() {
+        *guard = Some(CoverMetadata {
+            track_key: track_key.to_string(),
+            mime: mime.to_string(),
+            width,
+            height,
+            read_at: Instant::now(),
+        });
+    }
+}
+
+fn forget_cover_metadata() {
+    if let Ok(mut guard) = COVER_METADATA.lock() {
+        *guard = None;
+    }
 }
 
 fn hash_cover_bytes(bytes: &[u8]) -> u64 {
@@ -639,6 +697,16 @@ fn read_cover_art_inner(
     track_key: &str,
     allow_omit: bool,
 ) -> (Option<String>, Option<String>, Option<u32>, Option<u32>) {
+    // Caminho rápido do poll: a mesma faixa foi lida há pouco, então nada mudou.
+    // O base64 vem como None, que é exatamente o que a deduplicação enviaria de
+    // qualquer forma — o frontend mantém a capa que já tem. `allow_omit = false`
+    // (busca explícita e promoção de resolução) nunca entra aqui.
+    if allow_omit {
+        if let Some((mime, width, height)) = fresh_cover_metadata(track_key) {
+            return (None, Some(mime), width, height);
+        }
+    }
+
     let thumb = match props.Thumbnail() {
         Ok(thumb) => thumb,
         Err(_) => {
@@ -695,6 +763,7 @@ fn read_cover_art_inner(
     let omit_base64 = allow_omit && cover_should_omit(track_key, hash);
     if allow_omit {
         remember_sent_cover(track_key, hash);
+        remember_cover_metadata(track_key, &mime, cover_width, cover_height);
     }
 
     (

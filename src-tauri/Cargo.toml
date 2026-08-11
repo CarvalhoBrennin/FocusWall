@@ -59,4 +59,8 @@ windows = { version = "0.58", features = [
 lto = true
 strip = true
 codegen-units = 1
-opt-level = "s"
+# 3 em vez de "s": o backend faz parsing de RSS/JSON, redimensionamento de imagem
+# e amostragem de métricas — trabalho onde otimizar para velocidade encurta o
+# tempo de resposta do IPC. O custo é binário maior, que `lto` + `strip` já
+# atenuam e que importa pouco num app desktop.
+opt-level = 3

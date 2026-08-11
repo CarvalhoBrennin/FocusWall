@@ -5,6 +5,7 @@ import {
   mediaCoverSrc,
   mediaProgressPercent,
   normalizeMediaSnapshot,
+  positionChangesRender,
   positionFromAnchor,
   POSITION_RESYNC_THRESHOLD_MS,
   reconcilePositionAnchor
@@ -116,5 +117,34 @@ describe('position anchor', () => {
   it('holds position when paused', () => {
     const anchor = { baseMs: 42_000, atMs: 1_000 };
     expect(positionFromAnchor(anchor, 120_000, false, 999_000)).toBe(42_000);
+  });
+});
+
+describe('positionChangesRender', () => {
+  // 4 minutos: um passo de pixel vale 200ms, então um frame de 16ms não muda nada.
+  const FOUR_MIN = 240_000;
+
+  it('ignores a single frame of drift inside the same second', () => {
+    expect(positionChangesRender(30_000, 30_016, FOUR_MIN)).toBe(false);
+    expect(positionChangesRender(30_000, 30_100, FOUR_MIN)).toBe(false);
+  });
+
+  it('accepts a move that crosses a pixel step', () => {
+    expect(positionChangesRender(30_000, 30_200, FOUR_MIN)).toBe(true);
+  });
+
+  it('always accepts a second boundary, however small the move', () => {
+    // O texto de tempo decorrido vira aqui, mesmo com 1ms de diferença.
+    expect(positionChangesRender(30_999, 31_000, FOUR_MIN)).toBe(true);
+  });
+
+  it('falls back to the second boundary when the duration is unknown', () => {
+    expect(positionChangesRender(30_000, 30_500, 0)).toBe(false);
+    expect(positionChangesRender(30_800, 31_200, 0)).toBe(true);
+  });
+
+  it('is finer grained on short tracks', () => {
+    // 30s de duração: um passo vale 25ms, muito abaixo do intervalo de um frame.
+    expect(positionChangesRender(10_000, 10_030, 30_000)).toBe(true);
   });
 });
