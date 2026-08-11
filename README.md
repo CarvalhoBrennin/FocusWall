@@ -143,4 +143,4 @@ Os dados meteorológicos exigem atribuição ao Open-Meteo. A API gratuita possu
 
 ### Build desta revisão
 
-Este pacote é distribuído como código-fonte. Binários Windows antigos foram removidos para evitar divergência entre fonte e executável. Gere um novo release com `npm ci`, validações frontend/Rust e `npm run tauri:build:installer`. O relatório detalhado das correções e limitações do ambiente está em [`RADAR_IMPLEMENTATION_REPORT.md`](RADAR_IMPLEMENTATION_REPORT.md).
+Este pacote é distribuído como código-fonte. Binários Windows antigos foram removidos para evitar divergência entre fonte e executável. Gere um novo release com `npm ci`, validações frontend/Rust e `npm run tauri:build:installer`. O relatório detalhado das correções e limitações do ambiente está em [`docs/RADAR_IMPLEMENTATION_REPORT.md`](docs/RADAR_IMPLEMENTATION_REPORT.md).
