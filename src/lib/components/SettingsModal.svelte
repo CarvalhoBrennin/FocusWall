@@ -12,7 +12,7 @@
 
   let overlayEl = $state(null);
   let closeButtonEl = $state(null);
-  let activeSection = $state('appearance');
+  let activeSection = $state($settingsModal?.section || 'appearance');
   let activeNavItem = $derived(navItems.find((item) => item.id === activeSection) ?? navItems[0]);
 
   const navItems = [

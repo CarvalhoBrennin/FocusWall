@@ -19,6 +19,7 @@
   import RadarNewsItem from './RadarNewsItem.svelte';
   import RadarState from './RadarState.svelte';
   import RadarSkeleton from './RadarSkeleton.svelte';
+  import RadarIcon from './RadarIcon.svelte';
 
   let { section, warnings = [], loading = false, refreshing = false, categories = [...RADAR_CATEGORIES] } = $props<{
     section: RadarSection<RadarNewsCollection> | null;
@@ -29,26 +30,19 @@
   }>();
 
   let partial = $derived(
-      warnings.includes('newsSourceUnavailable') ||
-      warnings.includes('newsRefreshFailed') ||
-      warnings.includes('providerCooldown') ||
-      warnings.includes('imagesUnavailable')
+    warnings.includes('newsSourceUnavailable') ||
+    warnings.includes('newsRefreshFailed') ||
+    warnings.includes('providerCooldown') ||
+    warnings.includes('imagesUnavailable')
   );
   let savingCategories = $state(false);
   let categorySaveError = $state(false);
 
-  /**
-   * O backend entrega a coleção já ranqueada: manchete primeiro, destaques
-   * depois, resto na sequência. A hierarquia visual reusa essa ordem em vez de
-   * reordenar por conta própria — 1 manchete, 2 destaques, o resto compacto.
-   */
   let ordered = $derived(collectionArticles(section?.data ?? null));
   let lead = $derived(ordered[0] ?? null);
   let featured = $derived(ordered.slice(1, 3));
   let compact = $derived(ordered.slice(3));
   let totalCount = $derived(section?.data?.totalAvailable ?? ordered.length);
-
-  /** Só oferecemos filtro para categorias habilitadas que têm conteúdo. */
   let availableFilters = $derived(categories);
 
   let savingPreferences = $state(false);
@@ -82,7 +76,6 @@
   async function toggleCategory(category: RadarNewsCategory) {
     if (savingCategories) return;
     const enabled = categories.includes(category);
-    // Desabilitar a última categoria deixaria o Radar sem nenhuma fonte.
     if (enabled && categories.length === 1) return;
     const next = enabled
       ? categories.filter((value: RadarNewsCategory) => value !== category)
@@ -102,6 +95,16 @@
 
   function parseList(value: string, limit: number): string[] {
     return [...new Set(value.split(',').map((item) => item.trim()).filter(Boolean))].slice(0, limit);
+  }
+
+  function handleSettingsKeydown(event: KeyboardEvent) {
+    if (event.key !== 'Escape') return;
+    const details = event.currentTarget as HTMLDetailsElement;
+    if (!details.open) return;
+    event.preventDefault();
+    event.stopPropagation();
+    details.open = false;
+    details.querySelector('summary')?.focus();
   }
 
   async function savePersonalization() {
@@ -126,15 +129,20 @@
 </script>
 
 <section class="radar-news" aria-labelledby="radar-news-title">
-  <div class="radar-news-heading">
-    <div>
-      <span class="radar-section-eyebrow">{$t('radar.newsEyebrow')}</span>
-      <h2 id="radar-news-title">{$t('radar.news')}</h2>
+  <div class="radar-section-header">
+    <div class="radar-section-heading">
+      <span class="radar-section-index" aria-hidden="true">02</span>
+      <div>
+        <span class="radar-section-eyebrow">{$t('radar.newsEyebrow')}</span>
+        <h2 id="radar-news-title">{$t('radar.news')}</h2>
+      </div>
     </div>
-    {#if section?.data}<span class="radar-news-count">{formatMessage($t('radar.newsCount'), { count: totalCount })}</span>{/if}
+    {#if section?.data}
+      <span class="radar-news-count">{formatMessage($t('radar.newsCount'), { count: totalCount })}</span>
+    {/if}
   </div>
 
-  <div class="radar-news-bar">
+  <div class="radar-news-toolbar">
     <div class="radar-filters" role="group" aria-label={$t('radar.news')}>
       <button
         type="button"
@@ -156,55 +164,69 @@
       {/each}
     </div>
 
-    <!-- Configuração sai do fluxo de leitura: fica recolhida atrás do disclosure. -->
-    <details class="radar-news-settings">
-      <summary>{$t('radar.enabledCategories')}</summary>
-      <fieldset disabled={savingCategories}>
-        <legend class="sr-only">{$t('radar.enabledCategories')}</legend>
-        {#each RADAR_CATEGORIES as category}
-          <label>
-            <input
-              type="checkbox"
-              checked={categories.includes(category)}
-              disabled={savingCategories || (categories.includes(category) && categories.length === 1)}
-              onchange={() => toggleCategory(category)}
-            />
-            <span>{categoryLabel(category)}</span>
-          </label>
-        {/each}
-      </fieldset>
-      {#if categorySaveError}<span class="radar-inline-error" role="alert">{$t('radar.categorySaveError')}</span>{/if}
-    </details>
+    <details class="radar-settings-menu" onkeydown={handleSettingsKeydown}>
+      <summary>
+        <RadarIcon name="settings" size={14} />
+        <span>{$t('radar.personalization')}</span>
+      </summary>
+      <div class="radar-settings-popover">
+        <div class="radar-settings-section">
+          <div class="radar-settings-heading">
+            <strong>{$t('radar.enabledCategories')}</strong>
+            <span>{categories.length}/{RADAR_CATEGORIES.length}</span>
+          </div>
+          <fieldset class="radar-category-options" disabled={savingCategories}>
+            <legend class="sr-only">{$t('radar.enabledCategories')}</legend>
+            {#each RADAR_CATEGORIES as category}
+              <label>
+                <input
+                  type="checkbox"
+                  checked={categories.includes(category)}
+                  disabled={savingCategories || (categories.includes(category) && categories.length === 1)}
+                  onchange={() => toggleCategory(category)}
+                />
+                <span>{categoryLabel(category)}</span>
+              </label>
+            {/each}
+          </fieldset>
+          {#if categorySaveError}<span class="radar-inline-error" role="alert">{$t('radar.categorySaveError')}</span>{/if}
+        </div>
 
-    <details class="radar-news-settings radar-personalization">
-      <summary>{$t('radar.personalization')}</summary>
-      <p class="radar-settings-help">{$t('radar.personalizationHelp')}</p>
-      <div class="radar-preference-grid">
-        <label>
-          <span>{$t('radar.followedTopics')}</span>
-          <input type="text" bind:value={followedTopicsInput} placeholder={$t('radar.preferencePlaceholder')} oninput={() => preferenceDirty = true} disabled={savingPreferences} />
-        </label>
-        <label>
-          <span>{$t('radar.blockedTopics')}</span>
-          <input type="text" bind:value={blockedTopicsInput} placeholder={$t('radar.preferencePlaceholder')} oninput={() => preferenceDirty = true} disabled={savingPreferences} />
-        </label>
-        <label>
-          <span>{$t('radar.preferredSources')}</span>
-          <input type="text" bind:value={preferredSourcesInput} placeholder={$t('radar.preferencePlaceholder')} oninput={() => preferenceDirty = true} disabled={savingPreferences} />
-        </label>
-        <label>
-          <span>{$t('radar.mutedSources')}</span>
-          <input type="text" bind:value={mutedSourcesInput} placeholder={$t('radar.preferencePlaceholder')} oninput={() => preferenceDirty = true} disabled={savingPreferences} />
-        </label>
-        <label>
-          <span>{$t('radar.tickerSymbols')}</span>
-          <input type="text" bind:value={tickerSymbolsInput} placeholder="usd-brl, eur-brl" oninput={() => preferenceDirty = true} disabled={savingPreferences} />
-        </label>
+        <div class="radar-settings-divider"></div>
+
+        <div class="radar-settings-section">
+          <div class="radar-settings-heading">
+            <strong>{$t('radar.personalization')}</strong>
+          </div>
+          <p class="radar-settings-help">{$t('radar.personalizationHelp')}</p>
+          <div class="radar-preference-grid">
+            <label>
+              <span>{$t('radar.followedTopics')}</span>
+              <input type="text" bind:value={followedTopicsInput} placeholder={$t('radar.preferencePlaceholder')} oninput={() => preferenceDirty = true} disabled={savingPreferences} />
+            </label>
+            <label>
+              <span>{$t('radar.blockedTopics')}</span>
+              <input type="text" bind:value={blockedTopicsInput} placeholder={$t('radar.preferencePlaceholder')} oninput={() => preferenceDirty = true} disabled={savingPreferences} />
+            </label>
+            <label>
+              <span>{$t('radar.preferredSources')}</span>
+              <input type="text" bind:value={preferredSourcesInput} placeholder={$t('radar.preferencePlaceholder')} oninput={() => preferenceDirty = true} disabled={savingPreferences} />
+            </label>
+            <label>
+              <span>{$t('radar.mutedSources')}</span>
+              <input type="text" bind:value={mutedSourcesInput} placeholder={$t('radar.preferencePlaceholder')} oninput={() => preferenceDirty = true} disabled={savingPreferences} />
+            </label>
+            <label>
+              <span>{$t('radar.tickerSymbols')}</span>
+              <input type="text" bind:value={tickerSymbolsInput} placeholder="usd-brl, eur-brl" oninput={() => preferenceDirty = true} disabled={savingPreferences} />
+            </label>
+          </div>
+          <button type="button" class="radar-button radar-save-preferences" onclick={savePersonalization} disabled={savingPreferences || !preferenceDirty}>
+            {savingPreferences ? $t('radar.statusLoading') : $t('radar.savePreferences')}
+          </button>
+          {#if preferenceSaveError}<span class="radar-inline-error" role="alert">{$t('radar.preferencesSaveFailed')}</span>{/if}
+        </div>
       </div>
-      <button type="button" class="radar-button radar-save-preferences" onclick={savePersonalization} disabled={savingPreferences || !preferenceDirty}>
-        {savingPreferences ? $t('radar.statusLoading') : $t('radar.savePreferences')}
-      </button>
-      {#if preferenceSaveError}<span class="radar-inline-error" role="alert">{$t('radar.preferencesSaveFailed')}</span>{/if}
     </details>
   </div>
 
@@ -217,27 +239,33 @@
   {/if}
 
   {#if loading && !section?.data}
-    <RadarSkeleton />
+    <RadarSkeleton variant="news" />
   {:else if !section?.data}
     <RadarState title={$t('radar.newsUnavailable')} />
   {:else if !lead}
     <RadarState title={$t('radar.newsEmpty')} />
   {:else}
-    <RadarLeadArticle article={lead} />
-
-    {#if featured.length}
-      <div class="radar-featured">
-        {#each featured as article (article.id)}
-          <RadarFeaturedArticle {article} />
-        {/each}
-      </div>
-    {/if}
+    <div class="radar-editorial-grid" class:is-single={featured.length === 0}>
+      <RadarLeadArticle article={lead} />
+      {#if featured.length}
+        <div class="radar-featured" class:is-single={featured.length === 1}>
+          {#each featured as article (article.id)}
+            <RadarFeaturedArticle {article} />
+          {/each}
+        </div>
+      {/if}
+    </div>
 
     {#if compact.length}
+      <div class="radar-latest-heading">
+        <span>{$t('radar.news')}</span>
+        <span class="radar-subsection-line" aria-hidden="true"></span>
+      </div>
       <ul class="radar-news-list">
-        {#each compact as article (article.id)}<RadarNewsItem {article} />{/each}
+        {#each compact as article, index (article.id)}<RadarNewsItem {article} index={index + 4} />{/each}
       </ul>
     {/if}
+
     {#if section.data.hasMore}
       <button type="button" class="radar-load-more" onclick={loadMoreRadarNews} disabled={refreshing}>
         {refreshing ? $t('radar.statusLoading') : $t('radar.loadMore')}

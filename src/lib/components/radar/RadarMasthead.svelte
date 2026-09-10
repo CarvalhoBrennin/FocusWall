@@ -9,6 +9,7 @@
     getRadarReferenceFetchedAt
   } from '../../utils/radar.js';
   import { manualRefreshRadar, radarLocationPickerOpen } from '../../stores/radar-store.js';
+  import RadarIcon from './RadarIcon.svelte';
 
   let {
     phase,
@@ -39,7 +40,6 @@
     phase === 'stale' ? $t('radar.stale') :
     phase === 'partial' ? $t('radar.partial') : $t('radar.statusReady')
   );
-  /** A cor do sinalizador é redundante com o texto: nunca é o único indicador. */
   let tone = $derived(
     phase === 'error' ? 'off' :
     phase === 'stale' || phase === 'partial' ? 'warn' :
@@ -63,45 +63,68 @@
 </script>
 
 <header class="radar-mast" aria-busy={refreshing}>
-  <div class="radar-mast-id">
-    <b class="radar-mast-brand">RADAR</b>
-    <div class="radar-mast-state" aria-live="polite" aria-atomic="true">
-      <p class="radar-mast-line">
-        <span class={`radar-dot is-${tone}`} aria-hidden="true"></span>
-        {#if request.location}<span class="radar-mast-place">{locationLabel}</span>{/if}
-        {#if referenceFetchedAt}
-          <!-- Com a hora à mostra, o estado só existe na cor do ponto: o leitor de tela precisa dele por extenso. -->
-          <span class="sr-only">{status}</span>
-          <span class="radar-mast-sep" aria-hidden="true">·</span>
-          <span>{formatMessage($t(cached ? 'radar.cachedAt' : 'radar.updatedAt'), { time: relativeLabel(referenceFetchedAt) })}</span>
-        {:else}
-          <span>{status}</span>
-        {/if}
-      </p>
+  <div class="radar-mast-identity">
+    <span class="radar-signal-mark" aria-hidden="true">
+      <span></span><span></span><span></span>
+    </span>
+    <div class="radar-mast-title-group">
+      <div class="radar-mast-title-line">
+        <b class="radar-mast-brand">RADAR</b>
+        <span class={`radar-status-pill is-${tone}`} role="status" aria-live="polite">
+          <span class="radar-dot" aria-hidden="true"></span>
+          {status}
+        </span>
+      </div>
+      <span class="radar-mast-subtitle">{$t('radar.panelLabel')}</span>
+    </div>
+  </div>
+
+  <div class="radar-mast-context">
+    {#if request.location}
+      <button
+        type="button"
+        class="radar-location-chip"
+        onclick={() => radarLocationPickerOpen.set(true)}
+        aria-label={`${$t('radar.changeLocation')}: ${locationLabel}`}
+      >
+        <RadarIcon name="location" size={14} />
+        <span>{locationLabel}</span>
+      </button>
+    {:else}
+      <button type="button" class="radar-location-chip is-empty" onclick={() => radarLocationPickerOpen.set(true)}>
+        <RadarIcon name="location" size={14} />
+        <span>{$t('radar.changeLocation')}</span>
+      </button>
+    {/if}
+
+    <div class="radar-sync-copy">
+      {#if referenceFetchedAt}
+        <span>{formatMessage($t(cached ? 'radar.cachedAt' : 'radar.updatedAt'), { time: relativeLabel(referenceFetchedAt) })}</span>
+      {:else}
+        <span>{status}</span>
+      {/if}
       {#if errorKey}
-        <p class="radar-mast-error" role="alert">{$t(snapshot ? 'radar.refreshFailedUsingCache' : 'radar.refreshFailedNoData')}</p>
+        <span class="radar-mast-error" role="alert">{$t(snapshot ? 'radar.refreshFailedUsingCache' : 'radar.refreshFailedNoData')}</span>
       {:else if cacheWriteFailed}
-        <p class="radar-mast-error" role="alert">{$t('radar.cacheWriteFailed')}</p>
+        <span class="radar-mast-error" role="alert">{$t('radar.cacheWriteFailed')}</span>
       {:else if cacheReadFailed}
-        <p class="radar-mast-error" role="alert">{$t('radar.cacheReadFailed')}</p>
+        <span class="radar-mast-error" role="alert">{$t('radar.cacheReadFailed')}</span>
       {:else if cooldown}
-        <p class="radar-mast-note">{cooldownTime ? formatMessage($t('radar.refreshCooldownUntil'), { time: cooldownTime }) : $t('radar.refreshCooldown')}</p>
+        <span class="radar-mast-note">{cooldownTime ? formatMessage($t('radar.refreshCooldownUntil'), { time: cooldownTime }) : $t('radar.refreshCooldown')}</span>
       {/if}
     </div>
   </div>
 
   <div class="radar-mast-actions">
-    <button type="button" class="radar-button radar-button--secondary" onclick={() => radarLocationPickerOpen.set(true)}>
-      {$t('radar.changeLocation')}
-    </button>
     <button
       type="button"
-      class="radar-button"
+      class="radar-button radar-refresh-button"
       disabled={refreshing || cooldown}
       aria-describedby={errorKey ? 'radar-refresh-error' : undefined}
       onclick={() => manualRefreshRadar(request)}
     >
-      {refreshing ? $t('radar.refreshing') : $t('radar.refresh')}
+      <RadarIcon name="refresh" size={15} />
+      <span>{refreshing ? $t('radar.refreshing') : $t('radar.refresh')}</span>
     </button>
   </div>
 </header>

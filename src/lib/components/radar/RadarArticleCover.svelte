@@ -9,7 +9,6 @@
     variant?: 'lead' | 'featured';
   }>();
 
-  /** The tonal cover remains the fallback for feeds without a valid image. */
   const CATEGORY_TONE: Record<RadarNewsCategory, RadarImageTone> = {
     brasil: 'olive',
     technology: 'cool',
@@ -31,13 +30,14 @@
   });
 </script>
 
-<!-- `span`, not `div`: the cover lives inside the article button. -->
 <span class={`radar-cover is-${variant} tone-${tone}`} aria-hidden="true">
   {#if imageSource && !imageFailed}
     <img src={imageSource} alt="" loading="lazy" decoding="async" onerror={() => imageFailed = true} />
+    <span class="radar-cover-shade"></span>
   {:else}
     <span class="radar-cover-fallback" aria-hidden="true">
-      <span class="radar-cover-fallback-mark">{label.slice(0, 1)}</span>
+      <span class="radar-cover-grid"></span>
+      <span class="radar-cover-fallback-mark">{label.slice(0, 2).toUpperCase()}</span>
       <span class="radar-cover-label">{label}</span>
     </span>
   {/if}

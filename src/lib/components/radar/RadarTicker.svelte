@@ -4,14 +4,8 @@
   import { locale, t } from '../../i18n/index.js';
 
   let { section } = $props<{ section: RadarSection<RadarTickerItem[]> | null }>();
-
   let items = $derived(section?.data ?? []);
 
-  /**
-   * A variação é opcional no contrato e hoje o backend não a calcula para PTAX
-   * (a janela do Banco Central não permite comparação honesta). Quando vier,
-   * o sinal fica no próprio número — a seta é só reforço visual.
-   */
   function variationLabel(value: number): string {
     return `${new Intl.NumberFormat($locale, {
       minimumFractionDigits: 2,
@@ -29,21 +23,23 @@
 
 {#if items.length}
   <div class="radar-ticker" role="region" aria-label={$t('radar.ticker')}>
+    <div class="radar-ticker-heading" aria-hidden="true">
+      <span class="radar-ticker-pulse"></span>
+      <span>{$t('radar.ticker')}</span>
+    </div>
     <ul>
       {#each items as item (item.id)}
         <li class:is-stale={item.cacheState === 'stale'}>
           <span class="radar-ticker-tag">{$t(`radar.quote.${item.quoteKind}` as MessageKey)}</span>
           <span class="radar-ticker-label">{item.label}</span>
           <b class="radar-num">{item.value}</b>
-          <span class="radar-ticker-detail" title={item.providerName}>
-            {item.detail ?? observedLabel(item.observedAt)}
-          </span>
           {#if item.variation != null}
-            <span class={item.variation >= 0 ? 'radar-up' : 'radar-down'}>
+            <span class={`radar-ticker-variation ${item.variation >= 0 ? 'radar-up' : 'radar-down'}`}>
               <span aria-hidden="true">{item.variation >= 0 ? '▲' : '▼'}</span>
               <span class="radar-num">{variationLabel(item.variation)}</span>
             </span>
           {/if}
+          <span class="radar-ticker-detail" title={item.providerName}>{item.detail ?? observedLabel(item.observedAt)}</span>
         </li>
       {/each}
     </ul>

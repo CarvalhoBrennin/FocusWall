@@ -1,249 +1,2057 @@
-/* ---------------------------------------------------------------------------
-   Radar — composição editorial (direção "Jornal").
+/* --------------------------------------------------------------------------
+   RADAR / Visual refactor v2
 
-   Um scroll principal: masthead fixo, faixa de clima condensada, manchete,
-   destaques, lista compacta e ticker ancorado no rodapé. Sem mosaico de cards.
-   --------------------------------------------------------------------------- */
+   Direção: "editorial control room". A tela preserva um único eixo de leitura,
+   mas passa a ter hierarquia clara entre contexto, clima, manchetes e sinais.
+   Todos os tokens são derivados do tema global; não há dependência visual nova.
+   -------------------------------------------------------------------------- */
 
-#radar-panel { gap: 0; min-height: 0; overflow: hidden; }
-.radar-panel { position: relative; display: flex; flex: 1; min-height: 0; flex-direction: column; color: var(--ink-main); }
-.radar-shell { display: flex; min-height: 0; flex: 1; flex-direction: column; }
-.radar-content { display: flex; min-height: 0; flex: 1; flex-direction: column; gap: 1rem; overflow-y: auto; overflow-x: hidden; padding: .9rem 1rem 1.1rem; }
-.radar-num { font-variant-numeric: tabular-nums; }
+#radar-panel {
+  gap: 0;
+  min-height: 0;
+  overflow: hidden;
+}
 
-/* --------------------------------- Masthead -------------------------------- */
+.radar-panel {
+  --radar-border: color-mix(in srgb, var(--control-border-strong) 82%, transparent);
+  --radar-border-soft: color-mix(in srgb, var(--divider) 82%, transparent);
+  --radar-surface: color-mix(in srgb, var(--surface-dark-strong) 96%, var(--ink-strong) 4%);
+  --radar-surface-soft: color-mix(in srgb, var(--surface-dark-soft) 82%, transparent);
+  --radar-surface-raised: color-mix(in srgb, var(--control-bg) 82%, var(--surface-dark-strong) 18%);
+  --radar-accent: color-mix(in srgb, var(--accent) 78%, var(--ink-strong) 22%);
+  --radar-accent-soft: color-mix(in srgb, var(--accent-soft) 78%, transparent);
+  --radar-grid-line: color-mix(in srgb, var(--divider) 48%, transparent);
+  --radar-text-muted: color-mix(in srgb, var(--ink-main) 8%, var(--ink-muted) 92%);
+  --radar-text-secondary: color-mix(in srgb, var(--ink-main) 4%, var(--ink-muted) 96%);
+  --radar-info-text: color-mix(in srgb, var(--accent-sky) 60%, var(--ink-main) 40%);
+  --radar-danger-text: color-mix(in srgb, var(--danger) 90%, var(--ink-main) 10%);
 
-.radar-mast { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; border-bottom: 1px solid var(--divider); padding: .7rem 1rem; }
-.radar-mast-id { display: flex; min-width: 0; align-items: baseline; gap: .7rem; }
-.radar-mast-brand { color: var(--ink-strong); font-family: var(--font-display); font-size: .8rem; letter-spacing: .16em; }
-.radar-mast-state { display: flex; min-width: 0; flex-direction: column; gap: .12rem; }
-.radar-mast-line { display: flex; flex-wrap: wrap; align-items: center; gap: .32rem; margin: 0; color: var(--ink-muted); font-size: .74rem; }
-.radar-mast-place { color: var(--ink-main); }
-.radar-mast-sep { color: var(--ink-soft); }
-.radar-mast-error { margin: 0; color: var(--danger); font-size: .72rem; }
-.radar-mast-note { margin: 0; color: var(--ink-muted); font-size: .72rem; }
-.radar-mast-actions { display: flex; flex: none; flex-wrap: wrap; justify-content: flex-end; gap: .5rem; }
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+  color: var(--ink-main);
+  background: var(--surface-dark-strong);
+  container: radar / inline-size;
+  isolation: isolate;
+}
 
-/* O sinalizador é redundante com o texto: cor nunca é o único indicador. */
-.radar-dot { display: inline-block; width: 6px; height: 6px; flex: none; background: var(--success); }
-.radar-dot.is-warn { background: var(--priority-medium); }
-.radar-dot.is-off { background: var(--danger); }
-.radar-dot.is-busy { background: var(--ink-soft); }
+.radar-shell {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  background:
+    linear-gradient(var(--radar-grid-line) 1px, transparent 1px) 0 0 / 100% 4rem,
+    var(--surface-dark-strong);
+}
 
-/* --------------------------------- Controles ------------------------------- */
+.radar-content {
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
 
-.radar-button, .radar-icon-button, .radar-filters button, .radar-remove-location { min-height: 2.35rem; border: 1px solid var(--control-border); background: var(--control-bg); color: var(--ink-main); padding: .55rem .8rem; font: inherit; cursor: pointer; }
-.radar-button:hover, .radar-icon-button:hover, .radar-filters button:hover, .radar-remove-location:hover { background: var(--control-bg-hover); color: var(--ink-strong); }
-.radar-button:focus-visible, .radar-icon-button:focus-visible, .radar-filters button:focus-visible, .radar-lead button:focus-visible, .radar-featured-item button:focus-visible, .radar-news-item button:focus-visible, .radar-location-picker button:focus-visible, .radar-location-picker input:focus-visible, .radar-attribution:focus-visible, .radar-news-settings summary:focus-visible, .radar-wx-days summary:focus-visible, .radar-news-settings input:focus-visible + span { outline: 2px solid var(--accent-strong); outline-offset: 2px; }
-.radar-button:disabled, .radar-icon-button:disabled, .radar-remove-location:disabled, .radar-location-picker button:disabled { cursor: default; opacity: .55; }
-.radar-button--secondary { background: transparent; }
-.radar-button, .radar-filters button { font-size: .74rem; }
-.radar-badge { border: 1px solid var(--priority-medium-border); background: var(--priority-medium-bg); padding: .12rem .4rem; color: var(--ink-main); font-size: .64rem; }
-.radar-kicker { color: var(--ink-soft); font-size: .62rem; letter-spacing: .14em; text-transform: uppercase; }
+.radar-content-inner {
+  display: flex;
+  width: min(100%, 92rem);
+  min-width: 0;
+  flex-direction: column;
+  gap: clamp(1.75rem, 3cqw, 2.75rem);
+  margin-inline: auto;
+  padding: clamp(1rem, 1.6cqw, 1.5rem) clamp(.9rem, 1.7cqw, 1.6rem) clamp(2rem, 3cqw, 3rem);
+}
 
-/* ---------------------------- Faixa de clima ------------------------------- */
+.radar-num {
+  font-variant-numeric: tabular-nums lining-nums;
+}
 
-.radar-wx { display: flex; flex-direction: column; gap: .6rem; border-bottom: 1px solid var(--divider); padding-bottom: .9rem; }
-.radar-wx-main { display: flex; flex-wrap: wrap; align-items: center; gap: .9rem 1.5rem; }
-.radar-wx-now { display: flex; flex: none; align-items: baseline; gap: .55rem; }
-.radar-wx-now strong { color: var(--ink-strong); font-family: var(--font-display); font-size: clamp(2.2rem, 3.4vw, 3rem); line-height: 1; }
-.radar-wx-now > div { display: flex; flex-direction: column; gap: .1rem; }
-.radar-wx-now em { color: var(--ink-main); font-style: normal; font-size: .82rem; }
-.radar-wx-now > div > span { color: var(--ink-muted); font-size: .7rem; }
-.radar-wx-now .radar-badge { align-self: flex-start; margin-top: .18rem; }
+.radar-icon {
+  display: block;
+  flex: none;
+}
 
-/* As colunas se acomodam ao espaço que sobra entre a temperatura e as horas:
-   a faixa inteira precisa caber em uma linha nas larguras de trabalho. */
-.radar-wx-metrics { display: grid; min-width: 0; flex: 1 1 16rem; grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr)); gap: 0 1.2rem; margin: 0; }
-.radar-wx-metrics > div { display: flex; justify-content: space-between; gap: .5rem; border-bottom: 1px solid var(--divider); padding: .2rem 0; }
-.radar-wx-metrics dt { color: var(--ink-muted); font-size: .68rem; }
-.radar-wx-metrics dd { margin: 0; color: var(--ink-strong); font-size: .72rem; font-weight: 700; }
+/* -------------------------------- Masthead -------------------------------- */
 
-/* Rola dentro de si mesma: a faixa horária nunca alarga o painel. */
-.radar-hourly { display: flex; max-width: 100%; flex: none; gap: .3rem; overflow-x: auto; overscroll-behavior-x: contain; padding-bottom: .15rem; }
-.radar-hour { display: flex; flex: none; flex-direction: column; align-items: center; gap: .15rem; border: 1px solid var(--divider); padding: .35rem .5rem; }
-.radar-hour.is-now { border-color: var(--control-border-strong); background: var(--control-bg); }
-.radar-hour strong { color: var(--ink-strong); font-size: .68rem; }
-.radar-hour span, .radar-hour small { color: var(--ink-muted); font-size: .64rem; }
-.radar-hour-condition { max-width: 7rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.radar-mast {
+  position: relative;
+  z-index: 3;
+  display: grid;
+  grid-template-columns: minmax(12rem, 1fr) minmax(14rem, auto) auto;
+  align-items: center;
+  gap: 1rem;
+  min-height: 4.35rem;
+  border-bottom: 1px solid var(--radar-border);
+  background: color-mix(in srgb, var(--surface-dark-strong) 96%, transparent);
+  padding: .7rem clamp(.9rem, 1.7cqw, 1.6rem);
+}
 
-.radar-wx-days summary { color: var(--ink-muted); cursor: pointer; font-size: .7rem; list-style-position: inside; }
-.radar-wx-days summary:hover { color: var(--ink-strong); }
-.radar-wx-days[open] summary { margin-bottom: .35rem; }
+.radar-mast::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 -1px 0;
+  width: clamp(5rem, 12cqw, 10rem);
+  height: 1px;
+  background: var(--radar-accent);
+  opacity: .72;
+}
 
-.radar-alert-list, .radar-daily-list { display: flex; flex-direction: column; gap: .3rem; margin: 0; padding: 0; list-style: none; }
-.radar-alert { display: flex; flex-wrap: wrap; align-items: baseline; gap: .5rem; border-left: 2px solid var(--priority-medium-border); background: var(--card-bg-muted); padding: .35rem .6rem; font-size: .74rem; }
-.radar-alert.is-warning { border-left-color: var(--accent-gold); }
-.radar-alert.is-critical { border-left-color: var(--danger); }
-/* O rótulo de estimativa é obrigatório: o Radar não emite alerta oficial. */
-.radar-alert-estimate { color: var(--ink-soft); font-size: .64rem; letter-spacing: .06em; text-transform: uppercase; }
+.radar-mast-identity,
+.radar-mast-title-line,
+.radar-mast-context,
+.radar-location-chip,
+.radar-mast-actions,
+.radar-status-pill,
+.radar-button {
+  display: flex;
+  align-items: center;
+}
 
-.radar-daily-list li { display: grid; align-items: baseline; gap: .5rem; grid-template-columns: 3.2rem 1fr auto; border-bottom: 1px solid var(--divider); padding: .26rem 0; font-size: .74rem; }
+.radar-mast-identity {
+  min-width: 0;
+  gap: .72rem;
+}
+
+.radar-signal-mark {
+  display: inline-flex;
+  width: 2rem;
+  height: 2rem;
+  flex: none;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 3px;
+  border: 1px solid var(--radar-border);
+  padding: .42rem;
+  color: var(--radar-accent);
+}
+
+.radar-signal-mark span {
+  width: 3px;
+  background: currentColor;
+}
+
+.radar-signal-mark span:nth-child(1) { height: 35%; opacity: .55; }
+.radar-signal-mark span:nth-child(2) { height: 68%; opacity: .78; }
+.radar-signal-mark span:nth-child(3) { height: 100%; }
+
+.radar-mast-title-group {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: .18rem;
+}
+
+.radar-mast-title-line {
+  min-width: 0;
+  gap: .55rem;
+}
+
+.radar-mast-brand {
+  color: var(--ink-strong);
+  font-family: var(--font-display);
+  font-size: .84rem;
+  letter-spacing: .2em;
+  line-height: 1;
+}
+
+.radar-mast-subtitle {
+  overflow: hidden;
+  color: var(--radar-text-secondary);
+  font-size: .62rem;
+  letter-spacing: .025em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.radar-status-pill {
+  gap: .32rem;
+  min-height: 1.35rem;
+  border: 1px solid var(--radar-border-soft);
+  padding: .12rem .42rem;
+  color: var(--radar-text-muted);
+  font-size: .6rem;
+  letter-spacing: .04em;
+  white-space: nowrap;
+}
+
+.radar-status-pill.is-ok { color: var(--success); }
+.radar-status-pill.is-warn { color: var(--priority-medium); }
+.radar-status-pill.is-off { color: var(--radar-danger-text); }
+.radar-status-pill.is-busy { color: var(--radar-text-muted); }
+
+.radar-dot {
+  width: 5px;
+  height: 5px;
+  flex: none;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 12%, transparent);
+}
+
+.radar-mast-context {
+  min-width: 0;
+  justify-content: flex-end;
+  gap: .65rem;
+}
+
+.radar-location-chip {
+  max-width: min(31cqw, 22rem);
+  min-height: 2.15rem;
+  gap: .42rem;
+  border: 1px solid var(--radar-border);
+  background: transparent;
+  color: var(--ink-main);
+  padding: .38rem .6rem;
+  font: inherit;
+  font-size: .7rem;
+  cursor: pointer;
+}
+
+.radar-location-chip span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.radar-location-chip:hover,
+.radar-location-chip.is-empty {
+  background: var(--radar-surface-raised);
+  color: var(--ink-strong);
+}
+
+.radar-sync-copy {
+  display: flex;
+  min-width: 7rem;
+  max-width: 16rem;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: .08rem;
+  color: var(--radar-text-secondary);
+  font-size: .6rem;
+  line-height: 1.3;
+  text-align: right;
+}
+
+.radar-mast-error { color: var(--radar-danger-text); }
+.radar-mast-note { color: var(--radar-text-muted); }
+
+.radar-mast-actions {
+  justify-content: flex-end;
+}
+
+/* -------------------------------- Controles ------------------------------- */
+
+.radar-button,
+.radar-icon-button,
+.radar-filters button,
+.radar-remove-location {
+  min-height: 2.35rem;
+  border: 1px solid var(--radar-border);
+  background: var(--radar-surface-raised);
+  color: var(--ink-main);
+  padding: .5rem .75rem;
+  font: inherit;
+  font-size: .7rem;
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.radar-button {
+  justify-content: center;
+  gap: .45rem;
+}
+
+.radar-button:hover,
+.radar-icon-button:hover,
+.radar-filters button:hover,
+.radar-remove-location:hover {
+  border-color: var(--control-border-strong);
+  background: var(--control-bg-hover);
+  color: var(--ink-strong);
+}
+
+.radar-button:disabled,
+.radar-icon-button:disabled,
+.radar-remove-location:disabled,
+.radar-location-picker button:disabled {
+  cursor: default;
+  opacity: .48;
+}
+
+.radar-button:focus-visible,
+.radar-icon-button:focus-visible,
+.radar-filters button:focus-visible,
+.radar-lead button:focus-visible,
+.radar-featured-item button:focus-visible,
+.radar-news-item button:focus-visible,
+.radar-location-picker button:focus-visible,
+.radar-location-picker input:focus-visible,
+.radar-attribution:focus-visible,
+.radar-settings-menu summary:focus-visible,
+.radar-daily-forecast summary:focus-visible,
+.radar-drawer button:focus-visible {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: 2px;
+}
+
+.radar-refresh-button {
+  min-width: 6.8rem;
+}
+
+.radar-refresh-button:disabled .radar-icon {
+  opacity: .62;
+}
+
+.radar-badge {
+  width: fit-content;
+  border: 1px solid var(--priority-medium-border);
+  background: var(--priority-medium-bg);
+  padding: .16rem .42rem;
+  color: var(--ink-main);
+  font-size: .6rem;
+  letter-spacing: .025em;
+}
+
+.radar-kicker {
+  color: var(--radar-text-secondary);
+  font-size: .6rem;
+  font-weight: 700;
+  letter-spacing: .13em;
+  text-transform: uppercase;
+}
+
+/* ------------------------------- Section UI ------------------------------- */
+
+.radar-section-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.radar-section-heading {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: .7rem;
+}
+
+.radar-section-index {
+  color: var(--radar-text-secondary);
+  font-family: var(--font-mono);
+  font-size: .6rem;
+  letter-spacing: .08em;
+}
+
+.radar-section-index::after {
+  content: "/";
+  margin-left: .24rem;
+  color: var(--radar-accent);
+}
+
+.radar-section-eyebrow {
+  display: block;
+  margin-bottom: .12rem;
+  color: var(--radar-text-secondary);
+  font-size: .6rem;
+  font-weight: 700;
+  letter-spacing: .15em;
+  text-transform: uppercase;
+}
+
+.radar-section-header h2 {
+  margin: 0;
+  color: var(--ink-strong);
+  font-family: var(--font-display);
+  font-size: clamp(.98rem, 1.45cqw, 1.2rem);
+  font-weight: 600;
+  letter-spacing: .025em;
+  line-height: 1.2;
+}
+
+.radar-subsection-heading,
+.radar-latest-heading {
+  display: flex;
+  align-items: center;
+  gap: .7rem;
+  color: var(--radar-text-muted);
+  font-size: .6rem;
+  font-weight: 700;
+  letter-spacing: .11em;
+  text-transform: uppercase;
+}
+
+.radar-subsection-line {
+  height: 1px;
+  flex: 1;
+  background: var(--radar-border-soft);
+}
+
+/* --------------------------------- Clima ---------------------------------- */
+
+.radar-weather {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: .8rem;
+}
+
+.radar-weather-header {
+  min-height: 2rem;
+}
+
+.radar-attribution {
+  display: inline-flex;
+  max-width: 24rem;
+  min-height: 2rem;
+  flex: none;
+  align-items: center;
+  gap: .3rem;
+  border: 0;
+  background: transparent;
+  color: var(--radar-text-secondary);
+  padding: .2rem 0;
+  text-align: right;
+  font: inherit;
+  font-size: .6rem;
+  cursor: pointer;
+}
+
+.radar-attribution:hover {
+  color: var(--ink-strong);
+}
+
+.radar-weather-overview {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: minmax(18rem, .84fr) minmax(0, 1.36fr);
+  border: 1px solid var(--radar-border);
+  background: var(--radar-surface-soft);
+}
+
+.radar-weather-hero {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas:
+    "visual temp"
+    "visual range";
+  align-items: center;
+  gap: .45rem 1rem;
+  min-height: 9.8rem;
+  border-right: 1px solid var(--radar-border);
+  padding: 1rem 1.15rem;
+  overflow: hidden;
+}
+
+.radar-weather-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 2px;
+  background: var(--radar-accent);
+}
+
+.radar-weather-visual {
+  grid-area: visual;
+  display: grid;
+  width: 6rem;
+  height: 6rem;
+  place-items: center;
+  color: var(--radar-accent);
+}
+
+.radar-weather-glyph {
+  display: block;
+  overflow: visible;
+}
+
+.radar-weather-glyph-primary,
+.radar-weather-glyph-sun {
+  fill: var(--accent-gold-soft);
+  stroke: var(--accent-gold);
+  stroke-width: 1.6;
+}
+
+.radar-weather-glyph-cloud {
+  fill: color-mix(in srgb, var(--control-bg-active) 80%, transparent);
+  stroke: var(--radar-text-muted);
+  stroke-width: 1.7;
+}
+
+.radar-weather-glyph-stroke {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.radar-weather-glyph-rain { color: var(--radar-info-text); }
+.radar-weather-glyph-muted { color: var(--radar-text-secondary); }
+.radar-weather-glyph-bolt { fill: var(--accent-gold); }
+
+.radar-weather-temperature {
+  grid-area: temp;
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: .7rem;
+}
+
+.radar-weather-temperature > strong {
+  color: var(--ink-strong);
+  font-family: var(--font-display);
+  font-size: clamp(2.65rem, 5cqw, 4.4rem);
+  font-weight: 500;
+  letter-spacing: -.04em;
+  line-height: .9;
+}
+
+.radar-weather-temperature sup {
+  position: relative;
+  top: -.5em;
+  font-size: .42em;
+}
+
+.radar-weather-condition {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: .2rem;
+}
+
+.radar-weather-condition > span {
+  color: var(--ink-strong);
+  font-size: .82rem;
+  line-height: 1.3;
+}
+
+.radar-weather-condition small {
+  color: var(--radar-text-muted);
+  font-size: .62rem;
+}
+
+.radar-weather-range {
+  grid-area: range;
+  display: flex;
+  gap: .9rem;
+  padding-left: .1rem;
+}
+
+.radar-weather-range > span {
+  display: inline-flex;
+  align-items: baseline;
+  gap: .3rem;
+}
+
+.radar-weather-range small {
+  color: var(--radar-text-secondary);
+  font-size: .6rem;
+  text-transform: uppercase;
+}
+
+.radar-weather-range b {
+  color: var(--ink-main);
+  font-size: .72rem;
+}
+
+.radar-weather-hero > .radar-badge {
+  position: absolute;
+  right: .65rem;
+  top: .65rem;
+}
+
+.radar-weather-metrics {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: repeat(4, minmax(6.4rem, 1fr));
+  margin: 0;
+}
+
+.radar-metric {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  justify-content: center;
+  gap: .34rem;
+  border-right: 1px solid var(--radar-border-soft);
+  border-bottom: 1px solid var(--radar-border-soft);
+  padding: .72rem .7rem;
+  color: var(--radar-text-muted);
+}
+
+.radar-metric:nth-child(4n) { border-right: 0; }
+.radar-metric:nth-last-child(-n + 4) { border-bottom: 0; }
+
+.radar-metric dt {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: .38rem;
+  overflow: hidden;
+  color: var(--radar-text-secondary);
+  font-size: .6rem;
+  letter-spacing: .035em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.radar-metric dt span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.radar-metric dd {
+  margin: 0;
+  overflow: hidden;
+  color: var(--ink-strong);
+  font-size: .7rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.radar-alert-list {
+  display: flex;
+  flex-direction: column;
+  gap: .38rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.radar-alert {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: .55rem;
+  border: 1px solid var(--priority-medium-border);
+  background: var(--priority-medium-bg);
+  padding: .5rem .65rem;
+}
+
+.radar-alert-marker {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--priority-medium);
+}
+
+.radar-alert.is-warning .radar-alert-marker { background: var(--accent-gold); }
+.radar-alert.is-critical .radar-alert-marker { background: var(--danger); }
+
+.radar-alert-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: .1rem;
+}
+
+.radar-alert-copy strong { color: var(--ink-main); font-size: .68rem; }
+.radar-alert-copy small { color: var(--radar-text-muted); font-size: .6rem; }
+.radar-alert-estimate { color: var(--radar-text-secondary); font-size: .6rem; letter-spacing: .07em; text-transform: uppercase; }
+
+.radar-hourly-section {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: .55rem;
+}
+
+.radar-hourly {
+  display: grid;
+  max-width: 100%;
+  grid-auto-columns: minmax(6.5rem, 1fr);
+  grid-auto-flow: column;
+  gap: .38rem;
+  margin: 0;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  padding: 0 0 .3rem;
+  list-style: none;
+  scrollbar-width: thin;
+}
+
+.radar-hour {
+  position: relative;
+  display: grid;
+  min-height: 7rem;
+  grid-template-columns: 1fr auto;
+  grid-template-areas:
+    "time rain"
+    "glyph glyph"
+    "temp temp"
+    "condition condition";
+  align-content: start;
+  align-items: center;
+  border: 1px solid var(--radar-border-soft);
+  background: color-mix(in srgb, var(--card-bg-muted) 88%, transparent);
+  padding: .48rem .52rem;
+}
+
+.radar-hour.is-now {
+  border-color: var(--control-border-strong);
+  background: var(--radar-accent-soft);
+}
+
+.radar-hour.is-now::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 2px;
+  background: var(--radar-accent);
+}
+
+.radar-hour-time { grid-area: time; color: var(--radar-text-muted); font-size: .6rem; text-transform: lowercase; }
+.radar-hour-rain { grid-area: rain; justify-self: end; color: var(--radar-info-text); font-size: .6rem; }
+.radar-hour .radar-weather-glyph { grid-area: glyph; justify-self: start; margin-block: .28rem .12rem; }
+.radar-hour-temp { grid-area: temp; color: var(--ink-strong); font-size: .86rem; }
+.radar-hour-condition { grid-area: condition; overflow: hidden; color: var(--radar-text-secondary); font-size: .6rem; text-overflow: ellipsis; white-space: nowrap; }
+
+.radar-daily-forecast {
+  border-top: 1px solid var(--radar-border-soft);
+  border-bottom: 1px solid var(--radar-border-soft);
+}
+
+.radar-daily-forecast summary {
+  display: flex;
+  min-height: 2.4rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: .6rem;
+  color: var(--radar-text-muted);
+  padding: .45rem 0;
+  font-size: .65rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  cursor: pointer;
+  list-style: none;
+}
+
+.radar-daily-forecast summary::-webkit-details-marker { display: none; }
+.radar-daily-forecast summary .radar-icon { transition: transform var(--transition-fast); }
+.radar-daily-forecast[open] summary .radar-icon { transform: rotate(180deg); }
+
+.radar-daily-list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  border-top: 1px solid var(--radar-border-soft);
+  padding: 0;
+  list-style: none;
+}
+
+.radar-daily-list li {
+  display: grid;
+  grid-template-columns: 3.4rem 2.1rem minmax(7rem, 1fr) 3.2rem auto;
+  align-items: center;
+  gap: .55rem;
+  min-height: 2.6rem;
+  border-bottom: 1px solid var(--radar-border-soft);
+  padding: .24rem .15rem;
+  font-size: .66rem;
+}
+
 .radar-daily-list li:last-child { border-bottom: 0; }
-.radar-daily-date { color: var(--ink-muted); }
-.radar-daily-code { color: var(--ink-main); }
-.radar-daily-range { color: var(--ink-strong); }
+.radar-daily-date { color: var(--radar-text-muted); }
+.radar-daily-code { overflow: hidden; color: var(--ink-main); text-overflow: ellipsis; white-space: nowrap; }
+.radar-daily-rain { color: var(--radar-info-text); text-align: right; }
+.radar-daily-range { color: var(--radar-text-muted); text-align: right; }
+.radar-daily-range b { color: var(--ink-strong); }
 
-.radar-attribution { align-self: flex-start; border: 0; background: transparent; color: var(--ink-muted); padding: .15rem 0; text-align: left; font: inherit; font-size: .66rem; cursor: pointer; }
-.radar-attribution:hover { color: var(--ink-strong); }
+/* -------------------------------- Notícias -------------------------------- */
 
-/* -------------------------------- Notícias --------------------------------- */
+.radar-news {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: .85rem;
+  border-top: 1px solid var(--radar-border);
+  padding-top: 1.3rem;
+}
 
-.radar-news { display: flex; flex-direction: column; gap: 1rem; }
-.radar-news-heading { display: flex; align-items: end; justify-content: space-between; gap: 1rem; }
-.radar-news-heading h2 { margin: .12rem 0 0; color: var(--ink-strong); font-family: var(--font-display); font-size: 1.08rem; line-height: 1.1; }
-.radar-section-eyebrow { color: var(--ink-soft); font-size: .6rem; letter-spacing: .14em; text-transform: uppercase; }
-.radar-news-count { flex: none; color: var(--ink-muted); font-size: .68rem; }
-.radar-news-bar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
-.radar-filters { display: flex; max-width: 100%; flex-wrap: nowrap; gap: .35rem; overflow-x: auto; padding-bottom: .2rem; scrollbar-width: thin; }
-.radar-filters button { min-height: 1.9rem; padding: .3rem .58rem; font-size: .7rem; }
-.radar-filters button.is-active { border-color: var(--control-border-strong); background: var(--control-bg-active); color: var(--ink-strong); }
+.radar-news-count {
+  flex: none;
+  color: var(--radar-text-secondary);
+  font-size: .6rem;
+}
 
-.radar-news-settings { position: relative; flex: none; }
-.radar-news-settings summary { color: var(--ink-muted); cursor: pointer; font-size: .7rem; white-space: nowrap; }
-.radar-news-settings summary:hover { color: var(--ink-strong); }
-.radar-news-settings fieldset { position: absolute; z-index: 4; top: calc(100% + .35rem); right: 0; display: flex; width: max-content; max-width: 20rem; flex-wrap: wrap; gap: .45rem .8rem; border: 1px solid var(--control-border-strong); margin: 0; background: var(--surface-dark-strong); box-shadow: var(--shadow-md); padding: .7rem .8rem; }
-.radar-news-settings label { display: inline-flex; align-items: center; gap: .4rem; color: var(--ink-main); font-size: .72rem; cursor: pointer; }
-.radar-news-settings input { margin: 0; }
-.radar-personalization { min-width: min(100%, 18rem); }
-.radar-personalization[open] { z-index: 5; }
-.radar-settings-help { max-width: 24rem; margin: .55rem 0; color: var(--ink-muted); font-size: .68rem; line-height: 1.4; }
-.radar-preference-grid { display: grid; gap: .5rem; }
-.radar-preference-grid label { display: grid; align-items: start; gap: .25rem; }
-.radar-preference-grid input { width: 100%; min-height: 2rem; border: 1px solid var(--control-border); background: var(--control-bg); color: var(--ink-main); padding: .35rem .5rem; font: inherit; font-size: .7rem; }
-.radar-save-preferences { margin-top: .65rem; }
-.radar-load-more { align-self: center; min-height: 2.25rem; border: 1px solid var(--control-border); background: var(--control-bg); color: var(--ink-main); padding: .5rem .85rem; font: inherit; font-size: .74rem; cursor: pointer; }
-.radar-load-more:hover { background: var(--control-bg-hover); color: var(--ink-strong); }
-.radar-load-more:disabled { cursor: default; opacity: .55; }
+.radar-news-toolbar {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: .7rem;
+  border-top: 1px solid var(--radar-border-soft);
+  border-bottom: 1px solid var(--radar-border-soft);
+  padding-block: .48rem;
+}
 
-.radar-section-warning { margin: 0; border-left: 2px solid var(--priority-medium-border); padding: .3rem .55rem; color: var(--ink-muted); font-size: .72rem; line-height: 1.4; }
-.radar-news-attribution { margin: 0; color: var(--ink-soft); font-size: .64rem; line-height: 1.5; }
+.radar-filters {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-wrap: nowrap;
+  gap: .3rem;
+  overflow-x: auto;
+  padding-bottom: .08rem;
+  scrollbar-width: none;
+}
 
-/* Manchete: a única peça com resumo. O resto vive de título e procedência. */
-.radar-lead { border: 1px solid var(--divider); background: var(--card-bg-muted); padding: .75rem; }
-.radar-lead button { display: grid; width: 100%; align-items: start; gap: 1rem; grid-template-columns: minmax(0, 19rem) minmax(0, 1fr); border: 0; background: transparent; color: inherit; padding: 0; text-align: left; cursor: pointer; }
-.radar-lead-copy { display: flex; min-width: 0; flex-direction: column; gap: .35rem; }
-.radar-lead-title { color: var(--ink-strong); font-family: var(--font-display); font-size: clamp(1rem, 1.5vw, 1.18rem); line-height: 1.28; text-wrap: balance; overflow-wrap: anywhere; }
-.radar-lead-summary { color: var(--ink-main); font-size: .78rem; line-height: 1.45; overflow-wrap: anywhere; }
-.radar-lead button:hover .radar-lead-title { color: var(--accent-strong); }
+.radar-filters::-webkit-scrollbar { display: none; }
 
-.radar-featured { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .9rem; border-top: 1px solid var(--divider); padding-top: .9rem; }
-.radar-featured-item { border-top: 1px solid var(--divider); padding-top: .7rem; }
-.radar-featured-item button { display: grid; width: 100%; align-items: start; gap: .7rem; grid-template-columns: 7rem minmax(0, 1fr); border: 0; background: transparent; color: inherit; padding: 0; text-align: left; cursor: pointer; }
-.radar-featured-copy { display: flex; min-width: 0; flex-direction: column; gap: .25rem; }
-.radar-featured-title { color: var(--ink-strong); font-size: .8rem; font-weight: 600; line-height: 1.32; overflow-wrap: anywhere; }
-.radar-featured-item button:hover .radar-featured-title { color: var(--accent-strong); }
+.radar-filters button {
+  min-height: 1.78rem;
+  flex: none;
+  border-color: transparent;
+  background: transparent;
+  padding: .28rem .52rem;
+  color: var(--radar-text-muted);
+  font-size: .62rem;
+  white-space: nowrap;
+}
 
-.radar-news-list { display: flex; flex-direction: column; margin: 0; border-top: 1px solid var(--divider); padding: 0; list-style: none; }
-.radar-news-item { border-bottom: 1px solid var(--divider); }
-.radar-news-item button { display: flex; width: 100%; align-items: baseline; justify-content: space-between; gap: 1.2rem; border: 0; background: transparent; color: inherit; padding: .5rem 0; text-align: left; cursor: pointer; }
-.radar-news-item button:hover .radar-news-title { color: var(--accent-strong); }
-.radar-news-title { min-width: 0; color: var(--ink-main); font-size: .8rem; line-height: 1.35; overflow-wrap: anywhere; }
-.radar-news-meta { flex: none; color: var(--ink-muted); font-size: .66rem; }
+.radar-filters button:hover { border-color: var(--radar-border-soft); }
 
-/* Capa editorial: imagem local quando disponível, tom da categoria como fallback. */
-.radar-cover { position: relative; display: block; overflow: hidden; border: 1px solid var(--divider); background: var(--card-bg-muted); }
-.radar-cover.is-lead { aspect-ratio: 16 / 9; }
+.radar-filters button.is-active {
+  border-color: var(--control-border-strong);
+  background: var(--radar-surface-raised);
+  color: var(--ink-strong);
+}
+
+.radar-settings-menu {
+  position: relative;
+  flex: none;
+}
+
+.radar-settings-menu > summary {
+  display: flex;
+  min-height: 1.8rem;
+  align-items: center;
+  gap: .35rem;
+  border: 1px solid transparent;
+  color: var(--radar-text-muted);
+  padding: .26rem .4rem;
+  font-size: .62rem;
+  cursor: pointer;
+  list-style: none;
+  white-space: nowrap;
+}
+
+.radar-settings-menu > summary::-webkit-details-marker { display: none; }
+.radar-settings-menu > summary:hover,
+.radar-settings-menu[open] > summary { border-color: var(--radar-border); background: var(--radar-surface-raised); color: var(--ink-strong); }
+
+.radar-settings-popover {
+  position: absolute;
+  z-index: 15;
+  top: calc(100% + .55rem);
+  right: 0;
+  width: min(32rem, calc(100cqw - 2rem));
+  max-height: min(36rem, 70vh);
+  border: 1px solid var(--control-border-strong);
+  background: var(--surface-dark-strong);
+  box-shadow: var(--shadow-md);
+  padding: .9rem;
+  overflow-y: auto;
+}
+
+.radar-settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: .55rem;
+}
+
+.radar-settings-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .7rem;
+}
+
+.radar-settings-heading strong { color: var(--ink-strong); font-size: .68rem; }
+.radar-settings-heading span { color: var(--radar-text-secondary); font-family: var(--font-mono); font-size: .6rem; }
+
+.radar-category-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .35rem;
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.radar-category-options label {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: .42rem;
+  border: 1px solid var(--radar-border-soft);
+  padding: .42rem .5rem;
+  color: var(--ink-main);
+  font-size: .64rem;
+  cursor: pointer;
+}
+
+.radar-category-options input {
+  width: .82rem;
+  height: .82rem;
+  flex: none;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+.radar-settings-divider {
+  height: 1px;
+  margin-block: .8rem;
+  background: var(--radar-border-soft);
+}
+
+.radar-settings-help {
+  margin: 0;
+  color: var(--radar-text-muted);
+  font-size: .61rem;
+  line-height: 1.45;
+}
+
+.radar-preference-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .48rem;
+}
+
+.radar-preference-grid label {
+  display: grid;
+  min-width: 0;
+  gap: .25rem;
+  color: var(--radar-text-muted);
+  font-size: .6rem;
+}
+
+.radar-preference-grid label:last-child { grid-column: 1 / -1; }
+
+.radar-preference-grid input {
+  width: 100%;
+  min-width: 0;
+  min-height: 2.15rem;
+  border: 1px solid var(--radar-border);
+  background: var(--field-bg);
+  color: var(--ink-main);
+  padding: .4rem .5rem;
+  font: inherit;
+  font-size: .62rem;
+}
+
+.radar-preference-grid input::placeholder { color: var(--field-placeholder); }
+.radar-save-preferences { align-self: flex-end; margin-top: .15rem; }
+
+.radar-section-warning {
+  margin: 0;
+  border-left: 2px solid var(--priority-medium-border);
+  background: var(--priority-medium-bg);
+  padding: .45rem .62rem;
+  color: var(--radar-text-muted);
+  font-size: .62rem;
+  line-height: 1.4;
+}
+
+.radar-editorial-grid {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: minmax(0, 1.55fr) minmax(17rem, .75fr);
+  gap: .85rem;
+}
+
+.radar-editorial-grid.is-single { grid-template-columns: minmax(0, 1fr); }
+
+.radar-lead,
+.radar-featured-item {
+  min-width: 0;
+  border: 1px solid var(--radar-border);
+  background: var(--radar-surface-soft);
+  overflow: hidden;
+}
+
+.radar-lead button,
+.radar-featured-item button {
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  padding: 0;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+
+.radar-lead button { grid-template-rows: auto minmax(0, 1fr); }
+
+.radar-cover {
+  position: relative;
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  background: var(--card-bg-muted);
+}
+
+.radar-cover.is-lead { aspect-ratio: 16 / 8.4; }
 .radar-cover.is-featured { aspect-ratio: 4 / 3; }
 .radar-cover.tone-warm { background: var(--accent-gold-soft); }
 .radar-cover.tone-cool { background: var(--accent-sky-soft); }
 .radar-cover.tone-olive { background: var(--accent-olive-soft); }
-.radar-cover img { display: block; width: 100%; height: 100%; object-fit: cover; }
-.radar-cover-fallback { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: space-between; padding: .5rem; }
-.radar-cover-fallback-mark { color: color-mix(in srgb, var(--ink-strong) 42%, transparent); font-family: var(--font-display); font-size: clamp(2.4rem, 5vw, 4.4rem); line-height: .9; }
-.radar-cover-label { color: var(--ink-soft); font-size: .58rem; letter-spacing: .12em; text-transform: uppercase; }
+.radar-cover.tone-neutral { background: var(--card-bg-muted); }
 
-/* --------------------------------- Ticker ---------------------------------- */
+.radar-cover img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform var(--transition);
+}
 
-.radar-ticker { flex: none; border-top: 1px solid var(--divider); background: var(--card-bg-muted); overflow-x: auto; overscroll-behavior-x: contain; }
-.radar-ticker ul { display: flex; align-items: center; gap: 1.2rem; margin: 0; padding: .4rem 1rem; list-style: none; }
-.radar-ticker li { display: flex; flex: none; align-items: baseline; gap: .35rem; color: var(--ink-muted); font-size: .68rem; white-space: nowrap; }
-.radar-ticker li.is-stale { opacity: .62; }
-.radar-ticker b { color: var(--ink-strong); font-weight: 600; }
-.radar-ticker-tag { border: 1px solid var(--divider); padding: 0 .25rem; color: var(--ink-soft); font-size: .56rem; letter-spacing: .1em; }
+.radar-lead button:hover .radar-cover img,
+.radar-featured-item button:hover .radar-cover img { transform: scale(1.018); }
+
+.radar-cover-shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 62%, color-mix(in srgb, var(--surface-dark-strong) 26%, transparent));
+  pointer-events: none;
+}
+
+.radar-cover-fallback {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: .7rem;
+}
+
+.radar-cover-grid {
+  position: absolute;
+  inset: 0;
+  opacity: .7;
+  background:
+    linear-gradient(90deg, var(--radar-grid-line) 1px, transparent 1px) 0 0 / 20% 100%,
+    linear-gradient(var(--radar-grid-line) 1px, transparent 1px) 0 0 / 100% 25%;
+}
+
+.radar-cover-fallback-mark {
+  position: relative;
+  align-self: flex-end;
+  color: color-mix(in srgb, var(--ink-strong) 48%, transparent);
+  font-family: var(--font-display);
+  font-size: clamp(2.1rem, 5cqw, 4.4rem);
+  letter-spacing: -.08em;
+  line-height: .9;
+}
+
+.radar-cover-label {
+  position: relative;
+  width: fit-content;
+  border-top: 1px solid currentColor;
+  padding-top: .22rem;
+  color: var(--radar-text-secondary);
+  font-size: .6rem;
+  font-weight: 700;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+
+.radar-lead-copy {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: .48rem;
+  padding: .9rem 1rem 1rem;
+}
+
+.radar-article-overline {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: .55rem;
+}
+
+.radar-article-source {
+  overflow: hidden;
+  color: var(--radar-text-secondary);
+  font-size: .6rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.radar-lead-title {
+  max-width: 38ch;
+  color: var(--ink-strong);
+  font-family: var(--font-display);
+  font-size: clamp(1.12rem, 2.15cqw, 1.72rem);
+  font-weight: 500;
+  letter-spacing: -.015em;
+  line-height: 1.18;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+}
+
+.radar-lead-summary {
+  display: -webkit-box;
+  max-width: 72ch;
+  overflow: hidden;
+  color: var(--radar-text-muted);
+  font-size: .7rem;
+  line-height: 1.52;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.radar-news-meta {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .3rem;
+  color: var(--radar-text-secondary);
+  font-size: .6rem;
+  line-height: 1.3;
+}
+
+.radar-read-cue {
+  position: absolute;
+  right: .95rem;
+  top: .85rem;
+  color: var(--radar-text-secondary);
+  font-size: .9rem;
+  transition: color var(--transition-fast), transform var(--transition-fast);
+}
+
+.radar-lead button:hover .radar-lead-title,
+.radar-featured-item button:hover .radar-featured-title,
+.radar-news-item button:hover .radar-news-title { color: var(--accent-strong); }
+
+.radar-lead button:hover .radar-read-cue { color: var(--accent-strong); transform: translate(2px, -2px); }
+
+.radar-featured {
+  display: grid;
+  min-width: 0;
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: .85rem;
+}
+
+.radar-featured.is-single {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.radar-featured-item button {
+  height: 100%;
+  grid-template-columns: minmax(7.8rem, .72fr) minmax(0, 1fr);
+}
+
+.radar-featured-item .radar-cover {
+  height: 100%;
+  min-height: 8.5rem;
+  aspect-ratio: auto;
+  border-right: 1px solid var(--radar-border-soft);
+}
+
+.radar-featured-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  justify-content: center;
+  gap: .38rem;
+  padding: .7rem .78rem;
+}
+
+.radar-featured-title {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--ink-strong);
+  font-size: .76rem;
+  font-weight: 650;
+  line-height: 1.34;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.radar-featured-summary {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--radar-text-muted);
+  font-size: .61rem;
+  line-height: 1.42;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.radar-latest-heading {
+  margin-top: .35rem;
+}
+
+.radar-news-list {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  margin: 0;
+  border-top: 1px solid var(--radar-border);
+  padding: 0;
+  list-style: none;
+}
+
+.radar-news-item {
+  border-bottom: 1px solid var(--radar-border-soft);
+}
+
+.radar-news-item button {
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  grid-template-columns: 2.2rem minmax(0, 1fr) minmax(7rem, .34fr) 1.2rem;
+  align-items: center;
+  gap: .7rem;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  padding: .62rem .15rem;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.radar-news-item button:hover {
+  background: color-mix(in srgb, var(--control-bg-hover) 46%, transparent);
+}
+
+.radar-news-index {
+  align-self: start;
+  padding-top: .12rem;
+  color: var(--radar-text-secondary);
+  font-family: var(--font-mono);
+  font-size: .6rem;
+}
+
+.radar-news-item-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: .2rem;
+}
+
+.radar-news-title {
+  min-width: 0;
+  color: var(--ink-main);
+  font-size: .72rem;
+  font-weight: 550;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.radar-news-item > button > .radar-news-meta {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: .12rem;
+}
+
+.radar-news-item > button > .radar-news-meta span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.radar-news-arrow {
+  color: var(--radar-text-secondary);
+  font-size: .8rem;
+  transition: color var(--transition-fast), transform var(--transition-fast);
+}
+
+.radar-news-item button:hover .radar-news-arrow { color: var(--accent-strong); transform: translate(2px, -2px); }
+
+.radar-load-more {
+  align-self: center;
+  min-width: 11rem;
+  min-height: 2.35rem;
+  border: 1px solid var(--radar-border);
+  background: transparent;
+  color: var(--ink-main);
+  padding: .5rem .85rem;
+  font: inherit;
+  font-size: .66rem;
+  cursor: pointer;
+}
+
+.radar-load-more:hover { background: var(--control-bg-hover); color: var(--ink-strong); }
+.radar-load-more:disabled { cursor: default; opacity: .5; }
+
+.radar-news-attribution {
+  max-width: 100%;
+  margin: .2rem 0 0;
+  border-top: 1px solid var(--radar-border-soft);
+  padding-top: .55rem;
+  color: var(--radar-text-secondary);
+  font-size: .6rem;
+  line-height: 1.45;
+}
+
+/* --------------------------------- Ticker --------------------------------- */
+
+.radar-ticker {
+  position: relative;
+  z-index: 4;
+  display: grid;
+  flex: none;
+  grid-template-columns: minmax(11rem, auto) minmax(0, 1fr);
+  min-height: 2.45rem;
+  border-top: 1px solid var(--radar-border);
+  background: var(--radar-surface);
+  overflow: hidden;
+}
+
+.radar-ticker-heading {
+  display: flex;
+  align-items: center;
+  gap: .45rem;
+  border-right: 1px solid var(--radar-border);
+  padding: .42rem .8rem;
+  color: var(--radar-text-muted);
+  font-size: .6rem;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.radar-ticker-pulse {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--success);
+}
+
+.radar-ticker ul {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0;
+  margin: 0;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  padding: 0;
+  list-style: none;
+  scrollbar-width: none;
+}
+
+.radar-ticker ul::-webkit-scrollbar { display: none; }
+
+.radar-ticker li {
+  display: flex;
+  flex: none;
+  align-items: baseline;
+  gap: .35rem;
+  min-height: 2.45rem;
+  border-right: 1px solid var(--radar-border-soft);
+  padding: .48rem .72rem;
+  color: var(--radar-text-muted);
+  font-size: .6rem;
+  white-space: nowrap;
+}
+
+.radar-ticker li.is-stale { opacity: .58; }
+.radar-ticker b { color: var(--ink-strong); font-size: .66rem; font-weight: 700; }
+.radar-ticker-tag { color: var(--radar-text-secondary); font-size: .6rem; font-weight: 700; letter-spacing: .08em; }
 .radar-ticker-label { color: var(--ink-main); }
-.radar-ticker-detail { color: var(--ink-soft); font-size: .6rem; }
+.radar-ticker-detail { color: var(--radar-text-secondary); font-size: .6rem; }
+.radar-ticker-variation { display: inline-flex; align-items: center; gap: .15rem; font-size: .6rem; }
 .radar-up { color: var(--success); }
-.radar-down { color: var(--danger); }
+.radar-down { color: var(--radar-danger-text); }
 
-/* --------------------------------- Estados --------------------------------- */
+/* --------------------------------- Estados -------------------------------- */
 
-.radar-inline-error { display: block; color: var(--danger); padding: .1rem 0 .4rem; font-size: .68rem; }
-.radar-error { color: var(--danger) !important; }
-.radar-state { display: flex; min-height: 7rem; flex-direction: column; align-items: flex-start; justify-content: center; gap: .5rem; border: 1px dashed var(--control-border); padding: 1rem; }
+.radar-inline-error {
+  display: block;
+  color: var(--radar-danger-text);
+  padding: .18rem 0;
+  font-size: .6rem;
+  line-height: 1.35;
+}
+
+.radar-error { color: var(--radar-danger-text) !important; }
+
+.radar-state {
+  display: grid;
+  min-height: 8.5rem;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: .8rem;
+  border: 1px solid var(--radar-border);
+  background: var(--radar-surface-soft);
+  padding: .9rem 1rem;
+}
+
+.radar-state-icon {
+  display: grid;
+  width: 2.6rem;
+  height: 2.6rem;
+  place-items: center;
+  border: 1px solid var(--radar-border);
+  color: var(--radar-text-muted);
+}
+
+.radar-state-copy { min-width: 0; }
 .radar-state h3, .radar-state p { margin: 0; }
-.radar-state h3 { color: var(--ink-strong); font-size: .88rem; }
-.radar-state p { color: var(--ink-muted); font-size: .76rem; line-height: 1.5; }
-.radar-skeleton { display: flex; flex-direction: column; gap: .55rem; padding-block: .5rem; }
-.radar-skeleton span { display: block; height: 2.1rem; border: 1px solid var(--divider); background: var(--card-bg-muted); }
+.radar-state h3 { color: var(--ink-strong); font-size: .78rem; }
+.radar-state p { max-width: 62ch; margin-top: .24rem; color: var(--radar-text-muted); font-size: .66rem; line-height: 1.48; }
 
-/* --------------------------- Seletor de localização ------------------------ */
-
-.radar-location-picker { position: absolute; inset: .25rem; z-index: 5; display: flex; flex-direction: column; gap: .7rem; border: 1px solid var(--control-border-strong); background: var(--surface-dark-strong); box-shadow: var(--shadow-md); padding: 1rem; overflow-y: auto; overflow-x: hidden; }
-.radar-location-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
-.radar-location-header h2 { margin: 0; color: var(--ink-strong); font-family: var(--font-display); font-size: 1rem; }
-.radar-location-help { margin: 0; color: var(--ink-muted); font-size: .75rem; line-height: 1.45; }
-.radar-icon-button { min-width: 2.35rem; padding: .35rem; font-size: 1.2rem; }
-.radar-location-picker label { color: var(--ink-main); font-size: .78rem; }
-.radar-location-picker input { min-height: 2.7rem; border: 1px solid var(--control-border); background: var(--field-bg); color: var(--ink-strong); padding: .65rem .75rem; font: inherit; }
-.radar-location-results { display: flex; min-height: 8rem; flex-direction: column; border: 1px solid var(--divider); }
-.radar-location-results > p { margin: auto; color: var(--ink-muted); padding: 1rem; font-size: .78rem; }
-.radar-location-results > [role="listitem"] > button { display: flex; width: 100%; flex-direction: column; gap: .25rem; border: 0; border-bottom: 1px solid var(--divider); background: transparent; color: var(--ink-main); padding: .72rem; text-align: left; cursor: pointer; }
-.radar-location-results > [role="listitem"] > button:hover { background: var(--control-bg-hover); }
-.radar-location-results > [role="listitem"] span { color: var(--ink-muted); font-size: .7rem; }
-.radar-remove-location { align-self: flex-start; color: var(--danger); }
-
-/* ---------------------------------- Drawer --------------------------------- */
-
-.radar-drawer { position: absolute; inset-block: 0; inset-inline-end: 0; z-index: 20; display: flex; width: min(600px, 92%); flex-direction: column; gap: .75rem; border-inline-start: 1px solid var(--control-border-strong); background: var(--surface-dark-strong); box-shadow: var(--shadow-md); padding: 1.25rem; overflow-y: auto; overscroll-behavior: contain; }
-.radar-drawer-header { display: flex; align-items: flex-start; justify-content: space-between; gap: .75rem; }
-.radar-drawer-header h2 { margin: 0; font-size: 1.05rem; line-height: 1.35; overflow-wrap: anywhere; }
-.radar-drawer > .radar-cover { flex: none; width: 100%; }
-.radar-subsection { display: flex; flex-direction: column; gap: .55rem; }
-.radar-subsection h3 { margin: 0; color: var(--ink-main); font-size: .78rem; }
-.radar-drawer-close, .radar-drawer-open { border: 1px solid var(--control-border); background: var(--control-bg); color: inherit; padding: .4rem .7rem; font: inherit; cursor: pointer; }
-.radar-drawer-open { align-self: flex-start; border-color: var(--control-border-strong); background: var(--control-bg-active); color: var(--ink-strong); margin-top: .25rem; }
-.radar-drawer-open:disabled { cursor: progress; opacity: .6; }
-.radar-drawer-meta, .radar-drawer-attribution, .radar-drawer-status { margin: 0; color: var(--ink-muted); font-size: .8rem; }
-.radar-drawer-summary { margin: 0; font-size: .9rem; line-height: 1.5; overflow-wrap: anywhere; }
-.radar-drawer-tags { display: flex; flex-wrap: wrap; gap: .35rem; margin: 0; padding: 0; list-style: none; }
-.radar-drawer-tags li { border: 1px solid var(--divider); padding: .1rem .42rem; font-size: .7rem; }
-.radar-drawer-related { display: flex; flex-direction: column; gap: .4rem; margin: 0; padding: 0; list-style: none; }
-.radar-drawer-related button { border: 0; background: none; color: inherit; padding: 0; text-align: start; font: inherit; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
-.radar-drawer-related span { display: block; color: var(--ink-muted); font-size: .74rem; }
-.radar-drawer :focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 2px; }
-
-/* -------------------------------- Utilitários ------------------------------ */
-
-.sr-only { position: absolute !important; width: 1px !important; height: 1px !important; padding: 0 !important; margin: -1px !important; overflow: hidden !important; clip: rect(0,0,0,0) !important; white-space: nowrap !important; border: 0 !important; }
-
-/* ------------------------------- Responsivo -------------------------------- */
-
-@media (max-width: 1100px) {
-  .radar-lead button { grid-template-columns: minmax(0, 15rem) minmax(0, 1fr); }
-  .radar-wx-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.radar-skeleton {
+  display: grid;
+  gap: .55rem;
+  min-width: 0;
 }
 
-@media (max-width: 860px) {
-  .radar-lead button { grid-template-columns: minmax(0, 1fr); }
-  .radar-featured { grid-template-columns: minmax(0, 1fr); }
+.radar-skeleton.is-weather { grid-template-columns: .8fr 1.2fr; }
+.radar-skeleton.is-news { grid-template-columns: 1.55fr .75fr; }
+.radar-skeleton-block,
+.radar-skeleton-line {
+  display: block;
+  border: 1px solid var(--radar-border-soft);
+  background: var(--card-bg-muted);
 }
 
-@media (max-width: 620px) {
-  .radar-mast { align-items: stretch; flex-direction: column; }
-  .radar-mast-actions { justify-content: stretch; }
-  .radar-mast-actions .radar-button { flex: 1; }
-  .radar-news-bar { align-items: flex-start; flex-direction: column; gap: .5rem; }
-  .radar-news-settings fieldset { right: auto; left: 0; }
-  .radar-news-item button { align-items: flex-start; flex-direction: column; gap: .2rem; }
-}
+.radar-skeleton-block.is-weather-main,
+.radar-skeleton-block.is-weather-metrics { min-height: 9.5rem; }
+.radar-skeleton-block.is-weather-hours { grid-column: 1 / -1; min-height: 6.8rem; }
+.radar-skeleton-block.is-news-lead { min-height: 22rem; }
+.radar-skeleton-block.is-news-side { min-height: 22rem; }
+.radar-skeleton-line { grid-column: 1 / -1; height: 2rem; }
+.radar-skeleton-line.is-short { width: 68%; }
 
 @media (prefers-reduced-motion: no-preference) {
-  .radar-skeleton span { animation: radar-pulse 1.5s ease-in-out infinite alternate; }
+  .radar-skeleton-block,
+  .radar-skeleton-line,
+  .radar-location-loading > span:not(.sr-only),
+  .radar-drawer-loading-block,
+  .radar-drawer-loading-line {
+    animation: radar-pulse 1.35s ease-in-out infinite alternate;
+  }
 }
 
-@keyframes radar-pulse { from { opacity: .55; } to { opacity: 1; } }
+@keyframes radar-pulse { from { opacity: .42; } to { opacity: .9; } }
 
-@media (max-width: 720px) {
-  .radar-drawer { width: 100%; border-inline-start: 0; }
+/* ------------------------------ Overlay base ------------------------------ */
+
+.radar-overlay-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+}
+
+.radar-overlay-backdrop {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: color-mix(in srgb, var(--overlay-bg) 82%, transparent);
+  padding: 0;
+  cursor: default;
+  backdrop-filter: blur(1.5px);
+}
+
+/* --------------------------- Seletor de localização ----------------------- */
+
+.radar-overlay-layer.is-modal {
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.radar-location-picker {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  width: min(38rem, 100%);
+  max-height: min(42rem, calc(100% - 1rem));
+  flex-direction: column;
+  gap: .75rem;
+  border: 1px solid var(--control-border-strong);
+  background: var(--surface-dark-strong);
+  box-shadow: var(--shadow-lg);
+  padding: 1rem;
+  overflow: hidden;
+}
+
+.radar-location-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid var(--radar-border-soft);
+  padding-bottom: .7rem;
+}
+
+.radar-location-heading {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: .65rem;
+}
+
+.radar-location-heading-icon {
+  display: grid;
+  width: 2.4rem;
+  height: 2.4rem;
+  flex: none;
+  place-items: center;
+  border: 1px solid var(--radar-border);
+  color: var(--radar-accent);
+}
+
+.radar-location-heading h2 {
+  margin: 0;
+  color: var(--ink-strong);
+  font-family: var(--font-display);
+  font-size: .94rem;
+  font-weight: 600;
+}
+
+.radar-icon-button {
+  display: inline-grid;
+  min-width: 2.35rem;
+  width: 2.35rem;
+  place-items: center;
+  padding: .3rem;
+}
+
+.radar-location-help {
+  max-width: 62ch;
+  margin: 0;
+  color: var(--radar-text-muted);
+  font-size: .65rem;
+  line-height: 1.5;
+}
+
+.radar-location-search {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: .55rem;
+  min-height: 2.75rem;
+  border: 1px solid var(--control-border-strong);
+  background: var(--field-bg);
+  color: var(--radar-text-muted);
+  padding-inline: .7rem;
+}
+
+.radar-location-search:focus-within {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: 2px;
+}
+
+.radar-location-search input {
+  width: 100%;
+  min-width: 0;
+  min-height: 2.65rem;
+  border: 0;
+  outline: 0 !important;
+  background: transparent;
+  color: var(--ink-strong);
+  padding: 0;
+  font: inherit;
+  font-size: .72rem;
+}
+
+.radar-location-search input::placeholder { color: var(--field-placeholder); }
+
+.radar-location-results {
+  min-height: 11rem;
+  max-height: 20rem;
+  border: 1px solid var(--radar-border);
+  overflow-y: auto;
+}
+
+.radar-location-results > p {
+  display: grid;
+  min-height: 10rem;
+  place-items: center;
+  margin: 0;
+  color: var(--radar-text-muted);
+  padding: 1rem;
+  font-size: .68rem;
+  text-align: center;
+}
+
+.radar-location-prompt { color: var(--radar-text-secondary) !important; }
+
+.radar-location-result-list { min-width: 0; }
+
+.radar-location-result + .radar-location-result {
+  border-top: 1px solid var(--radar-border-soft);
+}
+
+.radar-location-result > button {
+  display: grid;
+  width: 100%;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: .65rem;
+  border: 0;
+  background: transparent;
+  color: var(--ink-main);
+  padding: .62rem .7rem;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+
+.radar-location-result > button:hover { background: var(--control-bg-hover); }
+
+.radar-location-result-mark {
+  display: grid;
+  width: 1.9rem;
+  height: 1.9rem;
+  place-items: center;
+  border: 1px solid var(--radar-border-soft);
+  color: var(--radar-text-muted);
+}
+
+.radar-location-result-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: .12rem;
+}
+
+.radar-location-result-copy strong {
+  overflow: hidden;
+  color: var(--ink-strong);
+  font-size: .7rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.radar-location-result-copy small {
+  overflow: hidden;
+  color: var(--radar-text-muted);
+  font-size: .6rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.radar-location-result-arrow { color: var(--radar-text-secondary); font-size: .82rem; }
+
+.radar-location-loading {
+  display: flex;
+  min-height: 10rem;
+  flex-direction: column;
+  gap: .45rem;
+  padding: .6rem;
+}
+
+.radar-location-loading > span:not(.sr-only) {
+  height: 2.4rem;
+  border: 1px solid var(--radar-border-soft);
+  background: var(--card-bg-muted);
+}
+
+.radar-location-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .7rem;
+}
+
+.radar-remove-location {
+  margin-left: auto;
+  border-color: color-mix(in srgb, var(--danger) 34%, var(--radar-border));
+  background: transparent;
+  color: var(--radar-danger-text);
+}
+
+/* --------------------------------- Drawer --------------------------------- */
+
+.radar-overlay-layer.is-drawer {
+  justify-content: flex-end;
+}
+
+.radar-drawer {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  width: min(39rem, 92%);
+  min-width: 0;
+  flex-direction: column;
+  border-left: 1px solid var(--control-border-strong);
+  background: var(--surface-dark-strong);
+  box-shadow: var(--shadow-lg);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.radar-drawer-topbar {
+  position: sticky;
+  z-index: 2;
+  top: 0;
+  display: flex;
+  min-height: 3.2rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: .8rem;
+  border-bottom: 1px solid var(--radar-border);
+  background: color-mix(in srgb, var(--surface-dark-strong) 96%, transparent);
+  padding: .6rem .85rem;
+}
+
+.radar-drawer-context {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: .45rem;
+  color: var(--radar-text-muted);
+  font-size: .6rem;
+}
+
+.radar-drawer-context > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.radar-drawer-close { flex: none; }
+
+.radar-drawer > .radar-cover {
+  flex: none;
+  width: 100%;
+  border-bottom: 1px solid var(--radar-border);
+}
+
+.radar-drawer-body {
+  display: flex;
+  flex-direction: column;
+  gap: .85rem;
+  padding: 1rem 1.05rem;
+}
+
+.radar-drawer-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .35rem;
+  color: var(--radar-text-secondary);
+  font-size: .6rem;
+}
+
+.radar-drawer-body h2 {
+  margin: 0;
+  color: var(--ink-strong);
+  font-family: var(--font-display);
+  font-size: clamp(1.2rem, 2.4cqw, 1.75rem);
+  font-weight: 500;
+  line-height: 1.24;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+}
+
+.radar-drawer-summary {
+  margin: 0;
+  color: var(--ink-main);
+  font-size: .78rem;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+
+.radar-drawer-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .3rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.radar-drawer-tags li {
+  border: 1px solid var(--radar-border-soft);
+  background: var(--card-bg-muted);
+  padding: .2rem .42rem;
+  color: var(--radar-text-muted);
+  font-size: .6rem;
+}
+
+.radar-subsection {
+  display: flex;
+  flex-direction: column;
+  gap: .55rem;
+}
+
+.radar-drawer-related-section { margin-top: .3rem; }
+
+.radar-drawer-related {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 0;
+  border-top: 1px solid var(--radar-border-soft);
+  padding: 0;
+  list-style: none;
+}
+
+.radar-drawer-related li { border-bottom: 1px solid var(--radar-border-soft); }
+
+.radar-drawer-related button {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: .18rem;
+  border: 0;
+  background: none;
+  color: var(--ink-main);
+  padding: .55rem 0;
+  text-align: start;
+  font: inherit;
+  cursor: pointer;
+}
+
+.radar-drawer-related button:hover > span { color: var(--accent-strong); }
+.radar-drawer-related button > span { font-size: .68rem; line-height: 1.35; }
+.radar-drawer-related small { color: var(--radar-text-secondary); font-size: .6rem; }
+
+.radar-drawer-footer {
+  display: flex;
+  flex-direction: column;
+  gap: .6rem;
+  margin-top: auto;
+  border-top: 1px solid var(--radar-border);
+  padding: .85rem 1.05rem 1rem;
+}
+
+.radar-drawer-attribution,
+.radar-drawer-status {
+  margin: 0;
+  color: var(--radar-text-secondary);
+  font-size: .6rem;
+  line-height: 1.45;
+}
+
+.radar-drawer-open {
+  align-self: flex-start;
+  min-height: 2.5rem;
+  border-color: var(--control-border-strong);
+  background: var(--control-bg-active);
+  color: var(--ink-strong);
+}
+
+.radar-drawer-open:disabled { cursor: progress; opacity: .55; }
+
+.radar-drawer-loading,
+.radar-drawer-empty {
+  display: flex;
+  min-height: 18rem;
+  flex-direction: column;
+  gap: .6rem;
+  padding: 1rem;
+}
+
+.radar-drawer-loading-block {
+  min-height: 13rem;
+  border: 1px solid var(--radar-border-soft);
+  background: var(--card-bg-muted);
+}
+
+.radar-drawer-loading-line {
+  height: 2rem;
+  border: 1px solid var(--radar-border-soft);
+  background: var(--card-bg-muted);
+}
+
+.radar-drawer-loading-line.is-short { width: 70%; }
+.radar-drawer-loading p,
+.radar-drawer-empty p { margin: 0; color: var(--radar-text-muted); font-size: .68rem; }
+.radar-drawer-empty { justify-content: center; align-items: flex-start; }
+
+/* -------------------------------- Utilitário ------------------------------ */
+
+.sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+/* ---------------------------- Container queries --------------------------- */
+
+@container radar (max-width: 74rem) {
+  .radar-mast {
+    grid-template-columns: minmax(11rem, 1fr) auto;
+  }
+
+  .radar-mast-context {
+    grid-column: 1 / 2;
+    grid-row: 2;
+    justify-content: flex-start;
+  }
+
+  .radar-mast-actions {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+  }
+
+  .radar-sync-copy { align-items: flex-start; text-align: left; }
+  .radar-location-chip { max-width: min(46cqw, 24rem); }
+
+  .radar-weather-overview {
+    grid-template-columns: minmax(17rem, .8fr) minmax(0, 1.2fr);
+  }
+
+  .radar-weather-metrics { grid-template-columns: repeat(2, minmax(7rem, 1fr)); }
+  .radar-metric:nth-child(n) { border-right: 1px solid var(--radar-border-soft); border-bottom: 1px solid var(--radar-border-soft); }
+  .radar-metric:nth-child(2n) { border-right: 0; }
+  .radar-metric:nth-last-child(-n + 2) { border-bottom: 0; }
+
+  .radar-editorial-grid { grid-template-columns: minmax(0, 1.35fr) minmax(15.5rem, .8fr); }
+  .radar-featured-item button { grid-template-columns: minmax(6.5rem, .68fr) minmax(0, 1fr); }
+  .radar-featured-summary { display: none; }
+}
+
+@container radar (max-width: 56rem) {
+  .radar-content-inner { padding-inline: .85rem; }
+
+  .radar-weather-overview { grid-template-columns: minmax(0, 1fr); }
+  .radar-weather-hero { border-right: 0; border-bottom: 1px solid var(--radar-border); }
+  .radar-weather-metrics { grid-template-columns: repeat(4, minmax(5.8rem, 1fr)); }
+  .radar-metric:nth-child(n) { border-right: 1px solid var(--radar-border-soft); border-bottom: 1px solid var(--radar-border-soft); }
+  .radar-metric:nth-child(4n) { border-right: 0; }
+  .radar-metric:nth-last-child(-n + 4) { border-bottom: 0; }
+
+  .radar-editorial-grid { grid-template-columns: minmax(0, 1fr); }
+  .radar-featured { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: auto; }
+  .radar-featured-item button { grid-template-columns: minmax(7rem, .65fr) minmax(0, 1fr); }
+
+  .radar-news-item button { grid-template-columns: 2rem minmax(0, 1fr) minmax(6.5rem, .3fr) 1rem; }
+}
+
+@container radar (max-width: 42rem) {
+  .radar-mast {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .55rem .8rem;
+  }
+
+  .radar-mast-identity { flex: 1 1 14rem; }
+  .radar-mast-context { order: 3; width: 100%; justify-content: space-between; }
+  .radar-mast-actions { margin-left: auto; }
+  .radar-mast-subtitle { display: none; }
+  .radar-sync-copy { min-width: 0; max-width: 48%; }
+  .radar-location-chip { max-width: 50%; }
+  .radar-refresh-button { min-width: auto; }
+  .radar-refresh-button span { display: none; }
+
+  .radar-section-header { align-items: flex-start; }
+  .radar-attribution span { display: none; }
+  .radar-attribution { width: 2rem; justify-content: flex-end; }
+
+  .radar-weather-temperature > strong { font-size: clamp(2.6rem, 11cqw, 4rem); }
+  .radar-weather-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .radar-metric:nth-child(n) { border-right: 1px solid var(--radar-border-soft); border-bottom: 1px solid var(--radar-border-soft); }
+  .radar-metric:nth-child(2n) { border-right: 0; }
+  .radar-metric:nth-last-child(-n + 2) { border-bottom: 0; }
+
+  .radar-alert { grid-template-columns: auto minmax(0, 1fr); }
+  .radar-alert-estimate { grid-column: 2; }
+
+  .radar-news-toolbar { align-items: flex-start; }
+  .radar-settings-menu > summary span { display: none; }
+  .radar-settings-popover { right: 0; width: calc(100cqw - 1.7rem); }
+  .radar-preference-grid { grid-template-columns: minmax(0, 1fr); }
+  .radar-preference-grid label:last-child { grid-column: auto; }
+
+  .radar-featured { grid-template-columns: minmax(0, 1fr); }
+  .radar-featured-item button { grid-template-columns: 7.3rem minmax(0, 1fr); }
+
+  .radar-news-item button {
+    grid-template-columns: 1.8rem minmax(0, 1fr) 1rem;
+    grid-template-areas:
+      "index copy arrow"
+      "index meta arrow";
+    align-items: start;
+    gap: .28rem .5rem;
+  }
+
+  .radar-news-index { grid-area: index; }
+  .radar-news-item-copy { grid-area: copy; }
+  .radar-news-item > button > .radar-news-meta { grid-area: meta; flex-direction: row; gap: .35rem; }
+  .radar-news-arrow { grid-area: arrow; align-self: center; }
+
+  .radar-ticker { grid-template-columns: minmax(0, 1fr); }
+  .radar-ticker-heading { display: none; }
+
+  .radar-state { grid-template-columns: auto minmax(0, 1fr); }
+  .radar-state > .radar-button { grid-column: 1 / -1; justify-self: start; }
+
+  .radar-daily-list li { grid-template-columns: 3.2rem 2rem minmax(0, 1fr) auto; }
+  .radar-daily-rain { display: none; }
+
+  .radar-drawer { width: 100%; border-left: 0; }
+}
+
+@container radar (max-width: 31rem) {
+  .radar-content-inner { padding-inline: .65rem; }
+  .radar-signal-mark { display: none; }
+  .radar-status-pill { display: none; }
+  .radar-mast-context { align-items: flex-start; flex-direction: column; }
+  .radar-location-chip { max-width: 100%; width: 100%; }
+  .radar-sync-copy { max-width: 100%; align-items: flex-start; text-align: left; }
+
+  .radar-weather-hero {
+    grid-template-columns: auto minmax(0, 1fr);
+    padding-inline: .75rem;
+  }
+
+  .radar-weather-visual { width: 4.5rem; height: 4.5rem; }
+  .radar-weather-visual .radar-weather-glyph { width: 68px; height: 68px; }
+  .radar-weather-range { flex-wrap: wrap; gap: .4rem .7rem; }
+
+  .radar-category-options { grid-template-columns: minmax(0, 1fr); }
+  .radar-settings-popover { width: calc(100cqw - 1.3rem); }
+
+  .radar-lead-title { font-size: 1.05rem; }
+  .radar-featured-item button { grid-template-columns: 6rem minmax(0, 1fr); }
+  .radar-featured-item .radar-cover { min-height: 7rem; }
+  .radar-featured-summary { display: none; }
+
+  .radar-location-picker { padding: .8rem; }
+  .radar-location-heading-icon { display: none; }
+}
+
+@media (max-height: 780px) and (min-width: 981px) {
+  .radar-mast { min-height: 3.75rem; padding-block: .5rem; }
+  .radar-signal-mark { width: 1.8rem; height: 1.8rem; }
+  .radar-content-inner { gap: 1.4rem; padding-block: .75rem 1.7rem; }
+  .radar-weather-hero { min-height: 8.4rem; }
+  .radar-hour { min-height: 6.4rem; }
+  .radar-ticker, .radar-ticker li { min-height: 2.2rem; }
 }

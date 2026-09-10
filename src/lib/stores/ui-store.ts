@@ -5,7 +5,9 @@ import type { PanelTab } from '../types/app.js';
 
 export const toast = writable(null);
 export const modal = writable(null);
-export const settingsModal = writable(null);
+export type SettingsSection = 'appearance' | 'assistant' | 'media' | 'updates' | 'system' | 'startup' | 'data';
+
+export const settingsModal = writable<{ section: SettingsSection } | null>(null);
 export const panelTab = writable<PanelTab>('execution');
 export const opencodeSessionActive = writable(false);
 export const musicSettingsRevision = writable(0);
@@ -89,8 +91,8 @@ export function showConfirmModal(options) {
   });
 }
 
-export function showSettingsModal() {
-  settingsModal.set(true);
+export function showSettingsModal(section: SettingsSection = 'appearance') {
+  settingsModal.set({ section });
 }
 
 export function hideSettingsModal() {

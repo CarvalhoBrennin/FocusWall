@@ -156,6 +156,19 @@ export type MessageKey =
   | 'music.queueLabel'
   | 'music.refreshPlaylists'
   | 'music.refreshTracks'
+  | 'music.reconnectAction'
+  | 'music.reconnectBody'
+  | 'music.reconnectBrowser'
+  | 'music.reconnectEyebrow'
+  | 'music.reconnectFailed'
+  | 'music.reconnectReasonBody'
+  | 'music.reconnectReasonTitle'
+  | 'music.reconnectSettings'
+  | 'music.reconnectStatus'
+  | 'music.reconnectStepAuthorize'
+  | 'music.reconnectStepBrowser'
+  | 'music.reconnectStepReturn'
+  | 'music.reconnectTitle'
   | 'music.repeatQueue'
   | 'music.retry'
   | 'music.searchEmpty'
@@ -716,6 +729,19 @@ const messages: Record<LocaleId, Record<MessageKey, string>> = {
     'music.queueLabel': 'Fila de reprodução',
     'music.refreshPlaylists': 'Atualizar playlists',
     'music.refreshTracks': 'Atualizar faixas',
+    'music.reconnectAction': 'Reconectar YouTube',
+    'music.reconnectBody': 'A autorização salva não é mais válida. Isso pode acontecer quando ela expira ou é revogada. Sua configuração OAuth continua no FocusWall.',
+    'music.reconnectBrowser': 'Aguardando a autorização na janela do navegador…',
+    'music.reconnectEyebrow': 'AUTORIZAÇÃO NECESSÁRIA',
+    'music.reconnectFailed': 'Não foi possível concluir a reconexão. Verifique a janela do navegador e tente novamente.',
+    'music.reconnectReasonBody': 'O FocusWall deixa de reutilizar a autorização inválida; o Client ID continua salvo e o Client Secret permanece protegido no armazenamento local.',
+    'music.reconnectReasonTitle': 'Sua configuração OAuth foi preservada',
+    'music.reconnectSettings': 'Configurações OAuth',
+    'music.reconnectStatus': 'RECONEXÃO NECESSÁRIA',
+    'music.reconnectStepAuthorize': 'Reconecte sua conta',
+    'music.reconnectStepBrowser': 'Conclua a autorização no navegador',
+    'music.reconnectStepReturn': 'Volte ao FocusWall; a biblioteca será recarregada',
+    'music.reconnectTitle': 'Sua autorização do YouTube precisa ser renovada.',
     'music.repeatQueue': 'Repetir fila',
     'music.retry': 'Tentar novamente',
     'music.searchEmpty': 'Nenhum resultado',
@@ -1278,6 +1304,19 @@ const messages: Record<LocaleId, Record<MessageKey, string>> = {
     'music.queueLabel': 'Playback queue',
     'music.refreshPlaylists': 'Refresh playlists',
     'music.refreshTracks': 'Refresh tracks',
+    'music.reconnectAction': 'Reconnect YouTube',
+    'music.reconnectBody': 'The saved authorization is no longer valid. This can happen when it expires or is revoked. Your OAuth configuration is still stored in FocusWall.',
+    'music.reconnectBrowser': 'Waiting for authorization in the browser window…',
+    'music.reconnectEyebrow': 'AUTHORIZATION REQUIRED',
+    'music.reconnectFailed': 'Could not complete the reconnection. Check the browser window and try again.',
+    'music.reconnectReasonBody': 'FocusWall stops reusing the invalid authorization; the Client ID stays stored and the Client Secret remains protected in local storage.',
+    'music.reconnectReasonTitle': 'Your OAuth configuration was preserved',
+    'music.reconnectSettings': 'OAuth settings',
+    'music.reconnectStatus': 'RECONNECTION REQUIRED',
+    'music.reconnectStepAuthorize': 'Reconnect your account',
+    'music.reconnectStepBrowser': 'Complete authorization in the browser',
+    'music.reconnectStepReturn': 'Return to FocusWall; the library will reload',
+    'music.reconnectTitle': 'Your YouTube authorization needs to be renewed.',
     'music.repeatQueue': 'Repeat queue',
     'music.retry': 'Try again',
     'music.searchEmpty': 'No results',

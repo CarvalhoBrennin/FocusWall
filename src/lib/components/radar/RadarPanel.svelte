@@ -59,7 +59,7 @@
   });
 </script>
 
-<div class="radar-panel" aria-label={$t('radar.panelLabel')}>
+<div class="radar-panel" role="region" aria-label={$t('radar.panelLabel')}>
   <div class="radar-shell" inert={overlayOpen} aria-hidden={overlayOpen ? 'true' : undefined}>
     <RadarMasthead
       phase={$radarPhase}
@@ -69,21 +69,23 @@
       {request}
     />
 
-    <!-- Composição editorial contínua: um scroll só, do clima ao fim da lista. -->
+    <!-- Um único scroll de leitura; cabeçalho e ticker permanecem estáveis. -->
     <div class="radar-content">
-      <RadarWeatherStrip
-        section={$radarSnapshot?.weather ?? null}
-        loading={$radarPhase === 'loading'}
-        hasLocation={Boolean(request.location)}
-        onchoose={() => radarLocationPickerOpen.set(true)}
-      />
-      <RadarNewsFeed
-        section={$radarSnapshot?.news ?? null}
-        warnings={$radarSnapshot?.warnings ?? []}
-        loading={$radarPhase === 'loading'}
-        refreshing={$radarPhase === 'refreshing'}
-        categories={request.categories}
-      />
+      <div class="radar-content-inner">
+        <RadarWeatherStrip
+          section={$radarSnapshot?.weather ?? null}
+          loading={$radarPhase === 'loading'}
+          hasLocation={Boolean(request.location)}
+          onchoose={() => radarLocationPickerOpen.set(true)}
+        />
+        <RadarNewsFeed
+          section={$radarSnapshot?.news ?? null}
+          warnings={$radarSnapshot?.warnings ?? []}
+          loading={$radarPhase === 'loading'}
+          refreshing={$radarPhase === 'refreshing'}
+          categories={request.categories}
+        />
+      </div>
     </div>
 
     <RadarTicker section={$radarSnapshot?.ticker ?? null} />

@@ -34,6 +34,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Música — YouTube integrado
 
+- Nova tela de recuperação para autorização YouTube expirada/revogada (`invalid_grant`), substituindo o toast com erro OAuth bruto por reconexão orientada e acesso direto às configurações.
+- Refresh token rejeitado, access token em memória e caches de Música são invalidados de forma consistente; respostas assíncronas antigas não podem restaurar a biblioteca da sessão inválida.
+- Erros de refresh OAuth deixam de expor o corpo bruto retornado pelo Google na interface; `invalid_grant` é propagado internamente por um código estável e tipado no frontend.
 - Aba **Mídia** substituída visualmente por **Música**, preservando o identificador interno `media` para compatibilidade de navegação.
 - Biblioteca de playlists próprias via YouTube Data API v3 (`playlists.list(mine=true)` + paginação).
 - Lista de faixas via `playlistItems.list` e reprodução no YouTube IFrame Player API.
@@ -43,7 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CSP restrita aos hosts necessários do YouTube/thumbnails.
 - Identificação do player no WebView2 via `Referer` restrito aos hosts do YouTube, com tratamento explícito do erro 153.
 - Reprodução é pausada ao sair da aba Música para evitar player invisível em background.
-- Documentação: `docs/PLAN-YOUTUBE-MUSIC.md` e `docs/YOUTUBE-MUSIC-SETUP.md`.
+- Documentação: `docs/PLAN-YOUTUBE-MUSIC.md`, `docs/YOUTUBE-MUSIC-SETUP.md` e `docs/YOUTUBE-MUSIC-AUTH-RECOVERY.md`.
 
 ### Radar — revisão de segurança, concorrência e confiabilidade
 

@@ -15,7 +15,7 @@
   });
 </script>
 
-<article class="radar-featured-item">
+<article class={`radar-featured-item category-${article.category}`}>
   <button
     type="button"
     aria-label={`${$t('radar.openArticle')}: ${article.title}`}
@@ -23,12 +23,10 @@
   >
     <RadarArticleCover image={article.image} category={article.category} variant="featured" />
     <span class="radar-featured-copy">
+      <span class="radar-kicker">{$t(`radar.category.${article.category}` as MessageKey)}</span>
       <span class="radar-featured-title">{article.title}</span>
-      <span class="radar-news-meta">
-        {article.sourceName}
-        <span aria-hidden="true">·</span>
-        {publishedLabel}
-      </span>
+      {#if article.summary}<span class="radar-featured-summary">{article.summary}</span>{/if}
+      <span class="radar-news-meta"><span>{article.sourceName}</span><span aria-hidden="true">•</span><span>{publishedLabel}</span></span>
     </span>
   </button>
 </article>

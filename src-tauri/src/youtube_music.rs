@@ -32,6 +32,7 @@ const YOUTUBE_API_ROOT: &str = "https://www.googleapis.com/youtube/v3";
 const MAX_API_PAGES: usize = 200;
 const LIBRARY_CACHE_TTL: Duration = Duration::from_secs(45);
 const AUTH_TIMEOUT: Duration = Duration::from_secs(180);
+const AUTH_RECONNECT_REQUIRED_ERROR: &str = "FOCUSWALL_YOUTUBE_AUTH_RECONNECT_REQUIRED";
 
 pub struct MusicRuntime {
     token: StdMutex<Option<AccessToken>>,
@@ -133,6 +134,12 @@ struct OAuthTokenResponse {
 struct RefreshTokenResponse {
     access_token: String,
     expires_in: u64,
+}
+
+#[derive(Debug, Deserialize, Default)]
+struct OAuthErrorResponse {
+    #[serde(default)]
+    error: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -535,6 +542,32 @@ fn truncate_error_body(value: &str) -> String {
     compact.chars().take(400).collect()
 }
 
+fn parse_oauth_error_response(value: &str) -> Option<OAuthErrorResponse> {
+    serde_json::from_str(value).ok()
+}
+
+fn requires_auth_reconnect(error: Option<&OAuthErrorResponse>) -> bool {
+    error.is_some_and(|error| error.error == "invalid_grant")
+}
+
+async fn invalidate_auth_session(app: &AppHandle, runtime: &MusicRuntime) {
+    if let Err(error) = clear_refresh_token(app) {
+        warn!("Could not remove rejected YouTube refresh token: {error}");
+    }
+
+    if let Ok(mut token) = runtime.token.lock() {
+        *token = None;
+    } else {
+        warn!("Could not clear in-memory YouTube access token after authorization rejection.");
+    }
+
+    let mut playlists_cache = runtime.playlists_cache.lock().await;
+    *playlists_cache = None;
+    drop(playlists_cache);
+
+    runtime.tracks_cache.lock().await.clear();
+}
+
 async fn refresh_access_token(
     app: &AppHandle,
     runtime: &MusicRuntime,
@@ -581,13 +614,28 @@ async fn refresh_access_token(
     if !response.status().is_success() {
         let status = response.status();
         let body = response.text().await.unwrap_or_default();
-        if matches!(status, StatusCode::BAD_REQUEST | StatusCode::UNAUTHORIZED) {
-            let _ = clear_refresh_token(app);
+        let oauth_error = parse_oauth_error_response(&body);
+
+        if requires_auth_reconnect(oauth_error.as_ref()) {
+            invalidate_auth_session(app, runtime).await;
+            warn!(
+                "YouTube OAuth refresh token was rejected with invalid_grant; local authorization was invalidated."
+            );
+            return Err(AUTH_RECONNECT_REQUIRED_ERROR.into());
         }
-        return Err(format!(
-            "Não foi possível renovar a autorização do YouTube ({status}): {}",
-            truncate_error_body(&body)
-        ));
+
+        let error_code = oauth_error
+            .as_ref()
+            .map(|error| error.error.as_str())
+            .filter(|value| !value.is_empty())
+            .unwrap_or("unknown");
+        warn!(
+            "YouTube OAuth refresh failed: status={status}, error_code={error_code}."
+        );
+        return Err(
+            "Não foi possível renovar a autorização do YouTube. Verifique as credenciais OAuth nas configurações e tente novamente."
+                .into(),
+        );
     }
 
     let token = response
@@ -1198,5 +1246,23 @@ mod tests {
         let payload = serde_json::to_string(&stored).unwrap();
         assert!(!payload.contains("\"clientSecret\":"));
         assert!(payload.contains("\"clientSecretProtected\":\"protected-value\""));
+    }
+
+    #[test]
+    fn classifies_invalid_grant_as_reconnect_required() {
+        let payload = r#"{"error":"invalid_grant","error_description":"Token has been expired or revoked."}"#;
+        let error = parse_oauth_error_response(payload).unwrap();
+        assert_eq!(error.error, "invalid_grant");
+        assert!(requires_auth_reconnect(Some(&error)));
+    }
+
+    #[test]
+    fn does_not_classify_other_or_malformed_oauth_errors_as_reconnect_required() {
+        let invalid_client =
+            parse_oauth_error_response(r#"{"error":"invalid_client"}"#).unwrap();
+        assert!(!requires_auth_reconnect(Some(&invalid_client)));
+        assert!(!requires_auth_reconnect(
+            parse_oauth_error_response("not-json").as_ref()
+        ));
     }
 }

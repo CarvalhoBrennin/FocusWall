@@ -7,6 +7,8 @@
   import RadarHourlyList from './RadarHourlyList.svelte';
   import RadarState from './RadarState.svelte';
   import RadarSkeleton from './RadarSkeleton.svelte';
+  import RadarIcon from './RadarIcon.svelte';
+  import RadarWeatherGlyph from './RadarWeatherGlyph.svelte';
 
   let { section, loading = false, hasLocation = false, onchoose = () => {} } = $props<{
     section: RadarSection<RadarWeather> | null;
@@ -17,7 +19,6 @@
 
   const metric = (value: number | null | undefined, suffix: string) =>
     value == null ? '—' : `${Math.round(value)}${suffix}`;
-  /** `sunriseLocal`/`sunsetLocal` chegam como hora local ISO; só a hora importa. */
   const clock = (value: string | null | undefined) =>
     (value == null ? null : /T(\d{2}:\d{2})/.exec(value)?.[1]) ?? '—';
 
@@ -27,7 +28,6 @@
   async function openAttribution() {
     attributionError = false;
     try {
-      // A URL de atribuição é resolvida no backend a partir do ID do provider.
       await openRadarAttribution(weather?.providerId ?? 'open-meteo');
     } catch {
       attributionError = true;
@@ -35,77 +35,106 @@
   }
 </script>
 
-<section class="radar-wx" aria-labelledby="radar-weather-title">
-  <h2 id="radar-weather-title" class="sr-only">
-    {weather ? formatRadarLocationLabel(weather.location) : $t('radar.weather')}
-  </h2>
+<section class="radar-weather" aria-labelledby="radar-weather-title">
+  <div class="radar-section-header radar-weather-header">
+    <div class="radar-section-heading">
+      <span class="radar-section-index" aria-hidden="true">01</span>
+      <div>
+        <span class="radar-section-eyebrow">{$t('radar.weather')}</span>
+        <h2 id="radar-weather-title">
+          {weather ? formatRadarLocationLabel(weather.location) : $t('radar.weather')}
+        </h2>
+      </div>
+    </div>
+    <button class="radar-attribution" type="button" onclick={openAttribution}>
+      <span>{$t('radar.attributionWeather')}</span>
+      <RadarIcon name="external" size={13} />
+    </button>
+  </div>
 
   {#if loading && !weather}
-    <RadarSkeleton />
+    <RadarSkeleton variant="weather" />
   {:else if !hasLocation}
     <RadarState
       title={$t('radar.locationRequiredTitle')}
       body={$t('radar.locationRequiredBody')}
       actionLabel={$t('radar.changeLocation')}
       onaction={onchoose}
+      icon="location"
     />
   {:else if !weather}
     <RadarState title={$t('radar.weatherUnavailable')} />
   {:else}
-    <div class="radar-wx-main">
-      <div class="radar-wx-now">
-        <strong class="radar-num">{Math.round(weather.current.temperatureCelsius)}°</strong>
-        <div>
-          <em>{$t(weatherCodeToMessageKey(weather.current.weatherCode) as MessageKey)}</em>
-          <span class="radar-num">
-            {$t('radar.feelsLike')} {metric(weather.current.apparentTemperatureCelsius, '°')}
-            <span aria-hidden="true">·</span>
-            {metric(weather.today.minimumCelsius, '°')} / {metric(weather.today.maximumCelsius, '°')}
-          </span>
-          {#if section?.state === 'stale'}<span class="radar-badge">{$t('radar.stale')}</span>{/if}
+    <div class="radar-weather-overview">
+      <div class="radar-weather-hero">
+        <div class="radar-weather-visual">
+          <RadarWeatherGlyph code={weather.current.weatherCode} size={86} />
         </div>
+        <div class="radar-weather-temperature">
+          <strong class="radar-num">{Math.round(weather.current.temperatureCelsius)}<sup>°</sup></strong>
+          <div class="radar-weather-condition">
+            <span>{$t(weatherCodeToMessageKey(weather.current.weatherCode) as MessageKey)}</span>
+            <small class="radar-num">
+              {$t('radar.feelsLike')} {metric(weather.current.apparentTemperatureCelsius, '°')}
+            </small>
+          </div>
+        </div>
+        <div class="radar-weather-range">
+          <span><small>{$t('radar.minimum')}</small><b class="radar-num">{metric(weather.today.minimumCelsius, '°')}</b></span>
+          <span><small>{$t('radar.maximum')}</small><b class="radar-num">{metric(weather.today.maximumCelsius, '°')}</b></span>
+        </div>
+        {#if section?.state === 'stale'}<span class="radar-badge">{$t('radar.stale')}</span>{/if}
       </div>
 
-      <dl class="radar-wx-metrics">
-        <div><dt>{$t('radar.humidity')}</dt><dd class="radar-num">{metric(weather.current.humidityPercent, '%')}</dd></div>
-        <div><dt>{$t('radar.precipitation')}</dt><dd class="radar-num">{metric(weather.current.precipitationProbabilityPercent, '%')}</dd></div>
-        <div><dt>{$t('radar.wind')}</dt><dd class="radar-num">{metric(weather.current.windSpeedKmh, ' km/h')}</dd></div>
-        <div><dt>{$t('radar.gusts')}</dt><dd class="radar-num">{metric(weather.current.windGustsKmh, ' km/h')}</dd></div>
-        <div><dt>{$t('radar.uvIndex')}</dt><dd class="radar-num">{metric(weather.today.uvIndexMax, '')}</dd></div>
-        <div><dt>{$t('radar.pressure')}</dt><dd class="radar-num">{metric(weather.current.surfacePressureHpa, ' hPa')}</dd></div>
-        <div><dt>{$t('radar.sunrise')}</dt><dd class="radar-num">{clock(weather.today.sunriseLocal)}</dd></div>
-        <div><dt>{$t('radar.sunset')}</dt><dd class="radar-num">{clock(weather.today.sunsetLocal)}</dd></div>
+      <dl class="radar-weather-metrics">
+        <div class="radar-metric"><dt><RadarIcon name="humidity" size={17} /><span>{$t('radar.humidity')}</span></dt><dd class="radar-num">{metric(weather.current.humidityPercent, '%')}</dd></div>
+        <div class="radar-metric"><dt><RadarIcon name="rain" size={17} /><span>{$t('radar.precipitation')}</span></dt><dd class="radar-num">{metric(weather.current.precipitationProbabilityPercent, '%')}</dd></div>
+        <div class="radar-metric"><dt><RadarIcon name="wind" size={17} /><span>{$t('radar.wind')}</span></dt><dd class="radar-num">{metric(weather.current.windSpeedKmh, ' km/h')}</dd></div>
+        <div class="radar-metric"><dt><RadarIcon name="gust" size={17} /><span>{$t('radar.gusts')}</span></dt><dd class="radar-num">{metric(weather.current.windGustsKmh, ' km/h')}</dd></div>
+        <div class="radar-metric"><dt><RadarIcon name="uv" size={17} /><span>{$t('radar.uvIndex')}</span></dt><dd class="radar-num">{metric(weather.today.uvIndexMax, '')}</dd></div>
+        <div class="radar-metric"><dt><RadarIcon name="pressure" size={17} /><span>{$t('radar.pressure')}</span></dt><dd class="radar-num">{metric(weather.current.surfacePressureHpa, ' hPa')}</dd></div>
+        <div class="radar-metric"><dt><RadarIcon name="sunrise" size={17} /><span>{$t('radar.sunrise')}</span></dt><dd class="radar-num">{clock(weather.today.sunriseLocal)}</dd></div>
+        <div class="radar-metric"><dt><RadarIcon name="sunset" size={17} /><span>{$t('radar.sunset')}</span></dt><dd class="radar-num">{clock(weather.today.sunsetLocal)}</dd></div>
       </dl>
-
-      <RadarHourlyList hours={weather.hourly} />
     </div>
 
     {#if weather.alerts.length}
-      <ul class="radar-alert-list">
+      <ul class="radar-alert-list" aria-label={$t('radar.alerts')}>
         {#each weather.alerts as alert (alert.id)}
           <li class={`radar-alert is-${alert.severity}`}>
-            <span>
-              {$t(`radar.alert.${alert.kind}` as MessageKey)} · {alert.measuredValue}
-              {#if alert.windowLocal} · {alert.windowLocal}{/if}
+            <span class="radar-alert-marker" aria-hidden="true"></span>
+            <span class="radar-alert-copy">
+              <strong>{$t(`radar.alert.${alert.kind}` as MessageKey)}</strong>
+              <small>{alert.measuredValue}{#if alert.windowLocal} · {alert.windowLocal}{/if}</small>
             </span>
-            <!-- Rótulo obrigatório: o Radar não emite alerta oficial. -->
             <span class="radar-alert-estimate">{$t('radar.estimateBadge')}</span>
           </li>
         {/each}
       </ul>
     {/if}
 
+    <div class="radar-hourly-section">
+      <div class="radar-subsection-heading">
+        <span>{$t('radar.nextHours')}</span>
+        <span class="radar-subsection-line" aria-hidden="true"></span>
+      </div>
+      <RadarHourlyList hours={weather.hourly} />
+    </div>
+
     {#if weather.daily.length > 1}
-      <details class="radar-wx-days">
-        <summary>{$t('radar.sevenDays')}</summary>
+      <details class="radar-daily-forecast">
+        <summary>
+          <span>{$t('radar.sevenDays')}</span>
+          <RadarIcon name="chevron" size={14} />
+        </summary>
         <ul class="radar-daily-list">
           {#each weather.daily as day (day.date)}
             <li>
               <span class="radar-daily-date radar-num">{day.date.slice(8, 10)}/{day.date.slice(5, 7)}</span>
+              <RadarWeatherGlyph code={day.weatherCode} size={30} />
               <span class="radar-daily-code">{$t(weatherCodeToMessageKey(day.weatherCode) as MessageKey)}</span>
-              <span class="radar-daily-range radar-num">
-                {Math.round(day.minimumCelsius)}° / {Math.round(day.maximumCelsius)}°
-              </span>
+              <span class="radar-daily-rain radar-num">{metric(day.precipitationProbabilityPercent, '%')}</span>
+              <span class="radar-daily-range radar-num">{Math.round(day.minimumCelsius)}° <b>{Math.round(day.maximumCelsius)}°</b></span>
             </li>
           {/each}
         </ul>
@@ -113,8 +142,5 @@
     {/if}
   {/if}
 
-  <button class="radar-attribution" type="button" onclick={openAttribution}>
-    {$t('radar.attributionWeather')} ↗
-  </button>
   {#if attributionError}<span class="radar-inline-error" role="status">{$t('radar.openArticleError')}</span>{/if}
 </section>

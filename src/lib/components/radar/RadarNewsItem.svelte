@@ -5,7 +5,7 @@
   import { describeRadarRelativeTime } from '../../utils/radar.js';
   import { openRadarArticlePreview } from '../../stores/radar-store.js';
 
-  let { article } = $props<{ article: RadarArticleSummary }>();
+  let { article, index = 1 } = $props<{ article: RadarArticleSummary; index?: number }>();
 
   let publishedLabel = $derived.by(() => {
     const relative = describeRadarRelativeTime(article.publishedAt);
@@ -14,21 +14,18 @@
   });
 </script>
 
-<li class="radar-news-item">
-  <!--
-    Linha compacta: o resumo é privilégio da manchete e dos destaques. Aqui a
-    densidade vale mais — o texto completo está a um clique, no drawer.
-  -->
+<li class={`radar-news-item category-${article.category}`}>
   <button
     type="button"
     aria-label={`${$t('radar.openArticle')}: ${article.title}`}
     onclick={() => openRadarArticlePreview(article.id)}
   >
-    <span class="radar-news-title">{article.title}</span>
-    <span class="radar-news-meta">
-      {article.sourceName}
-      <span aria-hidden="true">·</span>
-      {publishedLabel}
+    <span class="radar-news-index radar-num" aria-hidden="true">{String(index).padStart(2, '0')}</span>
+    <span class="radar-news-item-copy">
+      <span class="radar-kicker">{$t(`radar.category.${article.category}` as MessageKey)}</span>
+      <span class="radar-news-title">{article.title}</span>
     </span>
+    <span class="radar-news-meta"><span>{article.sourceName}</span><span>{publishedLabel}</span></span>
+    <span class="radar-news-arrow" aria-hidden="true">↗</span>
   </button>
 </li>

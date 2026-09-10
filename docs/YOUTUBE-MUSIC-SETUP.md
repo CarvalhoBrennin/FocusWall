@@ -32,6 +32,12 @@ O FocusWall usa PKCE e não trata o Client Secret de um aplicativo Desktop como 
 
 Para desconectar apenas este computador, use **Sair** na aba Música.
 
+## Autorização expirada ou revogada
+
+Se o Google rejeitar o refresh token com `invalid_grant`, o FocusWall descarta a autorização inválida e mostra uma tela dedicada de reconexão. O **Client ID** e o **Client Secret** permanecem salvos; normalmente basta clicar em **Reconectar YouTube** e concluir novamente a autorização no navegador.
+
+Esse fluxo também cobre a expiração periódica de autorizações em projetos OAuth configurados como **Testing**. Se a reconexão falhar por configuração da credencial, use **Configurações OAuth** na própria tela de recuperação.
+
 ## Player incorporado no Windows
 
 O FocusWall configura o WebView2 para identificar o aplicativo nas requisições do player oficial do YouTube. O WebView2 preserva o `Referer` real quando ele existe (inclusive no servidor de desenvolvimento) e usa `http://tauri.localhost/` como fallback no executável empacotado. Essa configuração é aplicada somente aos hosts do player e evita o erro 153 causado por WebViews sem identidade HTTP. Nenhum token OAuth é colocado nesse cabeçalho.

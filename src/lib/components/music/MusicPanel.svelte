@@ -3,14 +3,16 @@
   import {
     connectYouTubeMusic,
     getMusicAuthStatus,
+    isYouTubeAuthReconnectRequired,
     listYouTubePlaylistItems,
     listYouTubePlaylists
   } from '../../services/youtube-music.js';
-  import { musicSettingsRevision } from '../../stores/ui-store.js';
+  import { musicSettingsRevision, showSettingsModal } from '../../stores/ui-store.js';
   import { t } from '../../i18n/index.js';
   import { clampTrackIndex } from './player-queue.js';
   import MusicIcons from './MusicIcons.svelte';
   import PlaylistTrackSidebar from './PlaylistTrackSidebar.svelte';
+  import YouTubeAuthRecovery from './YouTubeAuthRecovery.svelte';
   import YouTubePlayer from './YouTubePlayer.svelte';
   import './music.css';
 
@@ -23,6 +25,8 @@
   let tracksLoading = $state(false);
   let errorMessage = $state('');
   let infoMessage = $state('');
+  let reconnectRequired = $state(false);
+  let reconnectFailed = $state(false);
   let playlists = $state([]);
   let selectedPlaylist = $state(null);
   let tracks = $state([]);
@@ -53,6 +57,36 @@
     return `${count} ${$t(count === 1 ? 'music.track' : 'music.tracks')}`;
   }
 
+  function enterAuthRecovery() {
+    playlistsRequestSequence += 1;
+    tracksRequestSequence += 1;
+
+    auth = { ...auth, authenticated: false, authInProgress: false };
+    reconnectRequired = true;
+    reconnectFailed = false;
+    playlistsLoading = false;
+    tracksLoading = false;
+    playlists = [];
+    selectedPlaylist = null;
+    tracks = [];
+    currentTrack = null;
+    playRequest = null;
+    playlistQuery = '';
+    musicView = 'library';
+    errorMessage = '';
+    infoMessage = '';
+  }
+
+  function handleAuthFailure(error) {
+    if (!isYouTubeAuthReconnectRequired(error)) return false;
+    enterAuthRecovery();
+    return true;
+  }
+
+  function openOAuthSettings() {
+    showSettingsModal('media');
+  }
+
   async function loadAuthStatus({ showLoading = false } = {}) {
     const requestId = ++authRequestSequence;
     if (!desktop) {
@@ -69,6 +103,8 @@
       if (requestId !== authRequestSequence) return;
 
       auth = nextAuth;
+      reconnectRequired = false;
+      reconnectFailed = false;
       if (auth.authenticated) void refreshPlaylists();
     } catch (error) {
       if (requestId === authRequestSequence) {
@@ -84,17 +120,26 @@
 
   async function connect() {
     authRequestSequence += 1;
+    const recovering = reconnectRequired;
     connecting = true;
+    reconnectFailed = false;
     errorMessage = '';
-    infoMessage = $t('music.authorizationBrowser');
+    infoMessage = recovering ? '' : $t('music.authorizationBrowser');
 
     try {
       auth = await connectYouTubeMusic();
+      reconnectRequired = false;
+      reconnectFailed = false;
       infoMessage = $t('music.accountConnected');
       await refreshPlaylists();
     } catch (error) {
       infoMessage = '';
-      errorMessage = error?.message || String(error);
+      if (handleAuthFailure(error)) return;
+      if (recovering) {
+        reconnectFailed = true;
+      } else {
+        errorMessage = error?.message || String(error);
+      }
     } finally {
       connecting = false;
     }
@@ -121,7 +166,9 @@
       }
     } catch (error) {
       if (requestId === playlistsRequestSequence) {
-        errorMessage = error?.message || String(error);
+        if (!handleAuthFailure(error)) {
+          errorMessage = error?.message || String(error);
+        }
       }
     } finally {
       if (requestId === playlistsRequestSequence) playlistsLoading = false;
@@ -147,7 +194,9 @@
     } catch (error) {
       if (requestId === tracksRequestSequence && selectedPlaylist?.id === playlistId) {
         tracks = [];
-        errorMessage = error?.message || String(error);
+        if (!handleAuthFailure(error)) {
+          errorMessage = error?.message || String(error);
+        }
       }
     } finally {
       if (requestId === tracksRequestSequence && selectedPlaylist?.id === playlistId) {
@@ -220,6 +269,13 @@
         <p>{$t('music.configurationBody')}</p>
       </div>
     </section>
+  {:else if reconnectRequired}
+    <YouTubeAuthRecovery
+      {connecting}
+      failed={reconnectFailed}
+      onReconnect={connect}
+      onOpenSettings={openOAuthSettings}
+    />
   {:else if !auth.authenticated}
     <section class="music-state-shell">
       <div class="music-state-card">

@@ -15,8 +15,7 @@
   });
 </script>
 
-<article class="radar-lead">
-  <!-- O clique abre o preview interno; o navegador só é acionado pelo drawer. -->
+<article class={`radar-lead category-${article.category}`}>
   <button
     type="button"
     aria-label={`${$t('radar.openArticle')}: ${article.title}`}
@@ -24,18 +23,20 @@
   >
     <RadarArticleCover image={article.image} category={article.category} variant="lead" />
     <span class="radar-lead-copy">
-      <span class="radar-kicker">{$t(`radar.category.${article.category}` as MessageKey)}</span>
+      <span class="radar-article-overline">
+        <span class="radar-kicker">{$t(`radar.category.${article.category}` as MessageKey)}</span>
+        <span class="radar-article-source">{article.sourceName}</span>
+      </span>
       <span class="radar-lead-title">{article.title}</span>
       {#if article.summary}<span class="radar-lead-summary">{article.summary}</span>{/if}
       <span class="radar-news-meta">
-        {article.sourceName}
-        <span aria-hidden="true">·</span>
-        {publishedLabel}
+        <span>{publishedLabel}</span>
         {#if article.relatedCount > 0}
-          <span aria-hidden="true">·</span>
-          {formatMessage($t('radar.relatedCount'), { count: article.relatedCount })}
+          <span aria-hidden="true">•</span>
+          <span>{formatMessage($t('radar.relatedCount'), { count: article.relatedCount })}</span>
         {/if}
       </span>
+      <span class="radar-read-cue" aria-hidden="true">↗</span>
     </span>
   </button>
 </article>
